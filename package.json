@@ -4,7 +4,7 @@
   "type": "commonjs",
   "scripts": {
     "dev": "ts-node-dev --respawn --transpile-only src/index.ts",
-    "build": "tsc",
+    "build": "node ./node_modules/typescript/bin/tsc",
     "vercel-build": "npm run build",
     "start": "node api/index.js"
   },
