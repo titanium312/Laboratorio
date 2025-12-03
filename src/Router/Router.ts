@@ -1,5 +1,11 @@
 import { Router } from 'express';
-import { getHome } from '../Controller/home.controller';
+import { filtrado } from '../Controller/Filtrado';
+import { Procedimiento } from '../Controller/Procedimiento';
+import { Parametrizacion } from '../Controller/Parametros';
+import { obtenerCadenaCompleta } from '../Controller/ParametroR';
+import { ArmarJsonController } from '../Controller/inte/CrearJsonPost';
+//import { vercion2 } from '../Controller/inte/Subir';
+
 
 const router = Router();
 
@@ -9,7 +15,12 @@ router.get('/', (req, res) => {
 });
 
 
-router.use('/Home', getHome);
+router.use('/Filtra', filtrado);
+router.use('/Procedimiento', Procedimiento);
+router.use('/Parametrizacion', Parametrizacion);
+router.get('/BuscarAdmision', obtenerCadenaCompleta); // <-- Solo acepta GET
+router.post('/ArmarJson', ArmarJsonController);
+//router.post('/vercion2', vercion2);
 
 // 404 del router
 router.use((req, res) => {
