@@ -1,0 +1,438 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Formateador TXT → Tabla (v4 - 100% Robusto)</title>
+  <style>
+    body{font-family:Inter,system-ui,-apple-system,'Segoe UI',Roboto,Arial;padding:18px;background:#f7fafc;color:#111}
+    h1{font-size:19px;margin-bottom:8px;font-weight:600}
+    .row{display:flex;gap:12px;align-items:flex-start}
+    textarea{width:100%;min-height:220px;padding:10px;font-family:monospace;font-size:13px;box-sizing:border-box}
+    table{width:100%;border-collapse:collapse;margin-top:15px;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.1)}
+    th,td{border:1px solid #cbd5e1;padding:8px 10px;text-align:left;font-size:13.5px}
+    th{background:#e0e7ff;color:#1e1b4b;font-weight:600}
+    .controls{display:flex;gap:10px;margin-top:10px;flex-wrap:wrap;align-items:center}
+    button{padding:9px 14px;border-radius:6px;border:none;background:#4f46e5;color:white;cursor:pointer;font-weight:500}
+    button:hover{background:#4338ca}
+    button:disabled{background:#94a3b8;cursor:not-allowed}
+    .secondary{background:#6b7280}
+    .secondary:hover{background:#4b5563}
+    .filters{display:flex;gap:12px;align-items:center;margin-top:12px;flex-wrap:wrap}
+    .badge{background:#dbeafe;color:#1e40af;padding:5px 10px;border-radius:6px;font-size:13px;font-weight:500}
+    input[type=text],input[type=number]{padding:8px 10px;border:1px solid #cbd5e1;border-radius:6px;min-width:220px}
+  </style>
+</head>
+<body>
+<h1>Formateador TXT → Tabla (100% Funcional - Espacios múltiples OK)</h1>
+<p>Funciona con el TXT en formato de tabla y sube directo a ArmarJson según el tipo de examen.</p>
+
+<div class="row">
+  <div style="flex:1;min-width:400px">
+    <label><strong>Cargar archivo .txt</strong><br>
+      <input id="file" type="file" accept=".txt" style="margin-top:6px">
+    </label>
+    <div style="height:12px"></div>
+    <label><strong>Pegar contenido aquí</strong></label>
+    <textarea id="input" placeholder="Pega el texto del laboratorio..."></textarea>
+    <div class="controls">
+      <button id="parse">Parsear</button>
+      <button id="clear" class="secondary">Limpiar</button>
+      <button id="downloadCsv">Descargar CSV</button>
+      <button id="downloadJson">Descargar JSON</button>
+    </div>
+    <div class="filters">
+      <input id="filterInput" placeholder="Filtrar por paciente, prueba o ID">
+      <label><input id="mappedOnly" type="checkbox"> Solo con ID asignado</label>
+      <span class="badge" id="countBadge">0 filas</span>
+    </div>
+    <!-- idUsuario y botón para subir a API -->
+    <div class="filters">
+      <input id="idUsuario" type="number" placeholder="idUsuario para subir a la API">
+      <button id="sendApi" class="secondary">Subir a API ArmarJson</button>
+    </div>
+  </div>
+</div>
+
+<div id="resultArea"></div>
+
+<script>
+// ================= CONFIG API =================
+const API_URL = "http://localhost:3000/-rb-/ArmarJson"; // usa esta ruta como en tus cURL
+
+// --- Mapeo completo de exámenes (con nombres largos) ---
+const EXAM_MAP = {
+  "GLUCOSE": "11803", "GLUCOSA": "11803",
+  "CHOLESTEROL": "9096", "COL": "9096",
+  "TRIGLYCERIDES": "9146", "TRIGLICERIDOS": "9146",
+  "LDL": "9094", "COLESTEROL LDL": "9094",
+  "CREATININE": "9173", "CREATININA": "9173",
+  "BUN": "9147", "UREA": "9147",
+  "URIC ACID": "9079", "ACIDO URICO": "9079",
+  "BILIRUBIN DIRECT": "9087",
+  "BILIRUBIN INDIRECT": "9087", "INDIRECT BILIRUBIN": "9087",
+  "BILIRUBIN TOTAL": "9087", "BILIRRUBINA TOTAL": "9087",
+  "CHOL HDL DIRECT": "9093", "HDL": "9093",
+  "CHOL LDL DIRECT": "9094"
+};
+
+// Prefijos de curva de tolerancia
+const CURVA_PREFIX = /^(PRE|POST|1[/]?2H?|1H|2H|3H|B)$/i;
+
+function normalize(s) { return (s||"").toString().trim().toUpperCase(); }
+
+function parseText(text) {
+  const rows = [];
+  const lines = text.replace(/\r/g, "").split("\n");
+
+  for (let raw of lines) {
+    raw = raw.trim();
+    if (!raw) continue;
+    if (!/^\d{5,7}/.test(raw)) continue; // línea de paciente tipo: 181964 ...
+
+    const parts = raw.split(/\s+/).filter(Boolean);
+    if (parts.length < 4) continue;
+
+    let idx = 0;
+    const paciente = parts[idx++];
+
+    let tipo = "-";
+    if (idx < parts.length && CURVA_PREFIX.test(parts[idx])) {
+      tipo = parts[idx].toUpperCase();
+      if (tipo === "1/2") tipo = "1/2H";
+      idx++;
+    }
+
+    // Saltar técnica si existe (SER, PLASMA, etc.)
+    let tecnica = "SER";
+    if (idx < parts.length && ["SER","PLASMA","ORINA","SUERO","HECES"].includes(normalize(parts[idx]))) {
+      tecnica = parts[idx];
+      idx++;
+    }
+
+    // El resto hasta encontrar un número es el nombre completo de la prueba
+    let pruebaParts = [];
+    let conc = "";
+    let unidades = "mg/dL";
+
+    while (idx < parts.length) {
+      const word = parts[idx];
+      if (/^\d+[\.,]?\d*$/.test(word) || word.match(/^\d{1,2}\/\d{1,2}\/\d{4}$/)) {
+        conc = word.replace(",", ".");
+        idx++;
+        break;
+      }
+      pruebaParts.push(word);
+      idx++;
+    }
+
+    const prueba = pruebaParts.join(" ");
+
+    // Unidades (si están pegadas al número)
+    if (idx < parts.length && /mg|dl|g|l|mmol/i.test(parts[idx])) {
+      unidades = parts[idx];
+      idx++;
+    }
+
+    // Fecha y hora (al final)
+    let fecha = "";
+    if (idx < parts.length && /\d{1,2}\/\d{1,2}\/\d{4}/.test(parts[idx])) {
+      fecha = parts[idx];
+      if (idx + 1 < parts.length && /^\d{1,2}:\d{2}$/.test(parts[idx + 1])) {
+        fecha += " " + parts[idx + 1];
+      }
+    }
+
+    // --- Asignar ID_EXAMEN ---
+    let id_examen = "";
+    const pruebaNorm = normalize(prueba);
+
+    if (pruebaNorm.includes("GLUCOS") || pruebaNorm.includes("GLUCOSE")) {
+      if (tipo === "PRE" || tipo === "POST") id_examen = "9121";
+      else if (["1/2H","1H","2H","3H","B"].includes(tipo)) id_examen = "9122";
+      else id_examen = "11803";
+    } else {
+      for (const key in EXAM_MAP) {
+        if (pruebaNorm.includes(normalize(key))) {
+          id_examen = EXAM_MAP[key];
+          break;
+        }
+      }
+    }
+
+    rows.push({
+      paciente,
+      tipo,
+      tecnica,
+      prueba,
+      id_examen: id_examen || "",
+      conc,
+      unidades,
+      fecha: fecha || ""
+    });
+  }
+  return rows;
+}
+
+// --- Resto del código igual (render, export, etc.) ---
+let lastRows = [];
+
+function render(rows) {
+  const filter = normalize(document.getElementById("filterInput").value);
+  const onlyMapped = document.getElementById("mappedOnly").checked;
+  let visible = 0;
+  let html = `<table><thead><tr>
+    <th>Paciente</th><th>Tipo</th><th>Técnica</th><th>Prueba</th><th>ID_EXAMEN</th><th>Conc.</th><th>Unidades</th><th>Fecha/Hora</th>
+  </tr></thead><tbody>`;
+
+  for (const r of rows) {
+    if (onlyMapped && !r.id_examen) continue;
+    if (filter && !(r.paciente.includes(filter) || normalize(r.prueba).includes(filter) || (r.id_examen && r.id_examen.includes(filter)))) continue;
+    visible++;
+    const idStyle = r.id_examen ? "background:#ecfdf5;color:#166534;font-weight:600" : "color:#ef4444";
+    html += `<tr>
+      <td><strong>${r.paciente}</strong></td>
+      <td><strong>${r.tipo}</strong></td>
+      <td>${r.tecnica}</td>
+      <td>${r.prueba}</td>
+      <td style="${idStyle}">${r.id_examen || "-"}</td>
+      <td style="text-align:right">${r.conc}</td>
+      <td>${r.unidades}</td>
+      <td>${r.fecha}</td>
+    </tr>`;
+  }
+  html += `</tbody></table>`;
+  document.getElementById("countBadge").textContent = visible + " filas";
+  document.getElementById("resultArea").innerHTML = html || "<p style='color:#666'>No se encontraron datos.</p>";
+}
+
+// Controles
+document.getElementById("file").addEventListener("change", async e => {
+  const file = e.target.files[0];
+  if (!file) return;
+  const text = await file.text();
+  document.getElementById("input").value = text;
+});
+
+document.getElementById("parse").addEventListener("click", () => {
+  const txt = document.getElementById("input").value.trim();
+  if (!txt) return alert("Pega o carga un archivo primero");
+  lastRows = parseText(txt);
+  render(lastRows);
+});
+
+document.getElementById("clear").addEventListener("click", () => {
+  document.getElementById("input").value = "";
+  lastRows = [];
+  document.getElementById("resultArea").innerHTML = "";
+  document.getElementById("countBadge").textContent = "0 filas";
+});
+
+document.getElementById("filterInput").addEventListener("input", () => render(lastRows));
+document.getElementById("mappedOnly").addEventListener("change", () => render(lastRows));
+
+// Export
+function exportCSV() {
+  if (!lastRows.length) return alert("Nada que exportar");
+  const filtered = lastRows.filter(r => {
+    if (document.getElementById("mappedOnly").checked && !r.id_examen) return false;
+    const f = normalize(document.getElementById("filterInput").value);
+    if (!f) return true;
+    return r.paciente.includes(f) || normalize(r.prueba).includes(f) || (r.id_examen && r.id_examen.includes(f));
+  });
+  const header = "Paciente,Tipo,Tecnica,Prueba,ID_EXAMEN,Conc,Unidades,FechaHora\n";
+  const lines = filtered.map(r => [
+    r.paciente, r.tipo, r.tecnica, r.prueba, r.id_examen, r.conc, r.unidades, r.fecha
+  ].join(","));
+  const blob = new Blob([header + lines.join("\n")], {type: "text/csv;charset=utf-8"});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url; a.download = "resultados_laboratorio.csv"; a.click();
+}
+
+function exportJSON() {
+  if (!lastRows.length) return alert("Nada que exportar");
+  const filtered = lastRows.filter(r => {
+    if (document.getElementById("mappedOnly").checked && !r.id_examen) return false;
+    const f = normalize(document.getElementById("filterInput").value);
+    if (!f) return true;
+    return r.paciente.includes(f) || normalize(r.prueba).includes(f) || (r.id_examen && r.id_examen.includes(f));
+  });
+  const blob = new Blob([JSON.stringify(filtered, null, 2)], {type: "application/json"});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url; a.download = "resultados_laboratorio.json"; a.click();
+}
+
+document.getElementById("downloadCsv").addEventListener("click", exportCSV);
+document.getElementById("downloadJson").addEventListener("click", exportJSON);
+
+// ===================== ARMAR PAYLOADS PARA LA API =====================
+function buildApiPayloads(rows, idUsuario) {
+  const grouped = new Map();
+
+  // Agrupar por documento (paciente) + id_examen
+  for (const r of rows) {
+    if (!r.id_examen) continue;
+    const key = `${r.paciente}|${r.id_examen}`;
+    if (!grouped.has(key)) grouped.set(key, []);
+    grouped.get(key).push(r);
+  }
+
+  const payloads = [];
+
+  for (const [key, group] of grouped.entries()) {
+    const [documento, idProcedimientoObjetivo] = key.split("|");
+    const examId = idProcedimientoObjetivo;
+
+    // 9087 → bilirrubinas: TOTAL, DIRECTA, INDIRECTA (faltantes = "0")
+    if (examId === "9087") {
+      const total     = group.find(g => /TOTAL/i.test(g.prueba));
+      const directa   = group.find(g => /DIRECTA|DIRECT/i.test(g.prueba));
+      const indirecta = group.find(g => /INDIRECTA|INDIRECT/i.test(g.prueba));
+
+      const totalVal     = (total && total.conc)     ? total.conc     : "0";
+      const directaVal   = (directa && directa.conc) ? directa.conc   : "0";
+      const indirectaVal = (indirecta && indirecta.conc) ? indirecta.conc : "0";
+
+      const resultadosArray = [
+        totalVal,
+        directaVal,
+        indirectaVal
+      ];
+
+      payloads.push({
+        documento,
+        idProcedimientoObjetivo: examId,
+        body: {
+          idUsuario: Number(idUsuario),
+          resultadosArray
+        }
+      });
+    }
+
+    // 9121 → glucosa PRE / POST (faltantes = "0", solo número; si quieres también concatenamos texto luego)
+    else if (examId === "9121") {
+      const pre  = group.find(g => g.tipo === "PRE");
+      const post = group.find(g => g.tipo === "POST");
+
+      const preVal  = (pre && pre.conc)  ? pre.conc  : "0";
+      const postVal = (post && post.conc) ? post.conc : "0";
+
+      const resultadosArray = [
+        preVal,
+        postVal
+      ];
+
+      payloads.push({
+        documento,
+        idProcedimientoObjetivo: examId,
+        body: {
+          idUsuario: Number(idUsuario),
+          resultadosArray
+        }
+      });
+    }
+
+    // 9122 → curva con orden: 2H, 3H, 1H, MEDIA HORA, OBS, BASAL (faltantes = "0")
+    else if (examId === "9122") {
+      // Usamos el campo "tipo" que sacamos del TXT: "1/2H", "1H", "2H", "3H", "B"
+      const slots = [
+        { label: "GLUCOSA 2 HORAS",      tipo: "2H"   },
+        { label: "GLUCOSA 3 HORAS",      tipo: "3H"   },
+        { label: "GLUCOSA 1 HORA",       tipo: "1H"   },
+        { label: "GLUCOSA MEDIA HORA",   tipo: "1/2H" },
+        { label: "OBSERVACIÓN",          tipo: null   }, // no viene del TXT → "0"
+        { label: "GLUCOSA BASAL",        tipo: "B"    }
+      ];
+
+      const resultadosArray = slots.map(slot => {
+        if (!slot.tipo) return "0"; // OBSERVACIÓN siempre "0"
+        const row = group.find(g => g.tipo === slot.tipo);
+        return (row && row.conc) ? row.conc : "0";
+      });
+
+      payloads.push({
+        documento,
+        idProcedimientoObjetivo: examId,
+        body: {
+          idUsuario: Number(idUsuario),
+          resultadosArray
+        }
+      });
+    }
+
+    // Otros → mono resultado (usa la concentración o "0")
+    else {
+      const first = group[0];
+      const val = (first && first.conc) ? first.conc : "0";
+
+      payloads.push({
+        documento,
+        idProcedimientoObjetivo: examId,
+        body: {
+          idUsuario: Number(idUsuario),
+          resultado: String(val)
+        }
+      });
+    }
+  }
+
+  return payloads;
+}
+
+// ===================== ENVIAR A LA API ARMARJSON =====================
+document.getElementById("sendApi").addEventListener("click", async () => {
+  const idUsuario = document.getElementById("idUsuario").value.trim();
+  if (!idUsuario) {
+    alert("Ingresa el idUsuario antes de subir a la API");
+    return;
+  }
+  if (!lastRows.length) {
+    alert("Primero parsea el archivo TXT");
+    return;
+  }
+
+  const payloads = buildApiPayloads(lastRows, idUsuario);
+  if (!payloads.length) {
+    alert("No hay filas con ID_EXAMEN mapeado para enviar.");
+    return;
+  }
+
+  if (!confirm(`Se van a enviar ${payloads.length} peticiones a la API.\n¿Continuar?`)) return;
+
+  let ok = 0;
+  let fail = 0;
+
+  for (const p of payloads) {
+    try {
+      // Construimos la URL con query como en tus ejemplos:
+      const url = `${API_URL}?documento=${encodeURIComponent(p.documento)}&idProcedimientoObjetivo=${encodeURIComponent(p.idProcedimientoObjetivo)}&idUsuario=${encodeURIComponent(idUsuario)}`;
+
+      console.log("📤 Enviando a API:", url, JSON.stringify(p.body));
+
+      const res = await fetch(url, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(p.body)
+      });
+
+      const text = await res.text();
+      if (!res.ok) {
+        fail++;
+        console.error("❌ Error API", p.documento, p.idProcedimientoObjetivo, text);
+      } else {
+        ok++;
+        console.log("✅ OK API", p.documento, p.idProcedimientoObjetivo, text);
+      }
+    } catch (err) {
+      fail++;
+      console.error("❌ Error de red/API", p.documento, p.idProcedimientoObjetivo, err);
+    }
+  }
+
+  alert(`Envío terminado.\nÉxitos: ${ok}\nErrores: ${fail}\n(Revisa la consola para más detalles).`);
+});
+</script>
+</body>
+</html>

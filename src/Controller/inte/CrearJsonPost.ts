@@ -2,12 +2,12 @@
 import { Request, Response } from 'express';
 import axios from 'axios';
 import { obtenerCadenaCompletaCore } from '../ParametroR';
-import { getToken } from "../token"
+import { getToken } from '../token.js';
 
-  const TOKEN = getToken();
 /* ----------------------------------------------
    Helpers
 ---------------------------------------------- */
+const TOKEN = getToken();
 
 function nowDateTimeStrings() {
   const d = new Date();
@@ -29,17 +29,15 @@ function mapToSaludPlusFormat(jsonFinal: any) {
   return {
     idResultadoLaboratorio: Number(jsonFinal.idResultadoLaboratorio) || 0,
     idAdmision: Number(jsonFinal.idAdmision) || 0,
-    idOrden:
-      jsonFinal.ResultadosLaboratorioProcedimientos[0].idOrden || 0,
+    idOrden: jsonFinal.ResultadosLaboratorioProcedimientos[0]?.idOrden || 0,
 
     resultadosLaboratorioProcedimientos:
       jsonFinal.ResultadosLaboratorioProcedimientos.map((proc: any) => ({
         id: proc.Id || 0,
-        idResultadoLaboratorio:
-          Number(jsonFinal.idResultadoLaboratorio) || 0,
+        idResultadoLaboratorio: Number(jsonFinal.idResultadoLaboratorio) || 0,
         idOrden: proc.idOrden || 0,
         idFactura: proc.idFactura || 0,
-        idProcedimiento: String(proc.IdProcedimiento || ""),
+        idProcedimiento: String(proc.IdProcedimiento || ''),
         idUsuario: Number(proc.idUsuario) || 0,
         fecha: proc.fecha,
         hora: proc.hora,
@@ -50,19 +48,17 @@ function mapToSaludPlusFormat(jsonFinal: any) {
             idCategia: cat.idCategoria || 0,
             idResultadoLaboratorioProcedimiento:
               cat.idResultadoLaboratorioProcedimiento || 0,
-            resultado: cat.resultado || ""
+            resultado: cat.resultado || ''
           })) || [],
 
-        resultadosLaboratorioItems: proc.ResultadosLaboratorioItems.map(
-          (item: any) => ({
-            idResultadoLaboratorioItem:
-              item.idResultadoLaboratorioItem || 0,
+        resultadosLaboratorioItems:
+          proc.ResultadosLaboratorioItems?.map((item: any) => ({
+            idResultadoLaboratorioItem: item.idResultadoLaboratorioItem || 0,
             idItem: item.idItem || 0,
             idResultadoLaboratorioProcedimiento:
               item.idResultadoLaboratorioProcedimiento || 0,
-            resultado: item.resultado || ""
-          })
-        )
+            resultado: item.resultado || ''
+          })) || []
       }))
   };
 }
@@ -122,13 +118,20 @@ export const ArmarJsonController = async (req: Request, res: Response) => {
     let items: Array<Record<string, any>> = [];
     let resultadosArrayFromBody: string[] | undefined = undefined;
 
-    // Caso especial: procedimiento 9087 → requiere 3 resultados
-    if (String(match.idProcedimiento) === "9087") {
+    const getResultadosArrayLimpio = (): string[] | undefined => {
       if (Array.isArray(req.body?.resultadosArray)) {
-        resultadosArrayFromBody = req.body.resultadosArray.map((x: any) =>
-          isNonEmptyString(x) ? x : String(x ?? "").trim()
+        return req.body.resultadosArray.map((x: any) =>
+          isNonEmptyString(x) ? x.trim() : String(x ?? '').trim()
         );
       }
+      return undefined;
+    };
+
+    const idProcedimientoStr = String(match.idProcedimiento ?? idProcedimientoObjetivo ?? '');
+
+    // 🔹 Caso especial: 9087 → BILIRRUBINA 3 ÍTEMS (con ids de ítem de la param y TODO LO DEMÁS EN 0)
+    if (idProcedimientoStr === '9087') {
+      resultadosArrayFromBody = getResultadosArrayLimpio();
 
       if (
         !Array.isArray(resultadosArrayFromBody) ||
@@ -142,17 +145,66 @@ export const ArmarJsonController = async (req: Request, res: Response) => {
         });
       }
 
-      const baseIdItem = Number(match.idItem ?? 0);
-      const baseRLItem = Number(match.idResultadoLaboratorioItem ?? 0);
-      const baseRLProc = Number(match.idResultadoLaboratorioProcedimiento ?? 0);
+      const baseIdItem = Number(match.idItem ?? 0); // 7594, por ejemplo
 
       items = resultadosArrayFromBody.map((label, idx) => ({
-        idItem: baseIdItem + idx,
-        idResultadoLaboratorioItem: baseRLItem + idx,
-        idResultadoLaboratorioProcedimiento: baseRLProc + idx,
+        idItem: baseIdItem ? baseIdItem + idx : 0,  // 7594,7595,7596...
+        idResultadoLaboratorioItem: 0,              // FORZADO A 0 (como tu JSON correcto)
+        idResultadoLaboratorioProcedimiento: 0,     // FORZADO A 0
         resultado: label
       }));
+
+    // Caso especial: 9121 → 2 ítems (curva simple pre/post)
+    } else if (idProcedimientoStr === '9121') {
+      resultadosArrayFromBody = getResultadosArrayLimpio();
+
+      if (
+        !Array.isArray(resultadosArrayFromBody) ||
+        resultadosArrayFromBody.length !== 2 ||
+        resultadosArrayFromBody.some(r => !isNonEmptyString(r))
+      ) {
+        return res.status(400).json({
+          success: false,
+          message:
+            'Para IdProcedimiento "9121" debes enviar body.resultadosArray con 2 strings no vacíos (p. ej. ["GLUCOSA PRE PRANDIAL","GLUCOSA POST PRANDIAL"])'
+        });
+      }
+
+      const baseIdItem = Number(match.idItem ?? 0);
+
+      items = resultadosArrayFromBody.map((label, idx) => ({
+        idItem: baseIdItem ? baseIdItem + idx : 0,
+        idResultadoLaboratorioItem: 0,
+        idResultadoLaboratorioProcedimiento: 0,
+        resultado: label
+      }));
+
+    // Caso especial: 9122 → PLANTILLA DE CURVA (6 ítems con IDs fijos)
+    } else if (idProcedimientoStr === '9122') {
+      const FIXED_ID_ITEMS = [7605, 8052, 7604, 8051, 9182, 7603];
+
+      resultadosArrayFromBody = getResultadosArrayLimpio();
+
+      if (
+        !Array.isArray(resultadosArrayFromBody) ||
+        resultadosArrayFromBody.length !== FIXED_ID_ITEMS.length ||
+        resultadosArrayFromBody.some(r => !isNonEmptyString(r))
+      ) {
+        return res.status(400).json({
+          success: false,
+          message: `Para IdProcedimiento "9122" debes enviar body.resultadosArray con ${FIXED_ID_ITEMS.length} strings no vacíos (en el orden de la plantilla de curva)`
+        });
+      }
+
+      items = FIXED_ID_ITEMS.map((fixedId, idx) => ({
+        idItem: fixedId,
+        idResultadoLaboratorioItem: 0,
+        idResultadoLaboratorioProcedimiento: 0,
+        resultado: resultadosArrayFromBody![idx]
+      }));
+
     } else {
+      // Default: solo 1 resultado
       if (!isNonEmptyString(req.body?.resultado)) {
         return res.status(400).json({
           success: false,
@@ -171,47 +223,53 @@ export const ArmarJsonController = async (req: Request, res: Response) => {
     }
 
     /* --------------------------------------
-       ARMAR JSON INTERNO
+       ARMAR JSON INTERNO (LIMPIO)
     -------------------------------------- */
+    const esPlantillaCurva9122 = idProcedimientoStr === '9122';
+    const esBilirrubina9087 = idProcedimientoStr === '9087';
+
     const jsonFinal = {
       ResultadosLaboratorioProcedimientos: [
         {
           ResultadosLaboratorioCategorias: [],
           ResultadosLaboratorioItems: items,
           Id: match.idParametrizacion ?? match.id ?? 0,
-          idUsuario: idUsuario,
-          fecha: fecha,
-          hora: hora,
-          IdProcedimiento: String(match.idProcedimiento ?? idProcedimientoObjetivo),
+          idUsuario: Number.isFinite(Number(req.body?.idUsuario ?? idUsuario))
+            ? Number(req.body?.idUsuario ?? idUsuario)
+            : null,
+          fecha,
+          hora,
+          IdProcedimiento: idProcedimientoStr,
           idFactura: match.idFactura ?? 0,
           idOrden: match.idOrden ?? 0
         }
       ],
       idAdmision: match.idAdmision ?? null,
-      idResultadoLaboratorio: String(
-        match.idResultadoLaboratorioProcedimiento ??
-          match.idResultadoLaboratorio ??
-          ""
-      )
+      idResultadoLaboratorio:
+        (esPlantillaCurva9122 || esBilirrubina9087)
+          ? 0   // 👈 EXACTAMENTE como tu JSON correcto para curva y bilirrubina
+          : (
+              Number(
+                match.idResultadoLaboratorioProcedimiento ??
+                match.idResultadoLaboratorio ??
+                0
+              ) || 0
+            )
     };
 
     /* --------------------------------------
-       CONVERTIR → FORMATO SALUDPLUS
+       MAPEAR Y ENVIAR A SALUDPLUS
     -------------------------------------- */
     const payloadSaludPlus = mapToSaludPlusFormat(jsonFinal);
 
-    /* --------------------------------------
-       ENVIAR A SALUDPLUS
-    -------------------------------------- */
-
-
     const resp = await axios.post(
-      "https://api.saludplus.co/api/resultadoLaboratorio",
+      'https://api.saludplus.co/api/resultadoLaboratorio',
       payloadSaludPlus,
       {
         headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${TOKEN}`
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${TOKEN}`,
+          'accept': 'application/json'
         }
       }
     );
@@ -221,15 +279,17 @@ export const ArmarJsonController = async (req: Request, res: Response) => {
     -------------------------------------- */
     return res.json({
       success: true,
-      enviadoASaludPlus: true,
-      respuestaSaludPlus: resp.data,
+      mensaje: 'Resultado enviado a SaludPlus correctamente',
+      jsonInterno: jsonFinal,
+      payloadSaludPlus,
+      respuestaSaludPlus: resp.data
     });
 
   } catch (err: any) {
-    console.error("Error en ArmarJsonController:", err?.response?.data || err?.message);
+    console.error('Error en ArmarJsonController:', err?.response?.data || err?.message);
     return res.status(500).json({
       success: false,
-      message: "Error interno",
+      message: 'Error interno',
       error: err?.response?.data || err.message
     });
   }
