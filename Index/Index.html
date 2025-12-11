@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Formateador TXT → Tabla (v4 - 100% Robusto)</title>
+  <title>Formateador TXT → Tabla (v5 - Robust)</title>
   <style>
     body{font-family:Inter,system-ui,-apple-system,'Segoe UI',Roboto,Arial;padding:18px;background:#f7fafc;color:#111}
     h1{font-size:19px;margin-bottom:8px;font-weight:600}
@@ -81,6 +81,29 @@ const CURVA_PREFIX = /^(PRE|POST|1[/]?2H?|1H|2H|3H|B)$/i;
 
 function normalize(s) { return (s||"").toString().trim().toUpperCase(); }
 
+// Patrones auxiliares
+const dateRe = /^\d{1,2}\/\d{1,2}\/\d{4}$/;
+const timeRe = /^\d{1,2}:\d{2}$/;
+const numRe = /^\d+[\.,]?\d*$/;
+const cmpNumRe = /^[<>]=?\d+[\.,]?\d*$/;
+const dashSlashRe = /^[-\/]{2,}$/;
+const resultWordsRe = /^(NEGATIVO|POSITIVO|REACTIVO|NO|TRAZAS|N\/A|INDETERMINADO)$/i;
+const unitRe = /^(mg\/?d?l|mg|mmol\/l|mmol|g\/dl|g|iu\/l|iu|%|u\/l|ml|mL|ug\/mL|mg\/L)$/i;
+
+// Heurística: decide si un token es resultado (conc)
+function looksLikeResult(token, nextToken) {
+  if (!token) return false;
+  if (numRe.test(token)) return true;                // 12, 12.5
+  if (cmpNumRe.test(token)) return true;             // <5, >=2.5
+  if (dashSlashRe.test(token)) return true;          // ----, ///
+  if (resultWordsRe.test(token)) return true;        // NEGATIVO, POSITIVO
+  if (unitRe.test(nextToken)) return true;           // token before unit -> token likely conc (amor mg/dL)
+  if (dateRe.test(nextToken) || timeRe.test(nextToken)) return true; // token before date/time -> likely conc
+  // also if token contains digits or symbols like 0-1 or 5-10 treat as result
+  if (/^[\d\-\+\/]+$/.test(token)) return true;
+  return false;
+}
+
 function parseText(text) {
   const rows = [];
   const lines = text.replace(/\r/g, "").split("\n");
@@ -88,14 +111,16 @@ function parseText(text) {
   for (let raw of lines) {
     raw = raw.trim();
     if (!raw) continue;
-    if (!/^\d{5,7}/.test(raw)) continue; // línea de paciente tipo: 181964 ...
+    // línea que empieza con paciente (5-7 dígitos)
+    if (!/^\d{5,7}/.test(raw)) continue;
 
     const parts = raw.split(/\s+/).filter(Boolean);
-    if (parts.length < 4) continue;
+    if (parts.length < 3) continue;
 
     let idx = 0;
     const paciente = parts[idx++];
 
+    // tipo/curva
     let tipo = "-";
     if (idx < parts.length && CURVA_PREFIX.test(parts[idx])) {
       tipo = parts[idx].toUpperCase();
@@ -103,44 +128,68 @@ function parseText(text) {
       idx++;
     }
 
-    // Saltar técnica si existe (SER, PLASMA, etc.)
+    // técnica
     let tecnica = "SER";
     if (idx < parts.length && ["SER","PLASMA","ORINA","SUERO","HECES"].includes(normalize(parts[idx]))) {
       tecnica = parts[idx];
       idx++;
     }
 
-    // El resto hasta encontrar un número es el nombre completo de la prueba
+    // ahora extraemos nombre de prueba hasta detectar resultado (conc)
     let pruebaParts = [];
     let conc = "";
     let unidades = "mg/dL";
-
     while (idx < parts.length) {
       const word = parts[idx];
-      if (/^\d+[\.,]?\d*$/.test(word) || word.match(/^\d{1,2}\/\d{1,2}\/\d{4}$/)) {
-        conc = word.replace(",", ".");
+      const next = parts[idx+1] || "";
+
+      // Si es fecha: forma parte del nombre (ej: pruebas con fecha dentro) -> lo añadimos a prueba
+      if (dateRe.test(word)) {
+        pruebaParts.push(word);
+        idx++;
+        continue;
+      }
+
+      // Si el token aparenta ser resultado (número, <5, ---, palabra resultado) o
+      // si el siguiente token es unidad o fecha/hora => entonces el token actual es conc
+      if (looksLikeResult(word, next)) {
+        conc = word.replace(",", ".").trim();
         idx++;
         break;
       }
+
+      // Si no cumple ninguna condición, sigue siendo parte del nombre de la prueba
       pruebaParts.push(word);
       idx++;
     }
 
-    const prueba = pruebaParts.join(" ");
+    const prueba = pruebaParts.join(" ").trim();
 
-    // Unidades (si están pegadas al número)
-    if (idx < parts.length && /mg|dl|g|l|mmol/i.test(parts[idx])) {
+    // Unidades (si están pegadas después del resultado)
+    if (idx < parts.length && unitRe.test(parts[idx])) {
       unidades = parts[idx];
       idx++;
+    } else {
+      // también aceptar tokens como "mg/dL" con distintos formatos (case-insensitive)
+      if (idx < parts.length && /mg|mmol|g\/dl|iu|%|ug/i.test(parts[idx])) {
+        unidades = parts[idx];
+        idx++;
+      }
     }
 
     // Fecha y hora (al final)
     let fecha = "";
-    if (idx < parts.length && /\d{1,2}\/\d{1,2}\/\d{4}/.test(parts[idx])) {
+    if (idx < parts.length && dateRe.test(parts[idx])) {
       fecha = parts[idx];
-      if (idx + 1 < parts.length && /^\d{1,2}:\d{2}$/.test(parts[idx + 1])) {
+      if (idx + 1 < parts.length && timeRe.test(parts[idx + 1])) {
         fecha += " " + parts[idx + 1];
       }
+    }
+
+    // Normalizar conc: si solo contiene guiones o barras dejar vacío (opcional)
+    if (/^[-\/\s]+$/.test(conc)) {
+      // mantenemos tal cual (ej: "---" o "///") — si prefieres convertir a "" o "0", cámbialo aquí
+      // conc = "";
     }
 
     // --- Asignar ID_EXAMEN ---
@@ -171,6 +220,7 @@ function parseText(text) {
       fecha: fecha || ""
     });
   }
+
   return rows;
 }
 
@@ -268,6 +318,7 @@ document.getElementById("downloadCsv").addEventListener("click", exportCSV);
 document.getElementById("downloadJson").addEventListener("click", exportJSON);
 
 // ===================== ARMAR PAYLOADS PARA LA API =====================
+// (idéntico a tu versión previa; no lo toqué excepto por usar lastRows)
 function buildApiPayloads(rows, idUsuario) {
   const grouped = new Map();
 
@@ -311,7 +362,7 @@ function buildApiPayloads(rows, idUsuario) {
       });
     }
 
-    // 9121 → glucosa PRE / POST (faltantes = "0", solo número; si quieres también concatenamos texto luego)
+    // 9121 → glucosa PRE / POST (faltantes = "0", solo número)
     else if (examId === "9121") {
       const pre  = group.find(g => g.tipo === "PRE");
       const post = group.find(g => g.tipo === "POST");
@@ -336,7 +387,6 @@ function buildApiPayloads(rows, idUsuario) {
 
     // 9122 → curva con orden: 2H, 3H, 1H, MEDIA HORA, OBS, BASAL (faltantes = "0")
     else if (examId === "9122") {
-      // Usamos el campo "tipo" que sacamos del TXT: "1/2H", "1H", "2H", "3H", "B"
       const slots = [
         { label: "GLUCOSA 2 HORAS",      tipo: "2H"   },
         { label: "GLUCOSA 3 HORAS",      tipo: "3H"   },
@@ -406,7 +456,6 @@ document.getElementById("sendApi").addEventListener("click", async () => {
 
   for (const p of payloads) {
     try {
-      // Construimos la URL con query como en tus ejemplos:
       const url = `${API_URL}?documento=${encodeURIComponent(p.documento)}&idProcedimientoObjetivo=${encodeURIComponent(p.idProcedimientoObjetivo)}&idUsuario=${encodeURIComponent(idUsuario)}`;
 
       console.log("📤 Enviando a API:", url, JSON.stringify(p.body));
