@@ -2,6 +2,7 @@
 import { Request, Response } from 'express';
 import axios from 'axios';
 import { obtenerCadenaCompletaCore } from '../ParametroR';
+import { EXAMENES } from './ListaItem';
 import { getToken } from '../token.js';
 
 /* ----------------------------------------------
@@ -20,6 +21,24 @@ function nowDateTimeStrings() {
 
 function isNonEmptyString(v: any): v is string {
   return typeof v === 'string' && v.trim() !== '';
+}
+
+/** Construir mapa inverso id -> nombre (usa el primer alias como representativo) */
+const EXAMENES_ID_A_NOMBRE: Record<string, string> = (() => {
+  const map: Record<string, string> = {};
+  for (const nombre of Object.keys(EXAMENES)) {
+    const id = String(EXAMENES[nombre]);
+    if (!map[id]) map[id] = nombre; // primer alias encontrado
+  }
+  return map;
+})();
+
+/** Todas las claves/alias para un id determinado */
+function getAliasesForId(id: string): string[] {
+  const idStr = String(id);
+  return Object.entries(EXAMENES)
+    .filter(([, v]) => String(v) === idStr)
+    .map(([k]) => k);
 }
 
 /* ----------------------------------------------
@@ -72,14 +91,14 @@ export const ArmarJsonController = async (req: Request, res: Response) => {
        VALIDACIONES BÁSICAS
     -------------------------------------- */
     const documento = (req.query.documento || req.body.documento)?.toString()?.trim();
-    const idProcedimientoObjetivo = (req.query.idProcedimientoObjetivo || req.body.idProcedimientoObjetivo)?.toString()?.trim();
+    const idProcedimientoObjetivoRaw = (req.query.idProcedimientoObjetivo || req.body.idProcedimientoObjetivo)?.toString()?.trim();
     const idUsuarioRaw = req.body?.idUsuario ?? req.query?.idUsuario;
     const idUsuario = idUsuarioRaw !== undefined ? Number(idUsuarioRaw) : NaN;
 
     if (!documento)
       return res.status(400).json({ success: false, message: 'El campo "documento" es obligatorio' });
 
-    if (!idProcedimientoObjetivo)
+    if (!idProcedimientoObjetivoRaw)
       return res.status(400).json({ success: false, message: 'El campo "idProcedimientoObjetivo" es obligatorio' });
 
     if (!Number.isFinite(idUsuario) || idUsuario <= 0)
@@ -88,10 +107,37 @@ export const ArmarJsonController = async (req: Request, res: Response) => {
         message: 'El campo "idUsuario" es obligatorio y debe ser un número válido'
       });
 
+    // Normalizar: el usuario puede enviar un alias (nombre del examen) o el id numérico.
+    const requestedRaw = String(idProcedimientoObjetivoRaw ?? '').trim();
+    const lookupKey = requestedRaw.toUpperCase();
+    const examIdFromList = EXAMENES[lookupKey]; // si envió nombre/alias
+    const idProcedimientoObjetivoNormalizado = examIdFromList ? String(examIdFromList) : requestedRaw;
+
+    // Nombre representativo del examen solicitado (si lo podemos resolver)
+    // - Si envía nombre -> examIdFromList existe y nombreSolicitado será lookupKey
+    // - Si envía id numérico -> buscamos en el mapa inverso EXAMENES_ID_A_NOMBRE
+    let nombreSolicitado: string | null = null;
+    if (examIdFromList) {
+      nombreSolicitado = lookupKey;
+    } else {
+      // intentamos resolver si el valor numérico existe como value en EXAMENES
+      nombreSolicitado = EXAMENES_ID_A_NOMBRE[requestedRaw] ?? null;
+    }
+
+    // Si envió un alias no reconocido y tampoco es un número, rechazar.
+    if (!examIdFromList && !/^[0-9]+$/.test(requestedRaw)) {
+      const allowed = Object.entries(EXAMENES).slice(0, 50).map(([k, v]) => ({ nombre: k, id: v }));
+      return res.status(400).json({
+        success: false,
+        message: 'IdProcedimientoObjetivo no reconocido. Envíalo como id numérico o uno de los alias permitidos (ejemplos):',
+        ejemplos: allowed
+      });
+    }
+
     /* --------------------------------------
        OBTENER DATOS DESDE EL CORE
     -------------------------------------- */
-    const consulta = await obtenerCadenaCompletaCore(documento, idProcedimientoObjetivo);
+    const consulta = await obtenerCadenaCompletaCore(documento, idProcedimientoObjetivoNormalizado);
 
     if (!consulta?.success)
       return res.status(500).json(consulta);
@@ -101,14 +147,34 @@ export const ArmarJsonController = async (req: Request, res: Response) => {
     if (!Array.isArray(registros) || registros.length === 0)
       return res.status(404).json({ success: false, message: "No hay registros parametrizados" });
 
-    const match = registros.find(r => r.coincidencia === true) ?? registros[0];
+    // preferimos el registro marcado por el core, si existe
+    const exactMatch = registros.find(r => r.coincidencia === true);
+    const match = exactMatch ?? registros[0];
 
     if (!match)
       return res.status(404).json({
         success: false,
-        message: `No se encontró el idProcedimientoObjetivo ${idProcedimientoObjetivo}`,
+        message: `No se encontró el idProcedimientoObjetivo ${idProcedimientoObjetivoNormalizado}`,
         consulta
       });
+
+    // ---------- VALIDACIÓN ADICIONAL: procedimiento enviado vs encontrado
+    const matchIdProcedimientoStr = String(match.idProcedimiento ?? '').trim();
+    const requestedIdStr = String(idProcedimientoObjetivoNormalizado ?? '').trim();
+
+    // Buscar nombre representativo para el id que devolvió el core
+    const nombreEncontrado = EXAMENES_ID_A_NOMBRE[matchIdProcedimientoStr] ?? null;
+
+// Si difieren, devolvemos el mensaje solicitado (con nombres o '(sin nombre)' cuando no existan)
+if (requestedIdStr && matchIdProcedimientoStr !== requestedIdStr) {
+  const nombreSolMostrar = nombreSolicitado ?? '(sin nombre)';
+  const nombreEncMostrar = nombreEncontrado ?? '(sin nombre)';
+  const mensajeCustom = `Mandaste idprocedimiento ${requestedIdStr} ${nombreSolMostrar} y se encontró idprocedimiento ${matchIdProcedimientoStr} ${nombreEncMostrar}. Revisa y comprueba que el examen sí está facturado.`;
+  return res.status(400).json({
+    success: false,
+    message: mensajeCustom
+  });
+}
 
     const { fecha, hora } = nowDateTimeStrings();
 
@@ -127,99 +193,59 @@ export const ArmarJsonController = async (req: Request, res: Response) => {
       return undefined;
     };
 
-    const idProcedimientoStr = String(match.idProcedimiento ?? idProcedimientoObjetivo ?? '');
+    // Usar el id que devolvió el core (match) para construir payloads
+    const idProcedimientoStr = matchIdProcedimientoStr || idProcedimientoObjetivoNormalizado || '';
 
-    // 🔹 Caso especial: 9087 → BILIRRUBINA 3 ÍTEMS (con ids de ítem de la param y TODO LO DEMÁS EN 0)
+    // 🔹 Caso especial: 9087 → BILIRRUBINA 3 ÍTEMS
     if (idProcedimientoStr === '9087') {
       resultadosArrayFromBody = getResultadosArrayLimpio();
-
-      if (
-        !Array.isArray(resultadosArrayFromBody) ||
-        resultadosArrayFromBody.length !== 3 ||
-        resultadosArrayFromBody.some(r => !isNonEmptyString(r))
-      ) {
-        return res.status(400).json({
-          success: false,
-          message:
-            'Para IdProcedimiento "9087" debes enviar body.resultadosArray con 3 strings no vacíos'
-        });
+      if (!Array.isArray(resultadosArrayFromBody) || resultadosArrayFromBody.length !== 3 || resultadosArrayFromBody.some(r => !isNonEmptyString(r))) {
+        return res.status(400).json({ success: false, message: 'Para IdProcedimiento "9087" debes enviar body.resultadosArray con 3 strings no vacíos' });
       }
-
-      const baseIdItem = Number(match.idItem ?? 0); // 7594, por ejemplo
-
-      items = resultadosArrayFromBody.map((label, idx) => ({
-        idItem: baseIdItem ? baseIdItem + idx : 0,  // 7594,7595,7596...
-        idResultadoLaboratorioItem: 0,              // FORZADO A 0 (como tu JSON correcto)
-        idResultadoLaboratorioProcedimiento: 0,     // FORZADO A 0
-        resultado: label
-      }));
-
-    // Caso especial: 9121 → 2 ítems (curva simple pre/post)
-    } else if (idProcedimientoStr === '9121') {
-      resultadosArrayFromBody = getResultadosArrayLimpio();
-
-      if (
-        !Array.isArray(resultadosArrayFromBody) ||
-        resultadosArrayFromBody.length !== 2 ||
-        resultadosArrayFromBody.some(r => !isNonEmptyString(r))
-      ) {
-        return res.status(400).json({
-          success: false,
-          message:
-            'Para IdProcedimiento "9121" debes enviar body.resultadosArray con 2 strings no vacíos (p. ej. ["GLUCOSA PRE PRANDIAL","GLUCOSA POST PRANDIAL"])'
-        });
-      }
-
       const baseIdItem = Number(match.idItem ?? 0);
-
       items = resultadosArrayFromBody.map((label, idx) => ({
         idItem: baseIdItem ? baseIdItem + idx : 0,
         idResultadoLaboratorioItem: 0,
         idResultadoLaboratorioProcedimiento: 0,
         resultado: label
       }));
-
-    // Caso especial: 9122 → PLANTILLA DE CURVA (6 ítems con IDs fijos)
+    // 9121
+    } else if (idProcedimientoStr === '9121') {
+      resultadosArrayFromBody = getResultadosArrayLimpio();
+      if (!Array.isArray(resultadosArrayFromBody) || resultadosArrayFromBody.length !== 2 || resultadosArrayFromBody.some(r => !isNonEmptyString(r))) {
+        return res.status(400).json({ success: false, message: 'Para IdProcedimiento "9121" debes enviar body.resultadosArray con 2 strings no vacíos' });
+      }
+      const baseIdItem = Number(match.idItem ?? 0);
+      items = resultadosArrayFromBody.map((label, idx) => ({
+        idItem: baseIdItem ? baseIdItem + idx : 0,
+        idResultadoLaboratorioItem: 0,
+        idResultadoLaboratorioProcedimiento: 0,
+        resultado: label
+      }));
+    // 9122
     } else if (idProcedimientoStr === '9122') {
       const FIXED_ID_ITEMS = [7605, 8052, 7604, 8051, 9182, 7603];
-
       resultadosArrayFromBody = getResultadosArrayLimpio();
-
-      if (
-        !Array.isArray(resultadosArrayFromBody) ||
-        resultadosArrayFromBody.length !== FIXED_ID_ITEMS.length ||
-        resultadosArrayFromBody.some(r => !isNonEmptyString(r))
-      ) {
-        return res.status(400).json({
-          success: false,
-          message: `Para IdProcedimiento "9122" debes enviar body.resultadosArray con ${FIXED_ID_ITEMS.length} strings no vacíos (en el orden de la plantilla de curva)`
-        });
+      if (!Array.isArray(resultadosArrayFromBody) || resultadosArrayFromBody.length !== FIXED_ID_ITEMS.length || resultadosArrayFromBody.some(r => !isNonEmptyString(r))) {
+        return res.status(400).json({ success: false, message: `Para IdProcedimiento "9122" debes enviar body.resultadosArray con ${FIXED_ID_ITEMS.length} strings no vacíos (en el orden de la plantilla de curva)` });
       }
-
       items = FIXED_ID_ITEMS.map((fixedId, idx) => ({
         idItem: fixedId,
         idResultadoLaboratorioItem: 0,
         idResultadoLaboratorioProcedimiento: 0,
         resultado: resultadosArrayFromBody![idx]
       }));
-
     } else {
-      // Default: solo 1 resultado
+      // Default: 1 resultado
       if (!isNonEmptyString(req.body?.resultado)) {
-        return res.status(400).json({
-          success: false,
-          message: 'Para este procedimiento debes enviar body.resultado'
-        });
+        return res.status(400).json({ success: false, message: 'Para este procedimiento debes enviar body.resultado' });
       }
-
-      items = [
-        {
-          idItem: match.idItem ?? 0,
-          idResultadoLaboratorioItem: match.idResultadoLaboratorioItem ?? 0,
-          idResultadoLaboratorioProcedimiento: match.idResultadoLaboratorioProcedimiento ?? 0,
-          resultado: String(req.body.resultado).trim()
-        }
-      ];
+      items = [{
+        idItem: match.idItem ?? 0,
+        idResultadoLaboratorioItem: match.idResultadoLaboratorioItem ?? 0,
+        idResultadoLaboratorioProcedimiento: match.idResultadoLaboratorioProcedimiento ?? 0,
+        resultado: String(req.body.resultado).trim()
+      }];
     }
 
     /* --------------------------------------
@@ -229,61 +255,51 @@ export const ArmarJsonController = async (req: Request, res: Response) => {
     const esBilirrubina9087 = idProcedimientoStr === '9087';
 
     const jsonFinal = {
-      ResultadosLaboratorioProcedimientos: [
-        {
-          ResultadosLaboratorioCategorias: [],
-          ResultadosLaboratorioItems: items,
-          Id: match.idParametrizacion ?? match.id ?? 0,
-          idUsuario: Number.isFinite(Number(req.body?.idUsuario ?? idUsuario))
-            ? Number(req.body?.idUsuario ?? idUsuario)
-            : null,
-          fecha,
-          hora,
-          IdProcedimiento: idProcedimientoStr,
-          idFactura: match.idFactura ?? 0,
-          idOrden: match.idOrden ?? 0
-        }
-      ],
+      ResultadosLaboratorioProcedimientos: [{
+        ResultadosLaboratorioCategorias: [],
+        ResultadosLaboratorioItems: items,
+        Id: match.idParametrizacion ?? match.id ?? 0,
+        idUsuario: Number.isFinite(Number(req.body?.idUsuario ?? idUsuario)) ? Number(req.body?.idUsuario ?? idUsuario) : null,
+        fecha,
+        hora,
+        IdProcedimiento: idProcedimientoStr,
+        idFactura: match.idFactura ?? 0,
+        idOrden: match.idOrden ?? 0
+      }],
       idAdmision: match.idAdmision ?? null,
-      idResultadoLaboratorio:
-        (esPlantillaCurva9122 || esBilirrubina9087)
-          ? 0   // 👈 EXACTAMENTE como tu JSON correcto para curva y bilirrubina
-          : (
-              Number(
-                match.idResultadoLaboratorioProcedimiento ??
-                match.idResultadoLaboratorio ??
-                0
-              ) || 0
-            )
+      idResultadoLaboratorio: (esPlantillaCurva9122 || esBilirrubina9087) ? 0 : (Number(match.idResultadoLaboratorioProcedimiento ?? match.idResultadoLaboratorio ?? 0) || 0)
     };
 
     /* --------------------------------------
        MAPEAR Y ENVIAR A SALUDPLUS
     -------------------------------------- */
     const payloadSaludPlus = mapToSaludPlusFormat(jsonFinal);
-
-    const resp = await axios.post(
-      'https://api.saludplus.co/api/resultadoLaboratorio',
-      payloadSaludPlus,
-      {
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${TOKEN}`,
-          'accept': 'application/json'
-        }
-      }
-    );
+    const resp = await axios.post('https://api.saludplus.co/api/resultadoLaboratorio', payloadSaludPlus, {
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${TOKEN}`, 'accept': 'application/json' }
+    });
 
     /* --------------------------------------
-       RESPUESTA FINAL
+       RESPUESTA FINAL (incluye nombres y aliases si hay)
     -------------------------------------- */
-    return res.json({
+    const responsePayload: any = {
       success: true,
       mensaje: 'Resultado enviado a SaludPlus correctamente',
+      solicitado: {
+        id: requestedRaw,
+        nombre: nombreSolicitado,
+        aliases: getAliasesForId(requestedRaw)
+      },
+      encontrado: {
+        id: matchIdProcedimientoStr,
+        nombre: nombreEncontrado,
+        aliases: getAliasesForId(matchIdProcedimientoStr)
+      },
       jsonInterno: jsonFinal,
       payloadSaludPlus,
       respuestaSaludPlus: resp.data
-    });
+    };
+
+    return res.json(responsePayload);
 
   } catch (err: any) {
     console.error('Error en ArmarJsonController:', err?.response?.data || err?.message);
