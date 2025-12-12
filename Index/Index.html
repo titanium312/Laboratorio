@@ -21,11 +21,12 @@
     .filters{display:flex;gap:12px;align-items:center;margin-top:12px;flex-wrap:wrap}
     .badge{background:#dbeafe;color:#1e40af;padding:5px 10px;border-radius:6px;font-size:13px;font-weight:500}
     input[type=text],input[type=number]{padding:8px 10px;border:1px solid #cbd5e1;border-radius:6px;min-width:220px}
+    .small{font-size:12px;color:#475569;margin-top:6px}
   </style>
 </head>
 <body>
 <h1>Formateador TXT → Tabla (100% Funcional - Espacios múltiples OK)</h1>
-<p>Funciona con el TXT en formato de tabla y sube directo a ArmarJson según el tipo de examen.</p>
+<p class="small">Funciona con el TXT en formato de tabla y sube directo a ArmarJson según el tipo de examen. (Formato: <strong>1 decimal siempre</strong>)</p>
 
 <div class="row">
   <div style="flex:1;min-width:400px">
@@ -57,7 +58,7 @@
 <div id="resultArea"></div>
 
 <script>
-// ================= CONFIG API =================
+/* ================= CONFIG API ================= */
 const API_URL = "https://laboratorio-bn7h.vercel.app/-rb-/ArmarJson"; // usa esta ruta como en tus cURL
 
 // --- Mapeo completo de exámenes (con nombres largos) ---
@@ -97,13 +98,13 @@ function looksLikeResult(token, nextToken) {
   if (cmpNumRe.test(token)) return true;             // <5, >=2.5
   if (dashSlashRe.test(token)) return true;          // ----, ///
   if (resultWordsRe.test(token)) return true;        // NEGATIVO, POSITIVO
-  if (unitRe.test(nextToken)) return true;           // token before unit -> token likely conc (amor mg/dL)
+  if (unitRe.test(nextToken)) return true;           // token before unit -> token likely conc (e.g. mg/dL)
   if (dateRe.test(nextToken) || timeRe.test(nextToken)) return true; // token before date/time -> likely conc
-  // also if token contains digits or symbols like 0-1 or 5-10 treat as result
   if (/^[\d\-\+\/]+$/.test(token)) return true;
   return false;
 }
 
+/* ================= PARSING ================= */
 function parseText(text) {
   const rows = [];
   const lines = text.replace(/\r/g, "").split("\n");
@@ -186,10 +187,33 @@ function parseText(text) {
       }
     }
 
-    // Normalizar conc: si solo contiene guiones o barras dejar vacío (opcional)
+    // Normalizar y formatear conc:
     if (/^[-\/\s]+$/.test(conc)) {
-      // mantenemos tal cual (ej: "---" o "///") — si prefieres convertir a "" o "0", cámbialo aquí
-      // conc = "";
+      // mantenemos tal cual (ej: "---" o "///")
+    } else {
+      const rawConc = (conc || "").toString().trim();
+
+      // comparador + número, ej "<=2.34" o "<5"
+      const comparatorMatch = rawConc.match(/^([<>]=?)([\d\.]+)$/);
+      if (comparatorMatch) {
+        const comp = comparatorMatch[1];
+        const num = Number(comparatorMatch[2].replace(",", "."));
+        if (!isNaN(num)) {
+          const rounded = (Math.round(num * 10) / 10).toFixed(1); // 1 decimal
+          conc = `${comp}${rounded}`;
+        } else {
+          conc = rawConc;
+        }
+      }
+      // número simple (entero o decimal)
+      else if (/^[+-]?\d+(\.\d+)?$/.test(rawConc)) {
+        const n = Number(rawConc);
+        conc = (!isNaN(n)) ? (Math.round(n * 10) / 10).toFixed(1) : rawConc;
+      }
+      // palabras/otros (NEGATIVO, TRAZAS, N/A, etc.) -> dejar tal cual
+      else {
+        conc = rawConc;
+      }
     }
 
     // --- Asignar ID_EXAMEN ---
@@ -224,7 +248,7 @@ function parseText(text) {
   return rows;
 }
 
-// --- Resto del código igual (render, export, etc.) ---
+/* ================= RENDER, EXPORT y API ================= */
 let lastRows = [];
 
 function render(rows) {
@@ -292,7 +316,7 @@ function exportCSV() {
   });
   const header = "Paciente,Tipo,Tecnica,Prueba,ID_EXAMEN,Conc,Unidades,FechaHora\n";
   const lines = filtered.map(r => [
-    r.paciente, r.tipo, r.tecnica, r.prueba, r.id_examen, r.conc, r.unidades, r.fecha
+    r.paciente, r.tipo, r.tecnica, `"${r.prueba.replace(/"/g,'""')}"`, r.id_examen, r.conc, r.unidades, r.fecha
   ].join(","));
   const blob = new Blob([header + lines.join("\n")], {type: "text/csv;charset=utf-8"});
   const url = URL.createObjectURL(blob);
@@ -318,7 +342,6 @@ document.getElementById("downloadCsv").addEventListener("click", exportCSV);
 document.getElementById("downloadJson").addEventListener("click", exportJSON);
 
 // ===================== ARMAR PAYLOADS PARA LA API =====================
-// (idéntico a tu versión previa; no lo toqué excepto por usar lastRows)
 function buildApiPayloads(rows, idUsuario) {
   const grouped = new Map();
 
