@@ -246,8 +246,16 @@ function parseText(text) {
       if (comparatorMatch) {
         const comp = comparatorMatch[1]; const num = Number(comparatorMatch[2].replace(',', '.'));
         if (!isNaN(num)) { const rounded=(Math.round(num*10)/10).toFixed(1); conc = `${comp}${rounded}` } else conc = rawConc;
-      } else if (/^[+-]?\d+(\.\d+)?$/.test(rawConc)) { const n=Number(rawConc); conc = (!isNaN(n)) ? (Math.round(n*10)/10).toFixed(1) : rawConc; }
-      else { conc = rawConc; }
+      } else if (/^[+-]?\d+(\.\d+)?$/.test(rawConc)) {
+  const n = Number(rawConc);
+  if (!isNaN(n)) {
+    conc = Number.isInteger(n)
+      ? String(n)                 // entero → sin decimal
+      : (Math.round(n * 10) / 10).toFixed(1); // decimal → 1 decimal
+  } else {
+    conc = rawConc;
+  }
+}
     }
     let id_examen = "";
     const pruebaNorm = normalize(prueba);
