@@ -7,11 +7,10 @@ exports.ArmarJsonController = void 0;
 const axios_1 = __importDefault(require("axios"));
 const ParametroR_1 = require("../ParametroR");
 const ListaItem_1 = require("./ListaItem");
-const token_js_1 = require("../token.js");
 /* ----------------------------------------------
    Helpers
 ---------------------------------------------- */
-const TOKEN = (0, token_js_1.getToken)();
+/** Devuelve la fecha/hora actual en strings formateados */
 function nowDateTimeStrings() {
     const d = new Date();
     const pad = (n) => (n < 10 ? '0' + n : String(n));
@@ -53,13 +52,13 @@ function mapToSaludPlusFormat(jsonFinal) {
             idResultadoLaboratorio: Number(jsonFinal.idResultadoLaboratorio) || 0,
             idOrden: proc.idOrden || 0,
             idFactura: proc.idFactura || 0,
-            idProcedimiento: String(proc.IdProcedimiento || ''),
+            idProcedimiento: String(proc.IdProcedimiento || proc.IdProcedimiento || ''),
             idUsuario: Number(proc.idUsuario) || 0,
             fecha: proc.fecha,
             hora: proc.hora,
             resultadosLaboratorioCategorias: proc.ResultadosLaboratorioCategorias?.map((cat) => ({
                 id: cat.id || 0,
-                idCategia: cat.idCategoria || 0,
+                idCategoria: cat.idCategoria || 0, // CORREGIDO: idCategoria
                 idResultadoLaboratorioProcedimiento: cat.idResultadoLaboratorioProcedimiento || 0,
                 resultado: cat.resultado || ''
             })) || [],
@@ -99,14 +98,11 @@ const ArmarJsonController = async (req, res) => {
         const examIdFromList = ListaItem_1.EXAMENES[lookupKey]; // si envió nombre/alias
         const idProcedimientoObjetivoNormalizado = examIdFromList ? String(examIdFromList) : requestedRaw;
         // Nombre representativo del examen solicitado (si lo podemos resolver)
-        // - Si envía nombre -> examIdFromList existe y nombreSolicitado será lookupKey
-        // - Si envía id numérico -> buscamos en el mapa inverso EXAMENES_ID_A_NOMBRE
         let nombreSolicitado = null;
         if (examIdFromList) {
             nombreSolicitado = lookupKey;
         }
         else {
-            // intentamos resolver si el valor numérico existe como value en EXAMENES
             nombreSolicitado = EXAMENES_ID_A_NOMBRE[requestedRaw] ?? null;
         }
         // Si envió un alias no reconocido y tampoco es un número, rechazar.
@@ -192,7 +188,7 @@ const ArmarJsonController = async (req, res) => {
                 idResultadoLaboratorioProcedimiento: 0,
                 resultado: label
             }));
-            // 9122
+            // 9122 (plantilla curva con IDs fijos)
         }
         else if (idProcedimientoStr === '9122') {
             const FIXED_ID_ITEMS = [7605, 8052, 7604, 8051, 9182, 7603];
@@ -240,11 +236,28 @@ const ArmarJsonController = async (req, res) => {
             idResultadoLaboratorio: (esPlantillaCurva9122 || esBilirrubina9087) ? 0 : (Number(match.idResultadoLaboratorioProcedimiento ?? match.idResultadoLaboratorio ?? 0) || 0)
         };
         /* --------------------------------------
-           MAPEAR Y ENVIAR A SALUDPLUS
+           OBTENER TOKEN Y ENVIAR A SALUDPLUS
+           - El token puede venir en: req.query.token, req.headers['x-api-token'] o env var
         -------------------------------------- */
+        const tokenFromQuery = req.query?.token ?? undefined;
+        const tokenFromHeader = req.headers['x-api-token'] ?? undefined;
+        const tokenFromAuthHeader = (() => {
+            const h = req.headers['authorization'] ?? '';
+            if (h.toLowerCase().startsWith('bearer '))
+                return h.slice(7).trim();
+            return undefined;
+        })();
+        const TOKEN = tokenFromQuery || tokenFromHeader || tokenFromAuthHeader || process.env.SALUDPLUS_TOKEN;
+        if (!isNonEmptyString(TOKEN)) {
+            return res.status(400).json({ success: false, message: 'Falta token para autenticar con SaludPlus. Pasa ?token=... o header x-api-token o Authorization: Bearer ...' });
+        }
         const payloadSaludPlus = mapToSaludPlusFormat(jsonFinal);
         const resp = await axios_1.default.post('https://api.saludplus.co/api/resultadoLaboratorio', payloadSaludPlus, {
-            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${TOKEN}`, 'accept': 'application/json' }
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${TOKEN}`,
+                'accept': 'application/json'
+            }
         });
         /* --------------------------------------
            RESPUESTA FINAL (incluye nombres y aliases si hay)
@@ -269,11 +282,11 @@ const ArmarJsonController = async (req, res) => {
         return res.json(responsePayload);
     }
     catch (err) {
-        console.error('Error en ArmarJsonController:', err?.response?.data || err?.message);
+        console.error('Error en ArmarJsonController:', err?.response?.data || err?.message || err);
         return res.status(500).json({
             success: false,
             message: 'Error interno',
-            error: err?.response?.data || err.message
+            error: err?.response?.data || err?.message
         });
     }
 };

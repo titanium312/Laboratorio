@@ -3,65 +3,91 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Formateador TXT → Tabla (v5 - Robust)</title>
+  <title>Formateador TXT → Tabla (v5) — Con Login</title>
   <style>
-    body{font-family:Inter,system-ui,-apple-system,'Segoe UI',Roboto,Arial;padding:18px;background:#f7fafc;color:#111}
-    h1{font-size:19px;margin-bottom:8px;font-weight:600}
+    :root{--bg:#f7fafc;--card:#ffffff;--primary:#4f46e5;--muted:#6b7280}
+    body{font-family:Inter,system-ui,-apple-system,'Segoe UI',Roboto,Arial;padding:18px;background:var(--bg);color:#111}
+    header{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:14px}
+    .userCard{background:var(--card);padding:10px 14px;border-radius:10px;box-shadow:0 1px 3px rgba(0,0,0,.06);display:flex;gap:12px;align-items:center}
+    .avatar{width:48px;height:48px;border-radius:8px;display:flex;align-items:center;justify-content:center;background:#eef2ff;color:var(--primary);font-weight:700}
+    .userInfo{font-size:14px}
+    .userInfo b{display:block}
+    .loginBox{background:var(--card);padding:10px 14px;border-radius:10px;box-shadow:0 1px 3px rgba(0,0,0,.06)}
+    h1{font-size:18px;margin:0 0 6px 0}
     .row{display:flex;gap:12px;align-items:flex-start}
     textarea{width:100%;min-height:220px;padding:10px;font-family:monospace;font-size:13px;box-sizing:border-box}
-    table{width:100%;border-collapse:collapse;margin-top:15px;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.1)}
-    th,td{border:1px solid #cbd5e1;padding:8px 10px;text-align:left;font-size:13.5px}
-    th{background:#e0e7ff;color:#1e1b4b;font-weight:600}
+    table{width:100%;border-collapse:collapse;margin-top:15px;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.06)}
+    th,td{border:1px solid #e6eef6;padding:8px 10px;text-align:left;font-size:13.5px}
+    th{background:#eef2ff;color:#1e1b4b;font-weight:700}
     .controls{display:flex;gap:10px;margin-top:10px;flex-wrap:wrap;align-items:center}
-    button{padding:9px 14px;border-radius:6px;border:none;background:#4f46e5;color:white;cursor:pointer;font-weight:500}
-    button:hover{background:#4338ca}
-    button:disabled{background:#94a3b8;cursor:not-allowed}
-    .secondary{background:#6b7280}
-    .secondary:hover{background:#4b5563}
+    button{padding:9px 14px;border-radius:8px;border:none;background:var(--primary);color:white;cursor:pointer;font-weight:600}
+    button.secondary{background:var(--muted)}
+    button.ghost{background:transparent;color:var(--primary);border:1px solid rgba(79,70,229,.12)}
     .filters{display:flex;gap:12px;align-items:center;margin-top:12px;flex-wrap:wrap}
-    .badge{background:#dbeafe;color:#1e40af;padding:5px 10px;border-radius:6px;font-size:13px;font-weight:500}
-    input[type=text],input[type=number]{padding:8px 10px;border:1px solid #cbd5e1;border-radius:6px;min-width:220px}
+    .badge{background:#dbeafe;color:#1e40af;padding:5px 10px;border-radius:6px;font-size:13px;font-weight:600}
+    input[type=text],input[type=password],input[type=number]{padding:8px 10px;border:1px solid #e6eef6;border-radius:8px;min-width:200px}
     .small{font-size:12px;color:#475569;margin-top:6px}
+    .topActions{display:flex;gap:8px;align-items:center}
+    .statusOk{color:#166534;font-weight:700}
+    .statusErr{color:#b91c1c;font-weight:700}
+    footer{margin-top:18px;font-size:12px;color:#475569}
   </style>
 </head>
 <body>
-<h1>Formateador TXT → Tabla (100% Funcional - Espacios múltiples OK)</h1>
-<p class="small">Funciona con el TXT en formato de tabla y sube directo a ArmarJson según el tipo de examen. (Formato: <strong>1 decimal siempre</strong>)</p>
+  <header>
+    <div>
+      <h1>Formateador TXT → Tabla (v5) — Con Login</h1>
+      <div class="small">Pega o carga un TXT de laboratorio, mapea exámenes y envía a ArmarJson.</div>
+    </div>
 
-<div class="row">
-  <div style="flex:1;min-width:400px">
-    <label><strong>Cargar archivo .txt</strong><br>
-      <input id="file" type="file" accept=".txt" style="margin-top:6px">
-    </label>
-    <div style="height:12px"></div>
-    <label><strong>Pegar contenido aquí</strong></label>
-    <textarea id="input" placeholder="Pega el texto del laboratorio..."></textarea>
-    <div class="controls">
-      <button id="parse">Parsear</button>
-      <button id="clear" class="secondary">Limpiar</button>
-      <button id="downloadCsv">Descargar CSV</button>
-      <button id="downloadJson">Descargar JSON</button>
+    <!-- Área de login / usuario -->
+    <div id="authArea">
+      <!-- Se renderiza con JS: login o user info -->
     </div>
-    <div class="filters">
-      <input id="filterInput" placeholder="Filtrar por paciente, prueba o ID">
-      <label><input id="mappedOnly" type="checkbox"> Solo con ID asignado</label>
-      <span class="badge" id="countBadge">0 filas</span>
-    </div>
-    <!-- idUsuario y botón para subir a API -->
-    <div class="filters">
-      <input id="idUsuario" type="number" placeholder="idUsuario para subir a la API">
+  </header>
+
+  <main>
+    <div class="row">
+      <div style="flex:1;min-width:420px">
+        <label><strong>Cargar archivo .txt</strong><br>
+          <input id="file" type="file" accept=".txt" style="margin-top:6px">
+        </label>
+        <div style="height:12px"></div>
+        <label><strong>Pegar contenido aquí</strong></label>
+        <textarea id="input" placeholder="Pega el texto del laboratorio..."></textarea>
+        <div class="controls">
+          <button id="parse">Parsear</button>
+          <button id="clear" class="secondary">Limpiar</button>
+          <button id="downloadCsv" class="ghost">Descargar CSV</button>
+          <button id="downloadJson" class="ghost">Descargar JSON</button>
+        </div>
+
+        <div class="filters">
+          <input id="filterInput" placeholder="Filtrar por paciente, prueba o ID">
+          <label><input id="mappedOnly" type="checkbox"> Solo con ID asignado</label>
+          <span class="badge" id="countBadge">0 filas</span>
+        </div>
+
+        <div class="filters">
+          <input id="idUsuario" type="number" placeholder="idUsuario para subir a la API" disabled style="background:#f1f5f9;opacity:.7">
       <button id="sendApi" class="secondary">Subir a API ArmarJson</button>
     </div>
-  </div>
-</div>
+      </div>
+    </div>
 
-<div id="resultArea"></div>
+    <div id="resultArea"></div>
+  </main>
+
+  <footer>
+    <div>Nota: El token obtenido en el login <strong>no se muestra</strong> en la interfaz, pero se usa automáticamente al enviar peticiones a ArmarJson.</div>
+  </footer>
 
 <script>
-/* ================= CONFIG API ================= */
-const API_URL = "https://laboratorio-bn7h.vercel.app/-rb-/ArmarJson"; // usa esta ruta como en tus cURL
+/* ====== Config ====== */
+const API_BASE = "https://laboratorio-bn7h.vercel.app/-rb-/ArmarJson"; // no token aquí
+const LOGIN_URL = "https://api.saludplus.co/api/auth/Login"; // endpoint de login (ejemplo)
 
-// --- Mapeo completo de exámenes (con nombres largos) ---
+// Mapa simplificado (igual al anterior)
 const EXAM_MAP = {
   "GLUCOSE": "11803", "GLUCOSA": "11803",
   "CHOLESTEROL": "9096", "COL": "9096",
@@ -71,18 +97,99 @@ const EXAM_MAP = {
   "BUN": "9147", "UREA": "9147",
   "URIC ACID": "9079", "ACIDO URICO": "9079",
   "BILIRUBIN DIRECT": "9087",
-  "BILIRUBIN INDIRECT": "9087", "INDIRECT BILIRUBIN": "9087","INDIRECT BILIRUB": "9087",
+  "BILIRUBIN INDIRECT": "9087", "INDIRECT BILIRUBIN": "9087","INDIRECT BILURB": "9087",
   "BILIRUBIN TOTAL": "9087", "BILIRRUBINA TOTAL": "9087",
   "CHOL HDL DIRECT": "9093", "HDL": "9093",
   "CHOL LDL DIRECT": "9094"
 };
-
-// Prefijos de curva de tolerancia
 const CURVA_PREFIX = /^(PRE|POST|1[/]?2H?|1H|2H|3H|B)$/i;
+function normalize(s){return (s||"").toString().trim().toUpperCase();}
 
-function normalize(s) { return (s||"").toString().trim().toUpperCase(); }
+/* ====== Token / Usuario (no mostrado) ====== */
+let _TOKEN = null; // queda en memoria
+let _USER = null;  // objeto con id,nombre,usuario,estado,isAdmin,iniciales,perfiles
 
-// Patrones auxiliares
+function renderAuth() {
+  const el = document.getElementById('authArea');
+  el.innerHTML = '';
+  if (!_USER) {
+    // mostrar formulario de login
+    const box = document.createElement('div'); box.className = 'loginBox';
+    box.innerHTML = `
+      <div style="display:flex;gap:8px;align-items:center">
+        <input id="loginUser" type="text" placeholder="usuario" style="min-width:140px">
+        <input id="loginPass" type="password" placeholder="password" style="min-width:140px">
+        <button id="btnLogin">Iniciar</button>
+      </div>
+      <div class="small">Usa credenciales para obtener token. (El token no se mostrará)</div>
+    `;
+    el.appendChild(box);
+    document.getElementById('btnLogin').addEventListener('click', doLogin);
+  } else {
+    // mostrar card de usuario (sin token)
+    const card = document.createElement('div'); card.className = 'userCard';
+    const avatar = document.createElement('div'); avatar.className = 'avatar'; avatar.textContent = _USER.iniciales || (_USER.nombre||'?').split(' ').map(x=>x[0]).slice(0,2).join('');
+    const info = document.createElement('div'); info.className = 'userInfo';
+
+    const perfiles = Array.isArray(_USER.perfiles) ? _USER.perfiles.join(', ') : '';
+    info.innerHTML = `<b>${escapeHtml(_USER.nombre || _USER.usuario || 'Usuario')}</b>
+      <div>id: <strong>${_USER.id ?? '-'}</strong> &nbsp; usuario: <strong>${escapeHtml(_USER.usuario||'-')}</strong></div>
+      <div class="small">estado: <strong>${_USER.estado ? 'activo' : 'inactivo'}</strong> &nbsp; isAdmin: <strong>${_USER.isAdmin ? 'sí' : 'no'}</strong></div>
+      <div class="small">perfiles: ${escapeHtml(perfiles)}</div>`;
+
+    const actions = document.createElement('div'); actions.className = 'topActions';
+    const btnLogout = document.createElement('button'); btnLogout.textContent = 'Cerrar sesión'; btnLogout.className='secondary';
+    btnLogout.addEventListener('click', ()=>{ _TOKEN=null; _USER=null; renderAuth(); });
+
+    actions.appendChild(btnLogout);
+    card.appendChild(avatar); card.appendChild(info); card.appendChild(actions);
+    el.appendChild(card);
+  }
+}
+
+async function doLogin() {
+  const user = document.getElementById('loginUser').value.trim();
+  const pass = document.getElementById('loginPass').value.trim();
+  if(!user || !pass) return alert('Usuario y password requeridos');
+
+  try {
+    const res = await fetch(LOGIN_URL, {
+      method: 'POST', headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({username: user, password: pass})
+    });
+    if(!res.ok) {
+      const txt = await res.text();
+      console.error('Login failed', txt);
+      return alert('Error de login: ' + (txt || res.status));
+    }
+    const data = await res.json();
+    // data expected to contain: id,nombre,usuario,estado,isAdmin,iniciales,perfiles,token
+    _TOKEN = data.token || data.accessToken || null;
+    // Build a safe user object (exclude token)
+    _USER = {
+      id: data.id ?? null,
+      nombre: data.nombre ?? data.displayName ?? data.usuario ?? null,
+      usuario: data.usuario ?? data.username ?? null,
+      estado: data.estado ?? true,
+      isAdmin: data.isAdmin ?? false,
+      iniciales: data.iniciales ?? null,
+      perfiles: data.perfiles ?? []
+    };
+
+    // Asignar automáticamente el idUsuario en el campo de envío
+    const idInput = document.getElementById('idUsuario');
+    if (idInput && _USER.id) idInput.value = _USER.id;
+    renderAuth();
+    alert('Login correcto. Ahora puedes enviar resultados a ArmarJson.');
+  } catch (err) {
+    console.error('Login error', err);
+    alert('Error de red durante login');
+  }
+}
+
+function escapeHtml(s){ return String(s||'').replace(/[&<>\\"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','\\':'\\\\','"':'&quot;',"'":"&#39;"})[c]); }
+
+/* ====== Parsing (mismo que tu script original) ====== */
 const dateRe = /^\d{1,2}\/\d{1,2}\/\d{4}$/;
 const timeRe = /^\d{1,2}:\d{2}$/;
 const numRe = /^\d+[\.,]?\d*$/;
@@ -90,421 +197,198 @@ const cmpNumRe = /^[<>]=?\d+[\.,]?\d*$/;
 const dashSlashRe = /^[-\/]{2,}$/;
 const resultWordsRe = /^(NEGATIVO|POSITIVO|REACTIVO|NO|TRAZAS|N\/A|INDETERMINADO)$/i;
 const unitRe = /^(mg\/?d?l|mg|mmol\/l|mmol|g\/dl|g|iu\/l|iu|%|u\/l|ml|mL|ug\/mL|mg\/L)$/i;
-
-// Heurística: decide si un token es resultado (conc)
 function looksLikeResult(token, nextToken) {
   if (!token) return false;
-  if (numRe.test(token)) return true;                // 12, 12.5
-  if (cmpNumRe.test(token)) return true;             // <5, >=2.5
-  if (dashSlashRe.test(token)) return true;          // ----, ///
-  if (resultWordsRe.test(token)) return true;        // NEGATIVO, POSITIVO
-  if (unitRe.test(nextToken)) return true;           // token before unit -> token likely conc (e.g. mg/dL)
-  if (dateRe.test(nextToken) || timeRe.test(nextToken)) return true; // token before date/time -> likely conc
+  if (numRe.test(token)) return true;
+  if (cmpNumRe.test(token)) return true;
+  if (dashSlashRe.test(token)) return true;
+  if (resultWordsRe.test(token)) return true;
+  if (unitRe.test(nextToken)) return true;
+  if (dateRe.test(nextToken) || timeRe.test(nextToken)) return true;
   if (/^[\d\-\+\/]+$/.test(token)) return true;
   return false;
 }
 
-/* ================= PARSING ================= */
 function parseText(text) {
   const rows = [];
-  const lines = text.replace(/\r/g, "").split("\n");
-
+  const lines = text.replace(/\r/g, "").split('\n');
   for (let raw of lines) {
     raw = raw.trim();
     if (!raw) continue;
-    // línea que empieza con paciente (5-7 dígitos)
     if (!/^\d{5,7}/.test(raw)) continue;
-
     const parts = raw.split(/\s+/).filter(Boolean);
     if (parts.length < 3) continue;
-
     let idx = 0;
     const paciente = parts[idx++];
-
-    // tipo/curva
     let tipo = "-";
-    if (idx < parts.length && CURVA_PREFIX.test(parts[idx])) {
-      tipo = parts[idx].toUpperCase();
-      if (tipo === "1/2") tipo = "1/2H";
-      idx++;
-    }
-
-    // técnica
+    if (idx < parts.length && CURVA_PREFIX.test(parts[idx])) { tipo = parts[idx].toUpperCase(); if (tipo === "1/2") tipo = "1/2H"; idx++; }
     let tecnica = "SER";
-    if (idx < parts.length && ["SER","PLASMA","ORINA","SUERO","HECES"].includes(normalize(parts[idx]))) {
-      tecnica = parts[idx];
-      idx++;
-    }
-
-    // ahora extraemos nombre de prueba hasta detectar resultado (conc)
+    if (idx < parts.length && ["SER","PLASMA","ORINA","SUERO","HECES"].includes(normalize(parts[idx]))) { tecnica = parts[idx]; idx++; }
     let pruebaParts = [];
     let conc = "";
     let unidades = "mg/dL";
     while (idx < parts.length) {
       const word = parts[idx];
       const next = parts[idx+1] || "";
-
-      // Si es fecha: forma parte del nombre (ej: pruebas con fecha dentro) -> lo añadimos a prueba
-      if (dateRe.test(word)) {
-        pruebaParts.push(word);
-        idx++;
-        continue;
-      }
-
-      // Si el token aparenta ser resultado (número, <5, ---, palabra resultado) o
-      // si el siguiente token es unidad o fecha/hora => entonces el token actual es conc
-      if (looksLikeResult(word, next)) {
-        conc = word.replace(",", ".").trim();
-        idx++;
-        break;
-      }
-
-      // Si no cumple ninguna condición, sigue siendo parte del nombre de la prueba
-      pruebaParts.push(word);
-      idx++;
+      if (dateRe.test(word)) { pruebaParts.push(word); idx++; continue; }
+      if (looksLikeResult(word, next)) { conc = word.replace(',', '.').trim(); idx++; break; }
+      pruebaParts.push(word); idx++;
     }
-
     const prueba = pruebaParts.join(" ").trim();
-
-    // Unidades (si están pegadas después del resultado)
-    if (idx < parts.length && unitRe.test(parts[idx])) {
-      unidades = parts[idx];
-      idx++;
-    } else {
-      // también aceptar tokens como "mg/dL" con distintos formatos (case-insensitive)
-      if (idx < parts.length && /mg|mmol|g\/dl|iu|%|ug/i.test(parts[idx])) {
-        unidades = parts[idx];
-        idx++;
-      }
-    }
-
-    // Fecha y hora (al final)
+    if (idx < parts.length && unitRe.test(parts[idx])) { unidades = parts[idx]; idx++; }
+    else if (idx < parts.length && /mg|mmol|g\/dl|iu|%|ug/i.test(parts[idx])) { unidades = parts[idx]; idx++; }
     let fecha = "";
-    if (idx < parts.length && dateRe.test(parts[idx])) {
-      fecha = parts[idx];
-      if (idx + 1 < parts.length && timeRe.test(parts[idx + 1])) {
-        fecha += " " + parts[idx + 1];
-      }
-    }
-
-    // Normalizar y formatear conc:
-    if (/^[-\/\s]+$/.test(conc)) {
-      // mantenemos tal cual (ej: "---" o "///")
-    } else {
-      const rawConc = (conc || "").toString().trim();
-
-      // comparador + número, ej "<=2.34" o "<5"
+    if (idx < parts.length && dateRe.test(parts[idx])) { fecha = parts[idx]; if (idx+1 < parts.length && timeRe.test(parts[idx+1])) fecha += ' ' + parts[idx+1]; }
+    // normalize conc to 1 decimal where appropriate
+    if (!/^[-\/\s]+$/.test(conc)) {
+      const rawConc = (conc||'').toString().trim();
       const comparatorMatch = rawConc.match(/^([<>]=?)([\d\.]+)$/);
       if (comparatorMatch) {
-        const comp = comparatorMatch[1];
-        const num = Number(comparatorMatch[2].replace(",", "."));
-        if (!isNaN(num)) {
-          const rounded = (Math.round(num * 10) / 10).toFixed(1); // 1 decimal
-          conc = `${comp}${rounded}`;
-        } else {
-          conc = rawConc;
-        }
-      }
-      // número simple (entero o decimal)
-      else if (/^[+-]?\d+(\.\d+)?$/.test(rawConc)) {
-        const n = Number(rawConc);
-        conc = (!isNaN(n)) ? (Math.round(n * 10) / 10).toFixed(1) : rawConc;
-      }
-      // palabras/otros (NEGATIVO, TRAZAS, N/A, etc.) -> dejar tal cual
-      else {
-        conc = rawConc;
-      }
+        const comp = comparatorMatch[1]; const num = Number(comparatorMatch[2].replace(',', '.'));
+        if (!isNaN(num)) { const rounded=(Math.round(num*10)/10).toFixed(1); conc = `${comp}${rounded}` } else conc = rawConc;
+      } else if (/^[+-]?\d+(\.\d+)?$/.test(rawConc)) { const n=Number(rawConc); conc = (!isNaN(n)) ? (Math.round(n*10)/10).toFixed(1) : rawConc; }
+      else { conc = rawConc; }
     }
-
-    // --- Asignar ID_EXAMEN ---
     let id_examen = "";
     const pruebaNorm = normalize(prueba);
-
     if (pruebaNorm.includes("GLUCOS") || pruebaNorm.includes("GLUCOSE")) {
       if (tipo === "PRE" || tipo === "POST") id_examen = "9121";
       else if (["1/2H","1H","2H","3H","B"].includes(tipo)) id_examen = "9122";
       else id_examen = "11803";
     } else {
-      for (const key in EXAM_MAP) {
-        if (pruebaNorm.includes(normalize(key))) {
-          id_examen = EXAM_MAP[key];
-          break;
-        }
-      }
+      for (const key in EXAM_MAP) if (pruebaNorm.includes(normalize(key))) { id_examen = EXAM_MAP[key]; break; }
     }
-
-    rows.push({
-      paciente,
-      tipo,
-      tecnica,
-      prueba,
-      id_examen: id_examen || "",
-      conc,
-      unidades,
-      fecha: fecha || ""
-    });
+    rows.push({ paciente, tipo, tecnica, prueba, id_examen: id_examen || "", conc, unidades, fecha: fecha || "" });
   }
-
   return rows;
 }
 
-/* ================= RENDER, EXPORT y API ================= */
+/* ====== Render y export ====== */
 let lastRows = [];
-
-function render(rows) {
-  const filter = normalize(document.getElementById("filterInput").value);
-  const onlyMapped = document.getElementById("mappedOnly").checked;
+function render(rows){
+  const filter = normalize(document.getElementById('filterInput').value);
+  const onlyMapped = document.getElementById('mappedOnly').checked;
   let visible = 0;
-  let html = `<table><thead><tr>
-    <th>Paciente</th><th>Tipo</th><th>Técnica</th><th>Prueba</th><th>ID_EXAMEN</th><th>Conc.</th><th>Unidades</th><th>Fecha/Hora</th>
-  </tr></thead><tbody>`;
-
+  let html = `<table><thead><tr><th>Paciente</th><th>Tipo</th><th>Técnica</th><th>Prueba</th><th>ID_EXAMEN</th><th>Conc.</th><th>Unidades</th><th>Fecha/Hora</th></tr></thead><tbody>`;
   for (const r of rows) {
     if (onlyMapped && !r.id_examen) continue;
     if (filter && !(r.paciente.includes(filter) || normalize(r.prueba).includes(filter) || (r.id_examen && r.id_examen.includes(filter)))) continue;
     visible++;
-    const idStyle = r.id_examen ? "background:#ecfdf5;color:#166534;font-weight:600" : "color:#ef4444";
-    html += `<tr>
-      <td><strong>${r.paciente}</strong></td>
-      <td><strong>${r.tipo}</strong></td>
-      <td>${r.tecnica}</td>
-      <td>${r.prueba}</td>
-      <td style="${idStyle}">${r.id_examen || "-"}</td>
-      <td style="text-align:right">${r.conc}</td>
-      <td>${r.unidades}</td>
-      <td>${r.fecha}</td>
-    </tr>`;
+    const idStyle = r.id_examen ? "background:#ecfdf5;color:#166534;font-weight:700" : "color:#ef4444";
+    html += `<tr><td><strong>${r.paciente}</strong></td><td><strong>${r.tipo}</strong></td><td>${r.tecnica}</td><td>${escapeHtml(r.prueba)}</td><td style="${idStyle}">${r.id_examen || '-'}</td><td style="text-align:right">${r.conc}</td><td>${r.unidades}</td><td>${r.fecha}</td></tr>`;
   }
   html += `</tbody></table>`;
-  document.getElementById("countBadge").textContent = visible + " filas";
-  document.getElementById("resultArea").innerHTML = html || "<p style='color:#666'>No se encontraron datos.</p>";
+  document.getElementById('countBadge').textContent = visible + ' filas';
+  document.getElementById('resultArea').innerHTML = html || "<p style='color:#666'>No se encontraron datos.</p>";
 }
 
-// Controles
-document.getElementById("file").addEventListener("change", async e => {
-  const file = e.target.files[0];
-  if (!file) return;
-  const text = await file.text();
-  document.getElementById("input").value = text;
-});
+// Eventos
+document.getElementById('file').addEventListener('change', async e=>{ const file=e.target.files[0]; if(!file) return; const text=await file.text(); document.getElementById('input').value=text; });
+document.getElementById('parse').addEventListener('click', ()=>{ const txt=document.getElementById('input').value.trim(); if(!txt) return alert('Pega o carga un archivo primero'); lastRows = parseText(txt); render(lastRows); });
+document.getElementById('clear').addEventListener('click', ()=>{ document.getElementById('input').value=''; lastRows=[]; document.getElementById('resultArea').innerHTML=''; document.getElementById('countBadge').textContent='0 filas'; });
+document.getElementById('filterInput').addEventListener('input', ()=>render(lastRows)); document.getElementById('mappedOnly').addEventListener('change', ()=>render(lastRows));
 
-document.getElementById("parse").addEventListener("click", () => {
-  const txt = document.getElementById("input").value.trim();
-  if (!txt) return alert("Pega o carga un archivo primero");
-  lastRows = parseText(txt);
-  render(lastRows);
-});
+function exportCSV(){ if(!lastRows.length) return alert('Nada que exportar'); const filtered = lastRows.filter(r=>{ if(document.getElementById('mappedOnly').checked && !r.id_examen) return false; const f=normalize(document.getElementById('filterInput').value); if(!f) return true; return r.paciente.includes(f) || normalize(r.prueba).includes(f) || (r.id_examen&&r.id_examen.includes(f)); }); const header = 'Paciente,Tipo,Tecnica,Prueba,ID_EXAMEN,Conc,Unidades,FechaHora\n'; const lines = filtered.map(r=>[r.paciente,r.tipo,r.tecnica,`"${r.prueba.replace(/"/g,'""') }"`,r.id_examen,r.conc,r.unidades,r.fecha].join(',')); const blob=new Blob([header+lines.join('\n')],{type:'text/csv;charset=utf-8'}); const url=URL.createObjectURL(blob); const a=document.createElement('a'); a.href=url; a.download='resultados_laboratorio.csv'; a.click(); }
+function exportJSON(){ if(!lastRows.length) return alert('Nada que exportar'); const filtered=lastRows.filter(r=>{ if(document.getElementById('mappedOnly').checked && !r.id_examen) return false; const f=normalize(document.getElementById('filterInput').value); if(!f) return true; return r.paciente.includes(f) || normalize(r.prueba).includes(f) || (r.id_examen&&r.id_examen.includes(f)); }); const blob=new Blob([JSON.stringify(filtered,null,2)],{type:'application/json'}); const url=URL.createObjectURL(blob); const a=document.createElement('a'); a.href=url; a.download='resultados_laboratorio.json'; a.click(); }
+document.getElementById('downloadCsv').addEventListener('click', exportCSV); document.getElementById('downloadJson').addEventListener('click', exportJSON);
 
-document.getElementById("clear").addEventListener("click", () => {
-  document.getElementById("input").value = "";
-  lastRows = [];
-  document.getElementById("resultArea").innerHTML = "";
-  document.getElementById("countBadge").textContent = "0 filas";
-});
-
-document.getElementById("filterInput").addEventListener("input", () => render(lastRows));
-document.getElementById("mappedOnly").addEventListener("change", () => render(lastRows));
-
-// Export
-function exportCSV() {
-  if (!lastRows.length) return alert("Nada que exportar");
-  const filtered = lastRows.filter(r => {
-    if (document.getElementById("mappedOnly").checked && !r.id_examen) return false;
-    const f = normalize(document.getElementById("filterInput").value);
-    if (!f) return true;
-    return r.paciente.includes(f) || normalize(r.prueba).includes(f) || (r.id_examen && r.id_examen.includes(f));
-  });
-  const header = "Paciente,Tipo,Tecnica,Prueba,ID_EXAMEN,Conc,Unidades,FechaHora\n";
-  const lines = filtered.map(r => [
-    r.paciente, r.tipo, r.tecnica, `"${r.prueba.replace(/"/g,'""')}"`, r.id_examen, r.conc, r.unidades, r.fecha
-  ].join(","));
-  const blob = new Blob([header + lines.join("\n")], {type: "text/csv;charset=utf-8"});
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url; a.download = "resultados_laboratorio.csv"; a.click();
-}
-
-function exportJSON() {
-  if (!lastRows.length) return alert("Nada que exportar");
-  const filtered = lastRows.filter(r => {
-    if (document.getElementById("mappedOnly").checked && !r.id_examen) return false;
-    const f = normalize(document.getElementById("filterInput").value);
-    if (!f) return true;
-    return r.paciente.includes(f) || normalize(r.prueba).includes(f) || (r.id_examen && r.id_examen.includes(f));
-  });
-  const blob = new Blob([JSON.stringify(filtered, null, 2)], {type: "application/json"});
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url; a.download = "resultados_laboratorio.json"; a.click();
-}
-
-document.getElementById("downloadCsv").addEventListener("click", exportCSV);
-document.getElementById("downloadJson").addEventListener("click", exportJSON);
-
-// ===================== ARMAR PAYLOADS PARA LA API =====================
+/* ====== Build payloads (igual) ====== */
 function buildApiPayloads(rows, idUsuario) {
   const grouped = new Map();
-
-  // Agrupar por documento (paciente) + id_examen
-  for (const r of rows) {
-    if (!r.id_examen) continue;
-    const key = `${r.paciente}|${r.id_examen}`;
-    if (!grouped.has(key)) grouped.set(key, []);
-    grouped.get(key).push(r);
-  }
-
+  for (const r of rows) { if (!r.id_examen) continue; const key = `${r.paciente}|${r.id_examen}`; if (!grouped.has(key)) grouped.set(key, []); grouped.get(key).push(r); }
   const payloads = [];
-
   for (const [key, group] of grouped.entries()) {
-    const [documento, idProcedimientoObjetivo] = key.split("|");
-    const examId = idProcedimientoObjetivo;
-
-    // 9087 → bilirrubinas: TOTAL, DIRECTA, INDIRECTA (faltantes = "0")
-    if (examId === "9087") {
-      const total     = group.find(g => /TOTAL/i.test(g.prueba));
-      const directa   = group.find(g => /DIRECTA|DIRECT/i.test(g.prueba));
-      const indirecta = group.find(g => /INDIRECTA|INDIRECT/i.test(g.prueba));
-
-      const totalVal     = (total && total.conc)     ? total.conc     : "0";
-      const directaVal   = (directa && directa.conc) ? directa.conc   : "0";
-      const indirectaVal = (indirecta && indirecta.conc) ? indirecta.conc : "0";
-
-      const resultadosArray = [
-        totalVal,
-        directaVal,
-        indirectaVal
-      ];
-
-      payloads.push({
-        documento,
-        idProcedimientoObjetivo: examId,
-        body: {
-          idUsuario: Number(idUsuario),
-          resultadosArray
-        }
-      });
-    }
-
-    // 9121 → glucosa PRE / POST (faltantes = "0", solo número)
-    else if (examId === "9121") {
-      const pre  = group.find(g => g.tipo === "PRE");
-      const post = group.find(g => g.tipo === "POST");
-
-      const preVal  = (pre && pre.conc)  ? pre.conc  : "0";
-      const postVal = (post && post.conc) ? post.conc : "0";
-
-      const resultadosArray = [
-        preVal,
-        postVal
-      ];
-
-      payloads.push({
-        documento,
-        idProcedimientoObjetivo: examId,
-        body: {
-          idUsuario: Number(idUsuario),
-          resultadosArray
-        }
-      });
-    }
-
-    // 9122 → curva con orden: 2H, 3H, 1H, MEDIA HORA, OBS, BASAL (faltantes = "0")
-    else if (examId === "9122") {
-      const slots = [
-        { label: "GLUCOSA 2 HORAS",      tipo: "2H"   },
-        { label: "GLUCOSA 3 HORAS",      tipo: "3H"   },
-        { label: "GLUCOSA 1 HORA",       tipo: "1H"   },
-        { label: "GLUCOSA MEDIA HORA",   tipo: "1/2H" },
-        { label: "OBSERVACIÓN",          tipo: null   }, // no viene del TXT → "0"
-        { label: "GLUCOSA BASAL",        tipo: "B"    }
-      ];
-
-      const resultadosArray = slots.map(slot => {
-        if (!slot.tipo) return "0"; // OBSERVACIÓN siempre "0"
-        const row = group.find(g => g.tipo === slot.tipo);
-        return (row && row.conc) ? row.conc : "0";
-      });
-
-      payloads.push({
-        documento,
-        idProcedimientoObjetivo: examId,
-        body: {
-          idUsuario: Number(idUsuario),
-          resultadosArray
-        }
-      });
-    }
-
-    // Otros → mono resultado (usa la concentración o "0")
-    else {
-      const first = group[0];
-      const val = (first && first.conc) ? first.conc : "0";
-
-      payloads.push({
-        documento,
-        idProcedimientoObjetivo: examId,
-        body: {
-          idUsuario: Number(idUsuario),
-          resultado: String(val)
-        }
-      });
+    const [documento, idProcedimientoObjetivo] = key.split('|'); const examId = idProcedimientoObjetivo;
+    if (examId === '9087') {
+      const total = group.find(g=>/TOTAL/i.test(g.prueba)); const directa = group.find(g=>/DIRECTA|DIRECT/i.test(g.prueba)); const indirecta = group.find(g=>/INDIRECTA|INDIRECT/i.test(g.prueba));
+      const totalVal = (total && total.conc) ? total.conc : '0'; const directaVal = (directa && directa.conc) ? directa.conc : '0'; const indirectaVal = (indirecta && indirecta.conc) ? indirecta.conc : '0';
+      const resultadosArray = [totalVal, directaVal, indirectaVal];
+      payloads.push({documento, idProcedimientoObjetivo: examId, body: { idUsuario: Number(idUsuario), resultadosArray }});
+    } else if (examId === '9121') {
+      const pre = group.find(g=>g.tipo==='PRE'); const post = group.find(g=>g.tipo==='POST'); const preVal=(pre&&pre.conc)?pre.conc:'0'; const postVal=(post&&post.conc)?post.conc:'0'; payloads.push({documento, idProcedimientoObjetivo: examId, body:{ idUsuario:Number(idUsuario), resultadosArray:[preVal, postVal] }});
+    } else if (examId === '9122') {
+      const slots = [ {label:'GLUCOSA 2 HORAS', tipo:'2H'}, {label:'GLUCOSA 3 HORAS', tipo:'3H'}, {label:'GLUCOSA 1 HORA', tipo:'1H'}, {label:'GLUCOSA MEDIA HORA', tipo:'1/2H'}, {label:'OBSERVACIÓN', tipo:null}, {label:'GLUCOSA BASAL', tipo:'B'} ];
+      const resultadosArray = slots.map(slot=>{ if(!slot.tipo) return '0'; const row = group.find(g=>g.tipo===slot.tipo); return (row&&row.conc)?row.conc:'0'; });
+      payloads.push({documento, idProcedimientoObjetivo: examId, body:{ idUsuario:Number(idUsuario), resultadosArray }});
+    } else {
+      const first = group[0]; const val = (first&&first.conc)?first.conc:'0'; payloads.push({documento, idProcedimientoObjetivo: examId, body:{ idUsuario:Number(idUsuario), resultado: String(val) }});
     }
   }
-
   return payloads;
 }
 
-// ===================== ENVIAR A LA API ARMARJSON =====================
-document.getElementById("sendApi").addEventListener("click", async () => {
-  const idUsuario = document.getElementById("idUsuario").value.trim();
-  if (!idUsuario) {
-    alert("Ingresa el idUsuario antes de subir a la API");
-    return;
-  }
-  if (!lastRows.length) {
-    alert("Primero parsea el archivo TXT");
-    return;
-  }
+/* ====== Send to API using token (kept hidden) ====== */
+async function sendToArmarJson(payload) {
+  if (!_TOKEN) throw new Error('No hay token. Inicia sesión primero.');
+  // We'll attach the token as query param ?token=... (será recibido por tu backend)
+  const url = `${API_BASE}?token=${encodeURIComponent(_TOKEN)}&documento=${encodeURIComponent(payload.documento)}&idProcedimientoObjetivo=${encodeURIComponent(payload.idProcedimientoObjetivo)}&idUsuario=${encodeURIComponent(payload.body.idUsuario)}`;
+  const res = await fetch(url, { method:'POST', headers:{ 'Content-Type':'application/json' }, body: JSON.stringify(payload.body) });
+  const text = await res.text();
+  return { ok: res.ok, status: res.status, text };
+}
 
-  const payloads = buildApiPayloads(lastRows, idUsuario);
-  if (!payloads.length) {
-    alert("No hay filas con ID_EXAMEN mapeado para enviar.");
-    return;
-  }
+// Send loop (connected to button)
+// Obtener filas según filtros visibles (incluye checkbox "Solo con ID asignado")
+function getFilteredRowsForSend() {
+  const filter = normalize(document.getElementById('filterInput').value);
+  const onlyMapped = document.getElementById('mappedOnly').checked;
+  return lastRows.filter(r => {
+    if (onlyMapped && !r.id_examen) return false; // si está marcada, excluir no mapeados
+    if (filter) {
+      const f = filter;
+      if (!(r.paciente.includes(f) || normalize(r.prueba).includes(f) || (r.id_examen && r.id_examen.includes(f)))) return false;
+    }
+    return true;
+  });
+}
 
-  if (!confirm(`Se van a enviar ${payloads.length} peticiones a la API.\n¿Continuar?`)) return;
+// Envío a la API usando las filas filtradas en pantalla (si el usuario marcó el checkbox)
+document.getElementById('sendApi').addEventListener('click', async () => {
+  // tomar idUsuario desde el input (auto-llenado desde el login)
+  const idUsuario = document.getElementById('idUsuario').value.trim();
+  if (!idUsuario) return alert('Ingresa el idUsuario antes de subir a la API');
+  if (!lastRows.length) return alert('Primero parsea el archivo TXT');
+  if (!_TOKEN) return alert('Debes iniciar sesión para obtener token antes de enviar');
+
+  // Obtener filas filtradas por la UI
+  const rowsToSend = getFilteredRowsForSend();
+  if (!rowsToSend.length) return alert('No hay filas filtradas para enviar (revisa filtro / checkbox).');
+
+  // Construir payloads solo con las filas filtradas
+  const payloads = buildApiPayloads(rowsToSend, idUsuario);
+  if (!payloads.length) return alert('No hay filas con ID_EXAMEN mapeado para enviar.');
+
+  if (!confirm(`Se van a enviar ${payloads.length} peticiones a la API.
+¿Continuar?`)) return;
 
   let ok = 0;
   let fail = 0;
 
   for (const p of payloads) {
     try {
-      const url = `${API_URL}?documento=${encodeURIComponent(p.documento)}&idProcedimientoObjetivo=${encodeURIComponent(p.idProcedimientoObjetivo)}&idUsuario=${encodeURIComponent(idUsuario)}`;
-
-      console.log("📤 Enviando a API:", url, JSON.stringify(p.body));
-
-      const res = await fetch(url, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(p.body)
-      });
-
-      const text = await res.text();
-      if (!res.ok) {
+      console.log('📤 Enviando a API:', p);
+      const result = await sendToArmarJson(p);
+      if (!result.ok) {
         fail++;
-        console.error("❌ Error API", p.documento, p.idProcedimientoObjetivo, text);
+        console.error('❌ Error API', p.documento, p.idProcedimientoObjetivo, result.status, result.text);
       } else {
         ok++;
-        console.log("✅ OK API", p.documento, p.idProcedimientoObjetivo, text);
+        console.log('✅ OK API', p.documento, p.idProcedimientoObjetivo, result.text);
       }
     } catch (err) {
       fail++;
-      console.error("❌ Error de red/API", p.documento, p.idProcedimientoObjetivo, err);
+      console.error('❌ Error de red/API', p.documento, p.idProcedimientoObjetivo, err);
     }
   }
 
-  alert(`Envío terminado.\nÉxitos: ${ok}\nErrores: ${fail}\n(Revisa la consola para más detalles).`);
+  alert(`Envío terminado.
+Éxitos: ${ok}
+Errores: ${fail}
+(Revisa la consola para más detalles).`);
 });
+
+// Inicializar UI
+renderAuth();
 </script>
 </body>
 </html>

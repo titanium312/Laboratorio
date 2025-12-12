@@ -3,13 +3,12 @@ import { Request, Response } from 'express';
 import axios from 'axios';
 import { obtenerCadenaCompletaCore } from '../ParametroR';
 import { EXAMENES } from './ListaItem';
-import { getToken } from '../token.js';
 
 /* ----------------------------------------------
    Helpers
 ---------------------------------------------- */
-const TOKEN = getToken();
 
+/** Devuelve la fecha/hora actual en strings formateados */
 function nowDateTimeStrings() {
   const d = new Date();
   const pad = (n: number) => (n < 10 ? '0' + n : String(n));
@@ -56,7 +55,8 @@ function mapToSaludPlusFormat(jsonFinal: any) {
         idResultadoLaboratorio: Number(jsonFinal.idResultadoLaboratorio) || 0,
         idOrden: proc.idOrden || 0,
         idFactura: proc.idFactura || 0,
-        idProcedimiento: String(proc.IdProcedimiento || ''),
+        idProcedimiento: String(proc.IdProcedimiento || proc.IdProcedimiento || ''),
+
         idUsuario: Number(proc.idUsuario) || 0,
         fecha: proc.fecha,
         hora: proc.hora,
@@ -64,7 +64,7 @@ function mapToSaludPlusFormat(jsonFinal: any) {
         resultadosLaboratorioCategorias:
           proc.ResultadosLaboratorioCategorias?.map((cat: any) => ({
             id: cat.id || 0,
-            idCategia: cat.idCategoria || 0,
+            idCategoria: cat.idCategoria || 0, // CORREGIDO: idCategoria
             idResultadoLaboratorioProcedimiento:
               cat.idResultadoLaboratorioProcedimiento || 0,
             resultado: cat.resultado || ''
@@ -114,13 +114,10 @@ export const ArmarJsonController = async (req: Request, res: Response) => {
     const idProcedimientoObjetivoNormalizado = examIdFromList ? String(examIdFromList) : requestedRaw;
 
     // Nombre representativo del examen solicitado (si lo podemos resolver)
-    // - Si envía nombre -> examIdFromList existe y nombreSolicitado será lookupKey
-    // - Si envía id numérico -> buscamos en el mapa inverso EXAMENES_ID_A_NOMBRE
     let nombreSolicitado: string | null = null;
     if (examIdFromList) {
       nombreSolicitado = lookupKey;
     } else {
-      // intentamos resolver si el valor numérico existe como value en EXAMENES
       nombreSolicitado = EXAMENES_ID_A_NOMBRE[requestedRaw] ?? null;
     }
 
@@ -165,16 +162,16 @@ export const ArmarJsonController = async (req: Request, res: Response) => {
     // Buscar nombre representativo para el id que devolvió el core
     const nombreEncontrado = EXAMENES_ID_A_NOMBRE[matchIdProcedimientoStr] ?? null;
 
-// Si difieren, devolvemos el mensaje solicitado (con nombres o '(sin nombre)' cuando no existan)
-if (requestedIdStr && matchIdProcedimientoStr !== requestedIdStr) {
-  const nombreSolMostrar = nombreSolicitado ?? '(sin nombre)';
-  const nombreEncMostrar = nombreEncontrado ?? '(sin nombre)';
-  const mensajeCustom = `Mandaste idprocedimiento ${requestedIdStr} ${nombreSolMostrar} y se encontró idprocedimiento ${matchIdProcedimientoStr} ${nombreEncMostrar}. Revisa y comprueba que el examen sí está facturado.`;
-  return res.status(400).json({
-    success: false,
-    message: mensajeCustom
-  });
-}
+    // Si difieren, devolvemos el mensaje solicitado (con nombres o '(sin nombre)' cuando no existan)
+    if (requestedIdStr && matchIdProcedimientoStr !== requestedIdStr) {
+      const nombreSolMostrar = nombreSolicitado ?? '(sin nombre)';
+      const nombreEncMostrar = nombreEncontrado ?? '(sin nombre)';
+      const mensajeCustom = `Mandaste idprocedimiento ${requestedIdStr} ${nombreSolMostrar} y se encontró idprocedimiento ${matchIdProcedimientoStr} ${nombreEncMostrar}. Revisa y comprueba que el examen sí está facturado.`;
+      return res.status(400).json({
+        success: false,
+        message: mensajeCustom
+      });
+    }
 
     const { fecha, hora } = nowDateTimeStrings();
 
@@ -222,7 +219,7 @@ if (requestedIdStr && matchIdProcedimientoStr !== requestedIdStr) {
         idResultadoLaboratorioProcedimiento: 0,
         resultado: label
       }));
-    // 9122
+    // 9122 (plantilla curva con IDs fijos)
     } else if (idProcedimientoStr === '9122') {
       const FIXED_ID_ITEMS = [7605, 8052, 7604, 8051, 9182, 7603];
       resultadosArrayFromBody = getResultadosArrayLimpio();
@@ -271,11 +268,30 @@ if (requestedIdStr && matchIdProcedimientoStr !== requestedIdStr) {
     };
 
     /* --------------------------------------
-       MAPEAR Y ENVIAR A SALUDPLUS
+       OBTENER TOKEN Y ENVIAR A SALUDPLUS
+       - El token puede venir en: req.query.token, req.headers['x-api-token'] o env var
     -------------------------------------- */
+    const tokenFromQuery = (req.query?.token as string) ?? undefined;
+    const tokenFromHeader = (req.headers['x-api-token'] as string) ?? undefined;
+    const tokenFromAuthHeader = (() => {
+      const h = (req.headers['authorization'] as string) ?? '';
+      if (h.toLowerCase().startsWith('bearer ')) return h.slice(7).trim();
+      return undefined;
+    })();
+    const TOKEN = tokenFromQuery || tokenFromHeader || tokenFromAuthHeader || process.env.SALUDPLUS_TOKEN;
+
+    if (!isNonEmptyString(TOKEN)) {
+      return res.status(400).json({ success: false, message: 'Falta token para autenticar con SaludPlus. Pasa ?token=... o header x-api-token o Authorization: Bearer ...' });
+    }
+
     const payloadSaludPlus = mapToSaludPlusFormat(jsonFinal);
+
     const resp = await axios.post('https://api.saludplus.co/api/resultadoLaboratorio', payloadSaludPlus, {
-      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${TOKEN}`, 'accept': 'application/json' }
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${TOKEN}`,
+        'accept': 'application/json'
+      }
     });
 
     /* --------------------------------------
@@ -302,11 +318,11 @@ if (requestedIdStr && matchIdProcedimientoStr !== requestedIdStr) {
     return res.json(responsePayload);
 
   } catch (err: any) {
-    console.error('Error en ArmarJsonController:', err?.response?.data || err?.message);
+    console.error('Error en ArmarJsonController:', err?.response?.data || err?.message || err);
     return res.status(500).json({
       success: false,
       message: 'Error interno',
-      error: err?.response?.data || err.message
+      error: err?.response?.data || err?.message
     });
   }
 };
