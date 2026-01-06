@@ -1,8 +1,7 @@
 /* ====== Config ====== */
-const API_BASE = "https://laboratorio-bn7h.vercel.app/-rb-/ArmarJson"; // no token aquí
-const LOGIN_URL = "https://api.saludplus.co/api/auth/Login"; // endpoint de login (ejemplo)
+const API_BASE = "https://laboratorio-bn7h.vercel.app/-rb-/ArmarJson";
+const LOGIN_URL = "https://api.saludplus.co/api/auth/Login";
 
-// Mapa simplificado (igual al anterior)
 const EXAM_MAP = {
   "GLUCOSE": "11803", "GLUCOSA": "11803",
   "CHOLESTEROL": "9096", "COL": "9096",
@@ -20,53 +19,143 @@ const EXAM_MAP = {
 const CURVA_PREFIX = /^(PRE|POST|1[/]?2H?|1H|2H|3H|B)$/i;
 function normalize(s){return (s||"").toString().trim().toUpperCase();}
 
-/* ====== Token / Usuario (no mostrado) ====== */
-let _TOKEN = null; // queda en memoria
-let _USER = null;  // objeto con id,nombre,usuario,estado,isAdmin,iniciales,perfiles
+/* ====== Extraer solo el mensaje ====== */
+function extractMessageFromResponse(text) {
+  try {
+    // Intenta parsear como JSON
+    const json = JSON.parse(text);
+    
+    // Busca el campo "mensaje" en diferentes niveles
+    if (json.mensaje) return json.mensaje;
+    
+    // Si no, busca en respuestaSaludPlus
+    if (json.respuestaSaludPlus && json.respuestaSaludPlus.mensaje) {
+      return json.respuestaSaludPlus.mensaje;
+    }
+    
+    // Si hay success y algún mensaje
+    if (json.success && json.respuestaSaludPlus) {
+      return "Envío exitoso";
+    }
+    
+    // Si no encuentra mensaje, devuelve el texto completo pero truncado
+    return text.length > 100 ? text.substring(0, 100) + "..." : text;
+  } catch (e) {
+    // Si no es JSON válido, busca el patrón "mensaje": en el texto
+    const mensajeMatch = text.match(/"mensaje"\s*:\s*"([^"]+)"/);
+    if (mensajeMatch && mensajeMatch[1]) {
+      return mensajeMatch[1];
+    }
+    
+    // Si no encuentra, devuelve texto truncado
+    return text.length > 100 ? text.substring(0, 100) + "..." : text;
+  }
+}
+
+/* ====== Token / Usuario ====== */
+let _TOKEN = null;
+let _USER = null;
+
+
 
 function renderAuth() {
   const el = document.getElementById('authArea');
   el.innerHTML = '';
+
+  /* ================= LOGIN ================= */
   if (!_USER) {
-    // mostrar formulario de login
-    const box = document.createElement('div'); box.className = 'loginBox';
-    box.innerHTML = `
-      <div style="display:flex;gap:8px;align-items:center">
-        <input id="loginUser" type="text" placeholder="usuario" style="min-width:140px">
-        <input id="loginPass" type="password" placeholder="password" style="min-width:140px">
-        <button id="btnLogin">Iniciar</button>
+    el.innerHTML = `
+      <div class="flex items-center gap-2
+                  bg-gray-100 border border-gray-300
+                  rounded-full px-2 py-1 shadow-sm">
+
+        <input id="loginUser"
+          class="bg-transparent text-gray-700
+                 placeholder-gray-400 text-sm
+                 px-3 py-1 w-32
+                 focus:outline-none"
+          type="text" placeholder="Usuario">
+
+        <div class="w-px h-5 bg-gray-300"></div>
+
+        <input id="loginPass"
+          class="bg-transparent text-gray-700
+                 placeholder-gray-400 text-sm
+                 px-3 py-1 w-32
+                 focus:outline-none"
+          type="password" placeholder="Contraseña">
+
+        <button id="btnLogin"
+          class="flex items-center gap-1
+                 bg-salu-900 hover:bg-salu-800
+                 text-white font-semibold
+                 text-sm px-4 py-1.5 rounded-full
+                 transition active:scale-95">
+          🔐 Entrar
+        </button>
       </div>
-      <div class="small">Usa credenciales para obtener token. (El token no se mostrará)</div>
     `;
-    el.appendChild(box);
-    document.getElementById('btnLogin').addEventListener('click', doLogin);
+
+    document.getElementById('btnLogin')
+      .addEventListener('click', doLogin);
+
+  /* ================= USER ================= */
   } else {
-    // mostrar card de usuario (sin token)
-    const card = document.createElement('div'); card.className = 'userCard';
-    const avatar = document.createElement('div'); avatar.className = 'avatar'; avatar.textContent = _USER.iniciales || (_USER.nombre||'?').split(' ').map(x=>x[0]).slice(0,2).join('');
-    const info = document.createElement('div'); info.className = 'userInfo';
+    const initials =
+      _USER.iniciales ||
+      (_USER.nombre || _USER.usuario || '?')
+        .split(' ')
+        .map(x => x[0])
+        .slice(0, 2)
+        .join('');
 
-    const perfiles = Array.isArray(_USER.perfiles) ? _USER.perfiles.join(', ') : '';
-    info.innerHTML = `<b>${escapeHtml(_USER.nombre || _USER.usuario || 'Usuario')}</b>
-      <div>id: <strong>${_USER.id ?? '-'}</strong> &nbsp; usuario: <strong>${escapeHtml(_USER.usuario||'-')}</strong></div>
-      <div class="small">estado: <strong>${_USER.estado ? 'activo' : 'inactivo'}</strong> &nbsp; isAdmin: <strong>${_USER.isAdmin ? 'sí' : 'no'}</strong></div>
-      <div class="small">perfiles: ${escapeHtml(perfiles)}</div>`;
+    el.innerHTML = `
+      <div class="flex items-center gap-3
+                  bg-gray-100 border border-gray-300
+                  rounded-full px-3 py-1.5 shadow-sm">
 
-    const actions = document.createElement('div'); actions.className = 'topActions';
-    const btnLogout = document.createElement('button'); btnLogout.textContent = 'Cerrar sesión'; btnLogout.className='secondary';
-    btnLogout.addEventListener('click', ()=>{ _TOKEN=null; _USER=null; renderAuth(); });
+        <div class="w-9 h-9 rounded-full
+                    bg-salu-900 text-white
+                    flex items-center justify-center
+                    font-bold text-sm">
+          ${initials}
+        </div>
 
-    actions.appendChild(btnLogout);
-    card.appendChild(avatar); card.appendChild(info); card.appendChild(actions);
-    el.appendChild(card);
+        <div class="leading-tight">
+          <div class="text-sm font-semibold text-gray-900">
+            ${escapeHtml(_USER.nombre || _USER.usuario)}
+          </div>
+          <div class="text-xs text-gray-500">
+            ID ${_USER.id ?? '-'} · ${_USER.isAdmin ? 'ADMIN' : 'USUARIO'}
+          </div>
+        </div>
+
+        <button id="btnLogout"
+          class="ml-2 text-xs text-red-600
+                 hover:text-red-700
+                 border border-red-300
+                 px-3 py-1 rounded-full
+                 transition">
+          Salir
+        </button>
+      </div>
+    `;
+
+    document.getElementById('btnLogout')
+      .addEventListener('click', () => {
+        _TOKEN = null;
+        _USER = null;
+        renderAuth();
+      });
   }
 }
+
+
 
 async function doLogin() {
   const user = document.getElementById('loginUser').value.trim();
   const pass = document.getElementById('loginPass').value.trim();
   if(!user || !pass) return alert('Usuario y password requeridos');
-
   try {
     const res = await fetch(LOGIN_URL, {
       method: 'POST', headers: {'Content-Type':'application/json'},
@@ -78,9 +167,7 @@ async function doLogin() {
       return alert('Error de login: ' + (txt || res.status));
     }
     const data = await res.json();
-    // data expected to contain: id,nombre,usuario,estado,isAdmin,iniciales,perfiles,token
     _TOKEN = data.token || data.accessToken || null;
-    // Build a safe user object (exclude token)
     _USER = {
       id: data.id ?? null,
       nombre: data.nombre ?? data.displayName ?? data.usuario ?? null,
@@ -90,8 +177,6 @@ async function doLogin() {
       iniciales: data.iniciales ?? null,
       perfiles: data.perfiles ?? []
     };
-
-    // Asignar automáticamente el idUsuario en el campo de envío
     const idInput = document.getElementById('idUsuario');
     if (idInput && _USER.id) idInput.value = _USER.id;
     renderAuth();
@@ -104,7 +189,7 @@ async function doLogin() {
 
 function escapeHtml(s){ return String(s||'').replace(/[&<>\\"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','\\':'\\\\','"':'&quot;',"'":"&#39;"})[c]); }
 
-/* ====== Parsing (mismo que tu script original) ====== */
+/* ====== Parsing ====== */
 const dateRe = /^\d{1,2}\/\d{1,2}\/\d{4}$/;
 const timeRe = /^\d{1,2}:\d{2}$/;
 const numRe = /^\d+[\.,]?\d*$/;
@@ -154,15 +239,22 @@ function parseText(text) {
     else if (idx < parts.length && /mg|mmol|g\/dl|iu|%|ug/i.test(parts[idx])) { unidades = parts[idx]; idx++; }
     let fecha = "";
     if (idx < parts.length && dateRe.test(parts[idx])) { fecha = parts[idx]; if (idx+1 < parts.length && timeRe.test(parts[idx+1])) fecha += ' ' + parts[idx+1]; }
-    // normalize conc to 1 decimal where appropriate
     if (!/^[-\/\s]+$/.test(conc)) {
       const rawConc = (conc||'').toString().trim();
       const comparatorMatch = rawConc.match(/^([<>]=?)([\d\.]+)$/);
       if (comparatorMatch) {
         const comp = comparatorMatch[1]; const num = Number(comparatorMatch[2].replace(',', '.'));
         if (!isNaN(num)) { const rounded=(Math.round(num*10)/10).toFixed(1); conc = `${comp}${rounded}` } else conc = rawConc;
-      } else if (/^[+-]?\d+(\.\d+)?$/.test(rawConc)) { const n=Number(rawConc); conc = (!isNaN(n)) ? (Math.round(n*10)/10).toFixed(1) : rawConc; }
-      else { conc = rawConc; }
+      } else if (/^[+-]?\d+(\.\d+)?$/.test(rawConc)) {
+        const n = Number(rawConc);
+        if (!isNaN(n)) {
+          conc = Number.isInteger(n)
+            ? String(n)
+            : (Math.round(n * 10) / 10).toFixed(1);
+        } else {
+          conc = rawConc;
+        }
+      }
     }
     let id_examen = "";
     const pruebaNorm = normalize(prueba);
@@ -173,95 +265,181 @@ function parseText(text) {
     } else {
       for (const key in EXAM_MAP) if (pruebaNorm.includes(normalize(key))) { id_examen = EXAM_MAP[key]; break; }
     }
-    rows.push({ paciente, tipo, tecnica, prueba, id_examen: id_examen || "", conc, unidades, fecha: fecha || "" });
+    rows.push({ 
+      paciente, 
+      tipo, 
+      tecnica, 
+      prueba, 
+      id_examen: id_examen || "", 
+      conc, 
+      unidades, 
+      fecha: fecha || "", 
+      apiMessage: '', 
+      rowClass: 'row-pending'
+    });
   }
   return rows;
 }
 
-/* ====== Render y export ====== */
+/* ====== Render ====== */
 let lastRows = [];
+
 function render(rows){
   const filter = normalize(document.getElementById('filterInput').value);
   const onlyMapped = document.getElementById('mappedOnly').checked;
   let visible = 0;
-  let html = `<table><thead><tr><th>Paciente</th><th>Tipo</th><th>Técnica</th><th>Prueba</th><th>ID_EXAMEN</th><th>Conc.</th><th>Unidades</th><th>Fecha/Hora</th></tr></thead><tbody>`;
+  
+  let html = `<table><thead><tr>
+    <th>Paciente</th><th>Tipo</th><th>Técnica</th><th>Prueba</th>
+    <th>ID_EXAMEN</th><th>Conc.</th><th>Unidades</th><th>Fecha/Hora</th>
+    <th>MENSAJE API</th>
+  </tr></thead><tbody>`;
+  
   for (const r of rows) {
     if (onlyMapped && !r.id_examen) continue;
     if (filter && !(r.paciente.includes(filter) || normalize(r.prueba).includes(filter) || (r.id_examen && r.id_examen.includes(filter)))) continue;
     visible++;
+    
+    // Determinar clase CSS para la fila
+    let rowClass = r.rowClass || 'row-pending';
+    
+    // Determinar clase para el mensaje
+    let msgClass = 'api-pending';
+    if (rowClass === 'row-success') msgClass = 'api-success';
+    else if (rowClass === 'row-error') msgClass = 'api-error';
+    else if (rowClass === 'row-sending') msgClass = 'api-sending';
+    
+    // Estilo para ID_EXAMEN
     const idStyle = r.id_examen ? "background:#ecfdf5;color:#166534;font-weight:700" : "color:#ef4444";
-
-
-html += `
-<tr data-key="${r.paciente}|${r.id_examen}">
-<td><b>${r.paciente}</b></td>
-<td>${r.tipo}</td>
-<td>${escapeHtml(r.prueba)}</td>
-<td style="${idStyle}">${r.id_examen||'-'}</td>
-<td>${r.conc}</td>
-<td>${r.unidades}</td>
-<td>${r.fecha}</td>
-<td class="statusCell"></td>
-</tr>`;
-
+    
+    html += `<tr class="${rowClass}">
+      <td><strong>${r.paciente}</strong></td>
+      <td><strong>${r.tipo}</strong></td>
+      <td>${r.tecnica}</td>
+      <td>${escapeHtml(r.prueba)}</td>
+      <td style="${idStyle}">${r.id_examen || '-'}</td>
+      <td style="text-align:right">${r.conc}</td>
+      <td>${r.unidades}</td>
+      <td>${r.fecha}</td>
+      <td class="api-message ${msgClass}">${escapeHtml(r.apiMessage || '')}</td>
+    </tr>`;
   }
+  
   html += `</tbody></table>`;
   document.getElementById('countBadge').textContent = visible + ' filas';
   document.getElementById('resultArea').innerHTML = html || "<p style='color:#666'>No se encontraron datos.</p>";
 }
 
 // Eventos
-document.getElementById('file').addEventListener('change', async e=>{ const file=e.target.files[0]; if(!file) return; const text=await file.text(); document.getElementById('input').value=text; });
-document.getElementById('parse').addEventListener('click', ()=>{ const txt=document.getElementById('input').value.trim(); if(!txt) return alert('Pega o carga un archivo primero'); lastRows = parseText(txt); render(lastRows); });
-document.getElementById('clear').addEventListener('click', ()=>{ document.getElementById('input').value=''; lastRows=[]; document.getElementById('resultArea').innerHTML=''; document.getElementById('countBadge').textContent='0 filas'; });
-document.getElementById('filterInput').addEventListener('input', ()=>render(lastRows)); document.getElementById('mappedOnly').addEventListener('change', ()=>render(lastRows));
+document.getElementById('file').addEventListener('change', async e=>{ 
+  const file=e.target.files[0]; 
+  if(!file) return; 
+  const text=await file.text(); 
+  document.getElementById('input').value=text; 
+});
 
-function exportCSV(){ if(!lastRows.length) return alert('Nada que exportar'); const filtered = lastRows.filter(r=>{ if(document.getElementById('mappedOnly').checked && !r.id_examen) return false; const f=normalize(document.getElementById('filterInput').value); if(!f) return true; return r.paciente.includes(f) || normalize(r.prueba).includes(f) || (r.id_examen&&r.id_examen.includes(f)); }); const header = 'Paciente,Tipo,Tecnica,Prueba,ID_EXAMEN,Conc,Unidades,FechaHora\n'; const lines = filtered.map(r=>[r.paciente,r.tipo,r.tecnica,`"${r.prueba.replace(/"/g,'""') }"`,r.id_examen,r.conc,r.unidades,r.fecha].join(',')); const blob=new Blob([header+lines.join('\n')],{type:'text/csv;charset=utf-8'}); const url=URL.createObjectURL(blob); const a=document.createElement('a'); a.href=url; a.download='resultados_laboratorio.csv'; a.click(); }
-function exportJSON(){ if(!lastRows.length) return alert('Nada que exportar'); const filtered=lastRows.filter(r=>{ if(document.getElementById('mappedOnly').checked && !r.id_examen) return false; const f=normalize(document.getElementById('filterInput').value); if(!f) return true; return r.paciente.includes(f) || normalize(r.prueba).includes(f) || (r.id_examen&&r.id_examen.includes(f)); }); const blob=new Blob([JSON.stringify(filtered,null,2)],{type:'application/json'}); const url=URL.createObjectURL(blob); const a=document.createElement('a'); a.href=url; a.download='resultados_laboratorio.json'; a.click(); }
-document.getElementById('downloadCsv').addEventListener('click', exportCSV); document.getElementById('downloadJson').addEventListener('click', exportJSON);
+document.getElementById('parse').addEventListener('click', ()=>{ 
+  const txt=document.getElementById('input').value.trim(); 
+  if(!txt) return alert('Pega o carga un archivo primero'); 
+  lastRows = parseText(txt); 
+  render(lastRows); 
+});
 
-/* ====== Build payloads (igual) ====== */
+document.getElementById('clear').addEventListener('click', ()=>{ 
+  document.getElementById('input').value=''; 
+  lastRows=[]; 
+  document.getElementById('resultArea').innerHTML=''; 
+  document.getElementById('countBadge').textContent='0 filas';
+});
+
+document.getElementById('filterInput').addEventListener('input', ()=>render(lastRows)); 
+document.getElementById('mappedOnly').addEventListener('change', ()=>render(lastRows));
+
+/* ====== Build payloads ====== */
 function buildApiPayloads(rows, idUsuario) {
   const grouped = new Map();
-  for (const r of rows) { if (!r.id_examen) continue; const key = `${r.paciente}|${r.id_examen}`; if (!grouped.has(key)) grouped.set(key, []); grouped.get(key).push(r); }
+  for (let i = 0; i < rows.length; i++) { 
+    const r = rows[i];
+    if (!r.id_examen) continue;
+    const key = `${r.paciente}|${r.id_examen}`;
+    if (!grouped.has(key)) grouped.set(key, {rows: [], idProcedimientoObjetivo: r.id_examen, documento: r.paciente, indices: []});
+    grouped.get(key).rows.push(r);
+    grouped.get(key).indices.push(i);
+  }
+
   const payloads = [];
-  for (const [key, group] of grouped.entries()) {
-    const [documento, idProcedimientoObjetivo] = key.split('|'); const examId = idProcedimientoObjetivo;
+  for (const [key, groupData] of grouped.entries()) {
+    const { documento, idProcedimientoObjetivo, rows: group } = groupData;
+    const examId = idProcedimientoObjetivo;
+    let body = { idUsuario: Number(idUsuario) };
+
     if (examId === '9087') {
-      const total = group.find(g=>/TOTAL/i.test(g.prueba)); const directa = group.find(g=>/DIRECTA|DIRECT/i.test(g.prueba)); const indirecta = group.find(g=>/INDIRECTA|INDIRECT/i.test(g.prueba));
-      const totalVal = (total && total.conc) ? total.conc : '0'; const directaVal = (directa && directa.conc) ? directa.conc : '0'; const indirectaVal = (indirecta && indirecta.conc) ? indirecta.conc : '0';
-      const resultadosArray = [totalVal, directaVal, indirectaVal];
-      payloads.push({documento, idProcedimientoObjetivo: examId, body: { idUsuario: Number(idUsuario), resultadosArray }});
+      const total = group.find(g=>/TOTAL/i.test(g.prueba));
+      const directa = group.find(g=>/DIRECTA|DIRECT/i.test(g.prueba));
+      const indirecta = group.find(g=>/INDIRECTA|INDIRECT|BILURB/i.test(g.prueba));
+      const totalVal = (total && total.conc) ? total.conc : '0';
+      const directaVal = (directa && directa.conc) ? directa.conc : '0';
+      const indirectaVal = (indirecta && indirecta.conc) ? indirecta.conc : '0';
+      body.resultadosArray = [totalVal, directaVal, indirectaVal];
     } else if (examId === '9121') {
-      const pre = group.find(g=>g.tipo==='PRE'); const post = group.find(g=>g.tipo==='POST'); const preVal=(pre&&pre.conc)?pre.conc:'0'; const postVal=(post&&post.conc)?post.conc:'0'; payloads.push({documento, idProcedimientoObjetivo: examId, body:{ idUsuario:Number(idUsuario), resultadosArray:[preVal, postVal] }});
+      const pre = group.find(g=>g.tipo==='PRE');
+      const post = group.find(g=>g.tipo==='POST');
+      const preVal=(pre&&pre.conc)?pre.conc:'0';
+      const postVal=(post&&post.conc)?post.conc:'0';
+      body.resultadosArray = [preVal, postVal];
     } else if (examId === '9122') {
-      const slots = [ {label:'GLUCOSA 2 HORAS', tipo:'2H'}, {label:'GLUCOSA 3 HORAS', tipo:'3H'}, {label:'GLUCOSA 1 HORA', tipo:'1H'}, {label:'GLUCOSA MEDIA HORA', tipo:'1/2H'}, {label:'OBSERVACIÓN', tipo:null}, {label:'GLUCOSA BASAL', tipo:'B'} ];
-      const resultadosArray = slots.map(slot=>{ if(!slot.tipo) return '0'; const row = group.find(g=>g.tipo===slot.tipo); return (row&&row.conc)?row.conc:'0'; });
-      payloads.push({documento, idProcedimientoObjetivo: examId, body:{ idUsuario:Number(idUsuario), resultadosArray }});
+      const slots = [
+        {label:'GLUCOSA 2 HORAS', tipo:'2H'}, {label:'GLUCOSA 3 HORAS', tipo:'3H'},
+        {label:'GLUCOSA 1 HORA', tipo:'1H'}, {label:'GLUCOSA MEDIA HORA', tipo:'1/2H'},
+        {label:'OBSERVACIÓN', tipo:null}, {label:'GLUCOSA BASAL', tipo:'B'}
+      ];
+      const resultadosArray = slots.map(slot=>{
+        if(!slot.tipo) return '0';
+        const row = group.find(g=>g.tipo===slot.tipo);
+        return (row&&row.conc)?row.conc:'0';
+      });
+      body.resultadosArray = resultadosArray;
     } else {
-      const first = group[0]; const val = (first&&first.conc)?first.conc:'0'; payloads.push({documento, idProcedimientoObjetivo: examId, body:{ idUsuario:Number(idUsuario), resultado: String(val) }});
+      const first = group[0];
+      const val = (first&&first.conc)?first.conc:'0';
+      body.resultado = String(val);
     }
+
+    payloads.push({
+      documento,
+      idProcedimientoObjetivo: examId,
+      body,
+      indices: groupData.indices 
+    });
   }
   return payloads;
 }
 
-/* ====== Send to API using token (kept hidden) ====== */
+/* ====== Send to API ====== */
 async function sendToArmarJson(payload) {
   if (!_TOKEN) throw new Error('No hay token. Inicia sesión primero.');
-  // We'll attach the token as query param ?token=... (será recibido por tu backend)
   const url = `${API_BASE}?token=${encodeURIComponent(_TOKEN)}&documento=${encodeURIComponent(payload.documento)}&idProcedimientoObjetivo=${encodeURIComponent(payload.idProcedimientoObjetivo)}&idUsuario=${encodeURIComponent(payload.body.idUsuario)}`;
-  const res = await fetch(url, { method:'POST', headers:{ 'Content-Type':'application/json' }, body: JSON.stringify(payload.body) });
-  const text = await res.text();
-  return { ok: res.ok, status: res.status, text };
+  
+  let res, text;
+  try {
+    res = await fetch(url, { method:'POST', headers:{ 'Content-Type':'application/json' }, body: JSON.stringify(payload.body) });
+    text = await res.text();
+  } catch (error) {
+    return { ok: false, text: `Error de red: ${error.message}` };
+  }
+  
+  // Extraer solo el mensaje
+  const message = extractMessageFromResponse(text);
+  
+  return { ok: res.ok, text: message };
 }
 
-// Send loop (connected to button)
-// Obtener filas según filtros visibles (incluye checkbox "Solo con ID asignado")
 function getFilteredRowsForSend() {
   const filter = normalize(document.getElementById('filterInput').value);
   const onlyMapped = document.getElementById('mappedOnly').checked;
   return lastRows.filter(r => {
-    if (onlyMapped && !r.id_examen) return false; // si está marcada, excluir no mapeados
+    if (!r.id_examen) return false;
+    if (onlyMapped && !r.id_examen) return false;
     if (filter) {
       const f = filter;
       if (!(r.paciente.includes(f) || normalize(r.prueba).includes(f) || (r.id_examen && r.id_examen.includes(f)))) return false;
@@ -270,73 +448,102 @@ function getFilteredRowsForSend() {
   });
 }
 
-// Envío a la API usando las filas filtradas en pantalla (si el usuario marcó el checkbox)
+// Envío a la API
+
 document.getElementById('sendApi').addEventListener('click', async () => {
-  // tomar idUsuario desde el input (auto-llenado desde el login)
   const idUsuario = document.getElementById('idUsuario').value.trim();
   if (!idUsuario) return alert('Ingresa el idUsuario antes de subir a la API');
   if (!lastRows.length) return alert('Primero parsea el archivo TXT');
   if (!_TOKEN) return alert('Debes iniciar sesión para obtener token antes de enviar');
 
-  // Obtener filas filtradas por la UI
   const rowsToSend = getFilteredRowsForSend();
-  if (!rowsToSend.length) return alert('No hay filas filtradas para enviar (revisa filtro / checkbox).');
+  if (!rowsToSend.length) return alert('No hay filas con ID_EXAMEN para enviar');
 
-  // Construir payloads solo con las filas filtradas
   const payloads = buildApiPayloads(rowsToSend, idUsuario);
-  if (!payloads.length) return alert('No hay filas con ID_EXAMEN mapeado para enviar.');
+  if (!payloads.length) return alert('No hay payloads válidos');
 
-  if (!confirm(`Se van a enviar ${payloads.length} peticiones a la API.
-¿Continuar?`)) return;
+  if (!confirm(`Se enviarán ${payloads.length} peticiones a la API.\n¿Continuar?`)) return;
 
+  /* ===== UI PROGRESO ===== */
+  const progressBox = document.getElementById('uploadProgress');
+  const progressBar = document.getElementById('progressBar');
+  const progressText = document.getElementById('progressText');
+  const okCountEl = document.getElementById('okCount');
+  const failCountEl = document.getElementById('failCount');
+
+  progressBox.classList.remove('hidden');
+  progressBar.style.width = '0%';
+
+  let total = payloads.length;
+  let sent = 0;
   let ok = 0;
   let fail = 0;
 
-for (const p of payloads) {
-  const rowEl = document.querySelector(
-    `tr[data-key="${p.documento}|${p.idProcedimientoObjetivo}"]`
-  );
-  const statusCell = rowEl?.querySelector('.statusCell');
+  okCountEl.textContent = '0';
+  failCountEl.textContent = '0';
+  progressText.textContent = `0 / ${total}`;
 
-  if (rowEl) {
-    rowEl.className = 'sending';
-    statusCell.innerHTML = `<span class="statusBadge status-sending">Enviando…</span>`;
-  }
+  /* Marcar filas como enviando */
+  rowsToSend.forEach(r => {
+    r.apiMessage = 'Enviando…';
+    r.rowClass = 'row-sending';
+  });
+  render(lastRows);
 
-  try {
-    const result = await sendToArmarJson(p);
+  for (const p of payloads) {
+    try {
+      const result = await sendToArmarJson(p);
+      sent++;
 
-    if (!result.ok) {
+      const matchingRows = lastRows.filter(r =>
+        r.paciente === p.documento &&
+        r.id_examen === p.idProcedimientoObjetivo
+      );
+
+      if (result.ok) {
+        ok++;
+        matchingRows.forEach(r => {
+          r.apiMessage = `✅ ${result.text}`;
+          r.rowClass = 'row-success';
+        });
+      } else {
+        fail++;
+        matchingRows.forEach(r => {
+          r.apiMessage = `❌ ${result.text}`;
+          r.rowClass = 'row-error';
+        });
+      }
+
+    } catch (err) {
+      sent++;
       fail++;
-      if (rowEl) {
-        rowEl.className = 'error';
-        statusCell.innerHTML = `
-          <span class="statusBadge status-error">Error</span>
-          <div class="errorText">${result.status} - ${result.text}</div>`;
-      }
-    } else {
-      ok++;
-      if (rowEl) {
-        rowEl.className = 'ok';
-        statusCell.innerHTML =
-          `<span class="statusBadge status-ok">Subido ✔</span>`;
-      }
+      lastRows
+        .filter(r =>
+          r.paciente === p.documento &&
+          r.id_examen === p.idProcedimientoObjetivo
+        )
+        .forEach(r => {
+          r.apiMessage = `❌ Error de red`;
+          r.rowClass = 'row-error';
+        });
     }
-  } catch (err) {
-    fail++;
-    if (rowEl) {
-      rowEl.className = 'error';
-      statusCell.innerHTML =
-        `<span class="statusBadge status-error">Error red</span>`;
-    }
-  }
-}
 
-  alert(`Envío terminado.
-Éxitos: ${ok}
-Errores: ${fail}
-(Revisa la consola para más detalles).`);
+    /* ===== ACTUALIZAR BARRA ===== */
+    const percent = Math.round((sent / total) * 100);
+    progressBar.style.width = percent + '%';
+    progressText.textContent = `${sent} / ${total}`;
+    okCountEl.textContent = ok;
+    failCountEl.textContent = fail;
+
+    render(lastRows);
+  }
+
+  alert(`Proceso terminado.\n✔ Éxitos: ${ok}\n❌ Errores: ${fail}`);
 });
+
+
+
+
 
 // Inicializar UI
 renderAuth();
