@@ -1,91 +1,108 @@
-// src/controllers/BuscarAdmision.ts
 import { Request, Response } from 'express';
 import axios from 'axios';
 
+const URL =
+  'https://api.saludplus.co/api/resultadoLaboratorio/Listado?pageNumber=1&pageSize=30';
+
 export const BuscarAdmision = async (req: Request, res: Response) => {
-  try {
-    const documentoInput = req.body.documento || req.query.documento || req.params.documento;
+  try {
+    const { documento, token } = req.body;
 
-    if (!documentoInput) {
-      return res.status(400).json({
-        error: 'El campo "documento" es obligatorio',
-      });
-    }
+    /* ───────── Validaciones ───────── */
+    if (!documento || !documento.toString().trim()) {
+      return res.status(400).json({
+        success: false,
+        message: 'El campo documento es obligatorio'
+      });
+    }
 
-    // Extrae solo el número antes del espacio (ignora FEHxxxx)
-    const numeroParaBuscar = documentoInput.toString().trim().split(' ')[0];
+    if (!token || !token.toString().trim()) {
+      return res.status(400).json({
+        success: false,
+        message: 'El token es obligatorio'
+      });
+    }
 
-    if (!numeroParaBuscar || isNaN(Number(numeroParaBuscar))) {
-      return res.status(400).json({
-        error: 'El documento debe contener un número válido',
-      });
-    }
+    /* ───────── Request a SaludPlus ───────── */
+    const response = await axios.post(
+      URL,
+      {
+        filters: documento.toString(),
+        properties: [
+          'nombre1Paciente',
+          'nombre2Paciente',
+          'apellido1Paciente',
+          'apellido2Paciente',
+          'fecha'
+        ],
+        sort: 'id',
+        order: 'desc',
+        filterslist: '',
+        filterAvoid: '',
+        filterAudit: '3'
+      },
+      {
+        headers: {
+          Accept: 'application/json, text/plain, */*',
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+          'User-Agent':
+            'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+          Referer: 'https://app.saludplus.co/'
+        },
+        timeout: 15000
+      }
+    );
 
-    const response = await axios.post(
-      'https://balance.saludplus.co/admisiones/BucardorAdmisionesDatos',
-      {
-        sEcho: 1,
-        iDisplayStart: 0,
-        iDisplayLength: 50,
-        sSearch: numeroParaBuscar, // Se busca por el número
-      },
-      {
-        params: {
-          fechaInicial: '*',
-          fechaFinal: '*',
-          idRecurso: 0,
-          SinCargo: false,
-          idServicioIngreso: 3,
-          idCaracteristica: 0,
-          validarSede: true,
-        },
-        headers: {
-          'Content-Type': 'application/json; charset=UTF-8',
-          'data': 'zsJo9Q61W/UjmJFf0xF8QZewLMC0rk3+wGbXhGdsmkM=.1SS9/UCeyjpq9PyT8MBqPg==.wcFkBNOeMUO3EbN8I4nUXw==',
-          'x-requested-with': 'XMLHttpRequest',
-        },
-        timeout: 15000,
-      }
-    );
+    /* ───────── Validar respuesta ───────── */
+    if (!response.data || response.data.isSuccessful !== true) {
+      return res.status(400).json({
+        success: false,
+        message: 'Respuesta inválida desde SaludPlus',
+        detalle: response.data
+      });
+    }
 
-    const data = response.data;
+    const resultados = response.data.result ?? [];
 
-    if (data.aaData && data.aaData.length > 0) {
-      const admisiones = data.aaData
-        .map((item: string[]) => ({
-          Idamciones: item[0],
-          NumeroAdmicion: item[1],
-          tipoDocumento: item[2],
-          nombre: item[3],
-          entidad: item[4],
-          fechaIngreso: item[5],
-          horaIngreso: item[6],
-        }))
-        // Modificación: Filtra para asegurar que SOLO la parte numérica coincida
-        .filter((adm: any) => {
-          const numeroEnAdmision = adm.NumeroAdmicion.toString().trim().split(' ')[0];
-          return numeroEnAdmision === numeroParaBuscar;
-        });
+    /* ───────── Regla CLAVE ─────────
+       documento === numeroAdmision
+    ─────────────────────────────── */
+    const encontrado = resultados.find(
+      (r: any) => r.numeroAdmision?.toString() === documento.toString()
+    );
 
-      return res.json({
-        success: true,
-        total: admisiones.length,
-        admisiones,
-      });
-    }
+    if (!encontrado) {
+      return res.json({
+        success: false,
+        message: 'El documento no coincide con numeroAdmision'
+      });
+    }
 
-    return res.json({
-      success: true,
-      total: 0,
-      admisiones: [],
-      message: 'No se encontraron admisiones',
-    });
+    /* ───────── SOLO lo que necesitas ───────── */
+    return res.json({
+      success: true,
+      idAdmision: encontrado.idAdmision
+    });
+  } catch (error: any) {
+    console.error(
+      '❌ Error en BuscarAdmision:',
+      error.response?.data || error.message
+    );
 
-  } catch (error: any) {
-    console.error('Error SaludPlus:', error.message);
-    return res.status(500).json({
-      success: false,
-      error: 'Error al consultar SaludPlus',
-    });
-  }
+    if (error.response) {
+      return res.status(error.response.status).json({
+        success: false,
+        error: 'Error desde SaludPlus',
+        detalle: error.response.data
+      });
+    }
+
+    return res.status(500).json({
+      success: false,
+      error: 'Error interno del servidor'
+    });
+  }
 };
+
+export default BuscarAdmision;

@@ -1,7 +1,7 @@
 // src/controllers/ArmarJsonController.ts
 import { Request, Response } from 'express';
 import axios from 'axios';
-import { obtenerCadenaCompletaCore } from '../ParametroR';
+import { obtenerCadenaCompletaCore } from '../obtenerCadenaCompletaCore';
 import { EXAMENES } from './ListaItem';
 
 /* ----------------------------------------------
@@ -83,6 +83,20 @@ function mapToSaludPlusFormat(jsonFinal: any) {
 }
 
 /* ----------------------------------------------
+   OBTENER TOKEN DE VARIAS FUENTES
+---------------------------------------------- */
+function obtenerToken(req: Request): string | undefined {
+  const tokenFromQuery = (req.query?.token as string) ?? undefined;
+  const tokenFromHeader = (req.headers['x-api-token'] as string) ?? undefined;
+  const tokenFromAuthHeader = (() => {
+    const h = (req.headers['authorization'] as string) ?? '';
+    if (h.toLowerCase().startsWith('bearer ')) return h.slice(7).trim();
+    return undefined;
+  })();
+  return tokenFromQuery || tokenFromHeader || tokenFromAuthHeader || process.env.SALUDPLUS_TOKEN;
+}
+
+/* ----------------------------------------------
    CONTROLADOR PRINCIPAL
 ---------------------------------------------- */
 export const ArmarJsonController = async (req: Request, res: Response) => {
@@ -106,6 +120,15 @@ export const ArmarJsonController = async (req: Request, res: Response) => {
         success: false,
         message: 'El campo "idUsuario" es obligatorio y debe ser un número válido'
       });
+
+    // Obtener token ANTES de usarlo
+    const TOKEN = obtenerToken(req);
+    if (!isNonEmptyString(TOKEN)) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Falta token para autenticar con SaludPlus. Pasa ?token=... o header x-api-token o Authorization: Bearer ...' 
+      });
+    }
 
     // Normalizar: el usuario puede enviar un alias (nombre del examen) o el id numérico.
     const requestedRaw = String(idProcedimientoObjetivoRaw ?? '').trim();
@@ -134,7 +157,7 @@ export const ArmarJsonController = async (req: Request, res: Response) => {
     /* --------------------------------------
        OBTENER DATOS DESDE EL CORE
     -------------------------------------- */
-    const consulta = await obtenerCadenaCompletaCore(documento, idProcedimientoObjetivoNormalizado);
+    const consulta = await obtenerCadenaCompletaCore(documento, idProcedimientoObjetivoNormalizado, TOKEN);
 
     if (!consulta?.success)
       return res.status(500).json(consulta);
@@ -268,22 +291,8 @@ export const ArmarJsonController = async (req: Request, res: Response) => {
     };
 
     /* --------------------------------------
-       OBTENER TOKEN Y ENVIAR A SALUDPLUS
-       - El token puede venir en: req.query.token, req.headers['x-api-token'] o env var
+       ENVIAR A SALUDPLUS
     -------------------------------------- */
-    const tokenFromQuery = (req.query?.token as string) ?? undefined;
-    const tokenFromHeader = (req.headers['x-api-token'] as string) ?? undefined;
-    const tokenFromAuthHeader = (() => {
-      const h = (req.headers['authorization'] as string) ?? '';
-      if (h.toLowerCase().startsWith('bearer ')) return h.slice(7).trim();
-      return undefined;
-    })();
-    const TOKEN = tokenFromQuery || tokenFromHeader || tokenFromAuthHeader || process.env.SALUDPLUS_TOKEN;
-
-    if (!isNonEmptyString(TOKEN)) {
-      return res.status(400).json({ success: false, message: 'Falta token para autenticar con SaludPlus. Pasa ?token=... o header x-api-token o Authorization: Bearer ...' });
-    }
-
     const payloadSaludPlus = mapToSaludPlusFormat(jsonFinal);
 
     const resp = await axios.post('https://api.saludplus.co/api/resultadoLaboratorio', payloadSaludPlus, {

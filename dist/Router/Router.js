@@ -4,7 +4,8 @@ const express_1 = require("express");
 const Filtrado_1 = require("../Controller/Filtrado");
 const Procedimiento_1 = require("../Controller/Procedimiento");
 const Parametros_1 = require("../Controller/Parametros");
-const ParametroR_1 = require("../Controller/ParametroR");
+const obtenerCadenaCompletaCore_1 = require("../Controller/obtenerCadenaCompletaCore");
+const BuscarAdmision_1 = require("../Controller/BuscarAdmision");
 const CrearJsonPost_1 = require("../Controller/inte/CrearJsonPost");
 //import { vercion2 } from '../Controller/inte/Subir';
 const router = (0, express_1.Router)();
@@ -15,8 +16,9 @@ router.get('/', (req, res) => {
 router.use('/Filtra', Filtrado_1.filtrado);
 router.use('/Procedimiento', Procedimiento_1.Procedimiento);
 router.use('/Parametrizacion', Parametros_1.Parametrizacion);
-router.get('/BuscarAdmision', ParametroR_1.obtenerCadenaCompleta); // <-- Solo acepta GET
-router.post('/ArmarJson', CrearJsonPost_1.ArmarJsonController);
+router.use('/BuscarIdamicion', BuscarAdmision_1.BuscarAdmision);
+router.post('/obtenerCadenaCompleta', obtenerCadenaCompletaCore_1.obtenerCadenaCompleta);
+router.post('/sURBIR', CrearJsonPost_1.ArmarJsonController);
 //router.post('/vercion2', vercion2);
 // 404 del router
 router.use((req, res) => {

@@ -2,7 +2,8 @@ import { Router } from 'express';
 import { filtrado } from '../Controller/Filtrado';
 import { Procedimiento } from '../Controller/Procedimiento';
 import { Parametrizacion } from '../Controller/Parametros';
-import { obtenerCadenaCompleta } from '../Controller/ParametroR';
+import { obtenerCadenaCompleta } from '../Controller/obtenerCadenaCompletaCore';
+import { BuscarAdmision } from '../Controller/BuscarAdmision';
 import { ArmarJsonController } from '../Controller/inte/CrearJsonPost';
 //import { vercion2 } from '../Controller/inte/Subir';
 
@@ -18,8 +19,9 @@ router.get('/', (req, res) => {
 router.use('/Filtra', filtrado);
 router.use('/Procedimiento', Procedimiento);
 router.use('/Parametrizacion', Parametrizacion);
-router.get('/BuscarAdmision', obtenerCadenaCompleta); // <-- Solo acepta GET
-router.post('/ArmarJson', ArmarJsonController);
+router.use('/BuscarIdamicion', BuscarAdmision);
+router.post('/obtenerCadenaCompleta', obtenerCadenaCompleta);
+router.post('/sURBIR', ArmarJsonController);
 //router.post('/vercion2', vercion2);
 
 // 404 del router
