@@ -1,14 +1,13 @@
 import { Request, Response } from 'express';
 import axios from 'axios';
 
-const URL =
-  'https://api.saludplus.co/api/resultadoLaboratorio/Listado?pageNumber=1&pageSize=30';
+const URL_LAB = 'https://api.saludplus.co/api/resultadoLaboratorio/Listado';
+const URL_ADM = 'https://api.saludplus.co/api/general/Admisiones';
 
 export const BuscarAdmision = async (req: Request, res: Response) => {
   try {
     const { documento, token } = req.body;
 
-    /* ───────── Validaciones ───────── */
     if (!documento || !documento.toString().trim()) {
       return res.status(400).json({
         success: false,
@@ -23,25 +22,9 @@ export const BuscarAdmision = async (req: Request, res: Response) => {
       });
     }
 
-    /* ───────── Request a SaludPlus ───────── */
-    const response = await axios.post(
-      URL,
-      {
-        filters: documento.toString(),
-        properties: [
-          'nombre1Paciente',
-          'nombre2Paciente',
-          'apellido1Paciente',
-          'apellido2Paciente',
-          'fecha'
-        ],
-        sort: 'id',
-        order: 'desc',
-        filterslist: '',
-        filterAvoid: '',
-        filterAudit: '3'
-      },
-      {
+    // ───────── Función interna para llamar SaludPlus ─────────
+    const consultarEndpoint = async (url: string, body: any) => {
+      const response = await axios.post(url, body, {
         headers: {
           Accept: 'application/json, text/plain, */*',
           'Content-Type': 'application/json',
@@ -51,38 +34,79 @@ export const BuscarAdmision = async (req: Request, res: Response) => {
           Referer: 'https://app.saludplus.co/'
         },
         timeout: 15000
-      }
-    );
-
-    /* ───────── Validar respuesta ───────── */
-    if (!response.data || response.data.isSuccessful !== true) {
-      return res.status(400).json({
-        success: false,
-        message: 'Respuesta inválida desde SaludPlus',
-        detalle: response.data
       });
-    }
 
-    const resultados = response.data.result ?? [];
+      if (!response.data || response.data.isSuccessful !== true) {
+        return [];
+      }
 
-    /* ───────── Regla CLAVE ─────────
-       documento === numeroAdmision
-    ─────────────────────────────── */
-    const encontrado = resultados.find(
+      return response.data.result ?? [];
+    };
+
+    // ───────── 1️⃣ Buscar en resultadoLaboratorio ─────────
+    const resultadosLab = await consultarEndpoint(URL_LAB, {
+      filters: documento.toString(),
+      properties: [
+        'nombre1Paciente',
+        'nombre2Paciente',
+        'apellido1Paciente',
+        'apellido2Paciente',
+        'fecha'
+      ],
+      sort: 'id',
+      order: 'desc',
+      filterslist: '',
+      filterAvoid: '',
+      filterAudit: '3'
+    });
+
+    let encontrado = resultadosLab.find(
       (r: any) => r.numeroAdmision?.toString() === documento.toString()
     );
+
+    // ───────── 2️⃣ Si no aparece, buscar en Admisiones ─────────
+    if (!encontrado) {
+      const resultadosAdm = await consultarEndpoint(URL_ADM, {
+        filters: documento.toString(),
+        properties: [
+          'numeroAdmision',
+          'nombre1Paciente',
+          'nombre2Paciente',
+          'apellido1Paciente',
+          'apellido2Paciente',
+          'admisiones',
+          'tipoBusqueda',
+          'fechaAdmision'
+        ],
+        filtersCustom: JSON.stringify({
+          admisiones: true,
+          idCaracteristica: 5193,
+          dateInicial: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(),
+          dateFinal: new Date().toISOString(),
+          type: 'DateFilter',
+          name: 'fechaAdmision'
+        }),
+        sort: 'id',
+        order: 'desc',
+        filterslist: '',
+        filterAvoid: ''
+      });
+
+      encontrado = resultadosAdm.find(
+        (r: any) => r.numeroAdmision?.toString() === documento.toString()
+      );
+    }
 
     if (!encontrado) {
       return res.json({
         success: false,
-        message: 'El documento no coincide con numeroAdmision'
+        message: 'No se encontró idAdmision en ninguno de los endpoints'
       });
     }
 
-    /* ───────── SOLO lo que necesitas ───────── */
     return res.json({
       success: true,
-      idAdmision: encontrado.idAdmision
+      idAdmision: encontrado.idAdmision ?? encontrado.id
     });
   } catch (error: any) {
     console.error(
