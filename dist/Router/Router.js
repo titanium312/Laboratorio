@@ -16,7 +16,7 @@ router.get('/', (req, res) => {
 router.use('/Filtra', Filtrado_1.filtrado);
 router.use('/Procedimiento', Procedimiento_1.Procedimiento);
 router.use('/Parametrizacion', Parametros_1.Parametrizacion);
-router.use('/BuscarIdamicion', BuscarAdmision_1.BuscarAdmision);
+router.post('/BuscarIdAdmision', BuscarAdmision_1.BuscarAdmision);
 router.post('/obtenerCadenaCompleta', obtenerCadenaCompletaCore_1.obtenerCadenaCompleta);
 router.post('/sURBIR', CrearJsonPost_1.ArmarJsonController);
 //router.post('/vercion2', vercion2);

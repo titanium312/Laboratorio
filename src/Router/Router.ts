@@ -19,7 +19,7 @@ router.get('/', (req, res) => {
 router.use('/Filtra', filtrado);
 router.use('/Procedimiento', Procedimiento);
 router.use('/Parametrizacion', Parametrizacion);
-router.use('/BuscarIdamicion', BuscarAdmision);
+router.post('/BuscarIdAdmision', BuscarAdmision);
 router.post('/obtenerCadenaCompleta', obtenerCadenaCompleta);
 router.post('/sURBIR', ArmarJsonController);
 //router.post('/vercion2', vercion2);

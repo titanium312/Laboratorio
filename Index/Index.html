@@ -179,19 +179,42 @@ const API_BASE = "https://laboratorio-psi-mauve.vercel.app/-RB-/sURBIR";
 const LOGIN_URL = "https://api.saludplus.co/api/auth/Login";
 
 const EXAM_MAP = {
-  "GLUCOSE": "11803", "GLUCOSA": "11803",
-  "CHOLESTEROL": "9096", "COL": "9096",
-  "TRIGLYCERIDES": "9146", "TRIGLICERIDOS": "9146",
-  "LDL": "9094", "COLESTEROL LDL": "9094",
-  "CREATININE": "9173", "CREATININA": "9173",
-  "BUN": "9134", "UREA": "9147",
-  "URIC ACID": "9079", "ACIDO URICO": "9079",
+  "GLUCOSE": "11803",
+  "GLUCOSA": "11803",
+
+  "CHOLESTEROL": "9096",
+  "COL": "9096",
+
+  "TRIGLYCERIDES": "9146",
+  "TRIGLICERIDOS": "9146",
+
+  "LDL": "9094",
+  "COLESTEROL LDL": "9094",
+
+  "CREATININE": "9173",
+  "CREATININA": "9173",
+
+  "BUN": "9134",
+  "UREA": "9147",
+
+  "URIC ACID": "9079",
+  "ACIDO URICO": "9079",
+
   "BILIRUBIN DIRECT": "9087",
-  "BILIRUBIN INDIRECT": "9087", "INDIRECT BILIRUBIN": "9087","INDIRECT BILURB": "9087",
-  "BILIRUBIN TOTAL": "9087", "BILIRRUBINA TOTAL": "9087",
-  "CHOL HDL DIRECT": "9093", "HDL": "9093",
+  "BILIRUBIN INDIRECT": "9087",
+  "INDIRECT BILIRUBIN": "9087",
+  "INDIRECT BILURB": "9087",
+
+  "BILIRUBIN TOTAL": "9087",
+  "BILIRRUBINA TOTAL": "9087",
+
+  "CHOL HDL DIRECT": "9093",
+  "HDL": "9093",
+
   "CHOL LDL DIRECT": "9094"
 };
+
+
 const CURVA_PREFIX = /^(PRE|POST|1[/]?2H?|1H|2H|3H|B)$/i;
 function normalize(s){return (s||"").toString().trim().toUpperCase();}
 
