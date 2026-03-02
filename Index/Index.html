@@ -13,7 +13,7 @@
         extend: {
           colors: {
             salu: {
-              900: '#1e3a8a', // Azul profundo
+              900: '#1e3a8a',
               800: '#1e40af',
               50: '#f9fafb',
             }
@@ -24,17 +24,13 @@
   </script>
 
   <style>
-    /* Estilos adicionales para tablas generadas dinámicamente */
     table { width: 100%; border-collapse: collapse; margin-top: 1rem; font-size: 0.875rem; }
     th { background-color: #f3f4f6; color: #1f2937; font-weight: 600; padding: 0.75rem; text-align: left; border-bottom: 2px solid #e5e7eb; }
     td { padding: 0.75rem; border-bottom: 1px solid #e5e7eb; color: #4b5563; }
     tr:hover { background-color: #f9fafb; }
-    
-    /* Animación suave para inputs */
     .input-transition { transition: all 0.2s ease-in-out; }
-	
-	
-	
+    .row-bun-calculated { background-color: #e6f7ff; }
+    .row-bun-calculated:hover { background-color: #d9eaff; }
   </style>
 </head>
 <body class="bg-gray-50 text-gray-700 font-sans antialiased min-h-screen flex flex-col">
@@ -42,9 +38,7 @@
   <header class="bg-white shadow-sm border-b border-gray-200">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
       <div class="flex items-center gap-3">
-        <div class="w-10 h-10 bg-salu-900 rounded-lg flex items-center justify-center text-white font-bold text-xl">
-          S+
-        </div>
+        <div class="w-10 h-10 bg-salu-900 rounded-lg flex items-center justify-center text-white font-bold text-xl">S+</div>
         <div>
           <h1 class="text-2xl font-bold text-gray-900 tracking-tight">Salu Plus</h1>
           <p class="text-xs text-gray-500 uppercase tracking-wide">Excelencia en Laboratorio</p>
@@ -60,7 +54,7 @@
       <div class="mb-8 text-center max-w-2xl mx-auto">
         <h2 class="text-3xl font-semibold text-gray-900 mb-3">Gestión de Análisis Clínicos</h2>
         <p class="text-gray-600 leading-relaxed">
-          Procesamiento de datos con los estándares de calidad, precisión y seguridad que caracterizan a SUsa credenciales para obtener token. (El token no se mostrará)alu Plus.
+          Procesamiento de datos con los estándares de calidad, precisión y seguridad que caracterizan a Salu Plus.
         </p>
       </div>
 
@@ -99,29 +93,18 @@
                   Limpiar
                 </button>
 				
-				<!-- PROGRESO DE SUBIDA -->
-<div id="uploadProgress" class="hidden mt-6">
-  <div class="flex justify-between mb-1 text-sm">
-    <span class="font-medium text-salu-900">
-      Subiendo resultados a la API…
-    </span>
-    <span id="progressText" class="text-gray-600">
-      0 / 0
-    </span>
-  </div>
-
-  <div class="w-full bg-gray-200 rounded-full h-3 overflow-hidden">
-    <div id="progressBar"
-      class="bg-salu-900 h-3 rounded-full transition-all duration-300"
-      style="width: 0%">
-    </div>
-  </div>
-
-  <div class="mt-2 text-xs text-gray-500">
-    ✔ <span id="okCount">0</span> éxitos ·
-    ❌ <span id="failCount">0</span> errores
-  </div>
-</div>
+                <div id="uploadProgress" class="hidden mt-6">
+                  <div class="flex justify-between mb-1 text-sm">
+                    <span class="font-medium text-salu-900">Subiendo resultados a la API…</span>
+                    <span id="progressText" class="text-gray-600">0 / 0</span>
+                  </div>
+                  <div class="w-full bg-gray-200 rounded-full h-3 overflow-hidden">
+                    <div id="progressBar" class="bg-salu-900 h-3 rounded-full transition-all duration-300" style="width: 0%"></div>
+                  </div>
+                  <div class="mt-2 text-xs text-gray-500">
+                    ✔ <span id="okCount">0</span> éxitos · ❌ <span id="failCount">0</span> errores
+                  </div>
+                </div>
               </div>
 
               <div class="bg-gray-50 p-4 rounded-lg border border-gray-200 space-y-3">
@@ -163,19 +146,16 @@
 
   <footer class="bg-white border-t border-gray-200 mt-auto">
     <div class="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8 flex flex-col md:flex-row justify-between items-center gap-4">
-      <p class="text-sm text-gray-500">
-        &copy; 2025 Salu Plus Laboratorio. Confianza que se analiza.
-      </p>
+      <p class="text-sm text-gray-500">&copy; 2025 Salu Plus Laboratorio. Confianza que se analiza.</p>
       <div class="text-xs text-gray-400 bg-gray-50 px-3 py-1 rounded border border-gray-100">
         <span class="font-semibold">Seguridad:</span> El token de sesión se gestiona internamente y no es visible.
       </div>
     </div>
   </footer>
 
-  <script >
-
+  <script>
 /* ====== Config ====== */
-const API_BASE = "https://laboratorio-psi-mauve.vercel.app/-RB-/sURBIR";
+const API_BASE = "https://laboratorio-psi-mauve.vercel.appcls/-RB-/sURBIR";
 const LOGIN_URL = "https://api.saludplus.co/api/auth/Login";
 
 const EXAM_MAP = {
@@ -195,7 +175,13 @@ const EXAM_MAP = {
   "CREATININA": "9173",
 
   "BUN": "9134",
+  "NITROGENO UREICO": "9134",
+  "NITRÓGENO UREICO": "9134",
+
   "UREA": "9147",
+  "UREA EN SANGRE": "9147",
+  "UREA UV": "9147",
+  "UREA SANGRE": "9147",
 
   "URIC ACID": "9079",
   "ACIDO URICO": "9079",
@@ -203,8 +189,6 @@ const EXAM_MAP = {
   "BILIRUBIN DIRECT": "9087",
   "BILIRUBIN INDIRECT": "9087",
   "INDIRECT BILIRUBIN": "9087",
-  "INDIRECT BILURB": "9087",
-
   "BILIRUBIN TOTAL": "9087",
   "BILIRRUBINA TOTAL": "9087",
 
@@ -214,39 +198,19 @@ const EXAM_MAP = {
   "CHOL LDL DIRECT": "9094"
 };
 
-
 const CURVA_PREFIX = /^(PRE|POST|1[/]?2H?|1H|2H|3H|B)$/i;
 function normalize(s){return (s||"").toString().trim().toUpperCase();}
 
-/* ====== Extraer solo el mensaje ====== */
 function extractMessageFromResponse(text) {
   try {
-    // Intenta parsear como JSON
     const json = JSON.parse(text);
-    
-    // Busca el campo "mensaje" en diferentes niveles
     if (json.mensaje) return json.mensaje;
-    
-    // Si no, busca en respuestaSaludPlus
-    if (json.respuestaSaludPlus && json.respuestaSaludPlus.mensaje) {
-      return json.respuestaSaludPlus.mensaje;
-    }
-    
-    // Si hay success y algún mensaje
-    if (json.success && json.respuestaSaludPlus) {
-      return "Envío exitoso";
-    }
-    
-    // Si no encuentra mensaje, devuelve el texto completo pero truncado
+    if (json.respuestaSaludPlus && json.respuestaSaludPlus.mensaje) return json.respuestaSaludPlus.mensaje;
+    if (json.success && json.respuestaSaludPlus) return "Envío exitoso";
     return text.length > 100 ? text.substring(0, 100) + "..." : text;
   } catch (e) {
-    // Si no es JSON válido, busca el patrón "mensaje": en el texto
     const mensajeMatch = text.match(/"mensaje"\s*:\s*"([^"]+)"/);
-    if (mensajeMatch && mensajeMatch[1]) {
-      return mensajeMatch[1];
-    }
-    
-    // Si no encuentra, devuelve texto truncado
+    if (mensajeMatch && mensajeMatch[1]) return mensajeMatch[1];
     return text.length > 100 ? text.substring(0, 100) + "..." : text;
   }
 }
@@ -255,101 +219,35 @@ function extractMessageFromResponse(text) {
 let _TOKEN = null;
 let _USER = null;
 
-
-
 function renderAuth() {
   const el = document.getElementById('authArea');
   el.innerHTML = '';
 
-  /* ================= LOGIN ================= */
   if (!_USER) {
     el.innerHTML = `
-      <div class="flex items-center gap-2
-                  bg-gray-100 border border-gray-300
-                  rounded-full px-2 py-1 shadow-sm">
-
-        <input id="loginUser"
-          class="bg-transparent text-gray-700
-                 placeholder-gray-400 text-sm
-                 px-3 py-1 w-32
-                 focus:outline-none"
-          type="text" placeholder="Usuario">
-
+      <div class="flex items-center gap-2 bg-gray-100 border border-gray-300 rounded-full px-2 py-1 shadow-sm">
+        <input id="loginUser" class="bg-transparent text-gray-700 placeholder-gray-400 text-sm px-3 py-1 w-32 focus:outline-none" type="text" placeholder="Usuario">
         <div class="w-px h-5 bg-gray-300"></div>
-
-        <input id="loginPass"
-          class="bg-transparent text-gray-700
-                 placeholder-gray-400 text-sm
-                 px-3 py-1 w-32
-                 focus:outline-none"
-          type="password" placeholder="Contraseña">
-
-        <button id="btnLogin"
-          class="flex items-center gap-1
-                 bg-salu-900 hover:bg-salu-800
-                 text-white font-semibold
-                 text-sm px-4 py-1.5 rounded-full
-                 transition active:scale-95">
-          🔐 Entrar
-        </button>
+        <input id="loginPass" class="bg-transparent text-gray-700 placeholder-gray-400 text-sm px-3 py-1 w-32 focus:outline-none" type="password" placeholder="Contraseña">
+        <button id="btnLogin" class="flex items-center gap-1 bg-salu-900 hover:bg-salu-800 text-white font-semibold text-sm px-4 py-1.5 rounded-full transition active:scale-95">🔐 Entrar</button>
       </div>
     `;
-
-    document.getElementById('btnLogin')
-      .addEventListener('click', doLogin);
-
-  /* ================= USER ================= */
+    document.getElementById('btnLogin').addEventListener('click', doLogin);
   } else {
-    const initials =
-      _USER.iniciales ||
-      (_USER.nombre || _USER.usuario || '?')
-        .split(' ')
-        .map(x => x[0])
-        .slice(0, 2)
-        .join('');
-
+    const initials = _USER.iniciales || (_USER.nombre || _USER.usuario || '?').split(' ').map(x => x[0]).slice(0, 2).join('');
     el.innerHTML = `
-      <div class="flex items-center gap-3
-                  bg-gray-100 border border-gray-300
-                  rounded-full px-3 py-1.5 shadow-sm">
-
-        <div class="w-9 h-9 rounded-full
-                    bg-salu-900 text-white
-                    flex items-center justify-center
-                    font-bold text-sm">
-          ${initials}
-        </div>
-
+      <div class="flex items-center gap-3 bg-gray-100 border border-gray-300 rounded-full px-3 py-1.5 shadow-sm">
+        <div class="w-9 h-9 rounded-full bg-salu-900 text-white flex items-center justify-center font-bold text-sm">${initials}</div>
         <div class="leading-tight">
-          <div class="text-sm font-semibold text-gray-900">
-            ${escapeHtml(_USER.nombre || _USER.usuario)}
-          </div>
-          <div class="text-xs text-gray-500">
-            ID ${_USER.id ?? '-'} · ${_USER.isAdmin ? 'ADMIN' : 'USUARIO'}
-          </div>
+          <div class="text-sm font-semibold text-gray-900">${escapeHtml(_USER.nombre || _USER.usuario)}</div>
+          <div class="text-xs text-gray-500">ID ${_USER.id ?? '-'} · ${_USER.isAdmin ? 'ADMIN' : 'USUARIO'}</div>
         </div>
-
-        <button id="btnLogout"
-          class="ml-2 text-xs text-red-600
-                 hover:text-red-700
-                 border border-red-300
-                 px-3 py-1 rounded-full
-                 transition">
-          Salir
-        </button>
+        <button id="btnLogout" class="ml-2 text-xs text-red-600 hover:text-red-700 border border-red-300 px-3 py-1 rounded-full transition">Salir</button>
       </div>
     `;
-
-    document.getElementById('btnLogout')
-      .addEventListener('click', () => {
-        _TOKEN = null;
-        _USER = null;
-        renderAuth();
-      });
+    document.getElementById('btnLogout').addEventListener('click', () => { _TOKEN = null; _USER = null; renderAuth(); });
   }
 }
-
-
 
 async function doLogin() {
   const user = document.getElementById('loginUser').value.trim();
@@ -396,6 +294,7 @@ const cmpNumRe = /^[<>]=?\d+[\.,]?\d*$/;
 const dashSlashRe = /^[-\/]{2,}$/;
 const resultWordsRe = /^(NEGATIVO|POSITIVO|REACTIVO|NO|TRAZAS|N\/A|INDETERMINADO)$/i;
 const unitRe = /^(mg\/?d?l|mg|mmol\/l|mmol|g\/dl|g|iu\/l|iu|%|u\/l|ml|mL|ug\/mL|mg\/L)$/i;
+
 function looksLikeResult(token, nextToken) {
   if (!token) return false;
   if (numRe.test(token)) return true;
@@ -408,62 +307,130 @@ function looksLikeResult(token, nextToken) {
   return false;
 }
 
+/* ====== Función para calcular BUN a partir de UREA (división entre 2.14) ====== */
+function calculateBUNFromUrea(ureaValue) {
+  if (!ureaValue || ureaValue === '-') return null;
+  
+  const numMatch = String(ureaValue).match(/([<>]=?)?\s*(\d+[\.,]?\d*)/);
+  if (!numMatch) return null;
+  
+  const prefix = numMatch[1] || '';
+  let numStr = numMatch[2].replace(',', '.');
+  const num = parseFloat(numStr);
+  
+  if (isNaN(num) || num === 0) return null;
+  
+  // Calcular BUN = UREA ÷ 2.14
+  const bun = num / 2.14;
+  
+  // Formatear con 2 decimales como en el ejemplo (9.49)
+  const bunFormatted = bun.toFixed(2);
+  
+  return prefix ? `${prefix}${bunFormatted}` : bunFormatted;
+}
+
 function parseText(text) {
   const rows = [];
   const lines = text.replace(/\r/g, "").split('\n');
+  
   for (let raw of lines) {
     raw = raw.trim();
     if (!raw) continue;
     if (!/^\d{5,7}/.test(raw)) continue;
+    
     const parts = raw.split(/\s+/).filter(Boolean);
     if (parts.length < 3) continue;
+    
     let idx = 0;
     const paciente = parts[idx++];
     let tipo = "-";
-    if (idx < parts.length && CURVA_PREFIX.test(parts[idx])) { tipo = parts[idx].toUpperCase(); if (tipo === "1/2") tipo = "1/2H"; idx++; }
+    if (idx < parts.length && CURVA_PREFIX.test(parts[idx])) { 
+      tipo = parts[idx].toUpperCase(); 
+      if (tipo === "1/2") tipo = "1/2H"; 
+      idx++; 
+    }
+    
     let tecnica = "SER";
-    if (idx < parts.length && ["SER","PLASMA","ORINA","SUERO","HECES"].includes(normalize(parts[idx]))) { tecnica = parts[idx]; idx++; }
+    if (idx < parts.length && ["SER","PLASMA","ORINA","SUERO","HECES"].includes(normalize(parts[idx]))) { 
+      tecnica = parts[idx]; 
+      idx++; 
+    }
+    
     let pruebaParts = [];
     let conc = "";
     let unidades = "mg/dL";
+    
     while (idx < parts.length) {
       const word = parts[idx];
       const next = parts[idx+1] || "";
-      if (dateRe.test(word)) { pruebaParts.push(word); idx++; continue; }
-      if (looksLikeResult(word, next)) { conc = word.replace(',', '.').trim(); idx++; break; }
-      pruebaParts.push(word); idx++;
+      if (dateRe.test(word)) { 
+        pruebaParts.push(word); 
+        idx++; 
+        continue; 
+      }
+      if (looksLikeResult(word, next)) { 
+        conc = word.replace(',', '.').trim(); 
+        idx++; 
+        break; 
+      }
+      pruebaParts.push(word); 
+      idx++;
     }
+    
     const prueba = pruebaParts.join(" ").trim();
-    if (idx < parts.length && unitRe.test(parts[idx])) { unidades = parts[idx]; idx++; }
-    else if (idx < parts.length && /mg|mmol|g\/dl|iu|%|ug/i.test(parts[idx])) { unidades = parts[idx]; idx++; }
+    
+    if (idx < parts.length && unitRe.test(parts[idx])) { 
+      unidades = parts[idx]; 
+      idx++; 
+    }
+    else if (idx < parts.length && /mg|mmol|g\/dl|iu|%|ug/i.test(parts[idx])) { 
+      unidades = parts[idx]; 
+      idx++; 
+    }
+    
     let fecha = "";
-    if (idx < parts.length && dateRe.test(parts[idx])) { fecha = parts[idx]; if (idx+1 < parts.length && timeRe.test(parts[idx+1])) fecha += ' ' + parts[idx+1]; }
+    if (idx < parts.length && dateRe.test(parts[idx])) { 
+      fecha = parts[idx]; 
+      if (idx+1 < parts.length && timeRe.test(parts[idx+1])) 
+        fecha += ' ' + parts[idx+1]; 
+    }
+    
     if (!/^[-\/\s]+$/.test(conc)) {
       const rawConc = (conc||'').toString().trim();
       const comparatorMatch = rawConc.match(/^([<>]=?)([\d\.]+)$/);
       if (comparatorMatch) {
-        const comp = comparatorMatch[1]; const num = Number(comparatorMatch[2].replace(',', '.'));
-        if (!isNaN(num)) { const rounded=(Math.round(num*10)/10).toFixed(1); conc = `${comp}${rounded}` } else conc = rawConc;
+        const comp = comparatorMatch[1]; 
+        const num = Number(comparatorMatch[2].replace(',', '.'));
+        if (!isNaN(num)) { 
+          const rounded = (Math.round(num*10)/10).toFixed(1); 
+          conc = `${comp}${rounded}`;
+        } else conc = rawConc;
       } else if (/^[+-]?\d+(\.\d+)?$/.test(rawConc)) {
         const n = Number(rawConc);
         if (!isNaN(n)) {
-          conc = Number.isInteger(n)
-            ? String(n)
-            : (Math.round(n * 10) / 10).toFixed(1);
+          conc = Number.isInteger(n) ? String(n) : (Math.round(n * 10) / 10).toFixed(1);
         } else {
           conc = rawConc;
         }
       }
     }
+    
     let id_examen = "";
     const pruebaNorm = normalize(prueba);
+    
     if (pruebaNorm.includes("GLUCOS") || pruebaNorm.includes("GLUCOSE")) {
       if (tipo === "PRE" || tipo === "POST") id_examen = "9121";
       else if (["1/2H","1H","2H","3H","B"].includes(tipo)) id_examen = "9122";
       else id_examen = "11803";
     } else {
-      for (const key in EXAM_MAP) if (pruebaNorm.includes(normalize(key))) { id_examen = EXAM_MAP[key]; break; }
+      for (const key in EXAM_MAP) {
+        if (pruebaNorm.includes(normalize(key))) { 
+          id_examen = EXAM_MAP[key]; 
+          break; 
+        }
+      }
     }
+    
     rows.push({ 
       paciente, 
       tipo, 
@@ -474,10 +441,73 @@ function parseText(text) {
       unidades, 
       fecha: fecha || "", 
       apiMessage: '', 
-      rowClass: 'row-pending'
+      rowClass: 'row-pending',
+      isCalculated: false
     });
   }
-  return rows;
+  
+  // Procesar cálculos de BUN y CREAR NUEVAS FILAS
+  return processAndAddBUNCalculations(rows);
+}
+
+/* ====== Función para procesar y AGREGAR filas de BUN calculado ====== */
+function processAndAddBUNCalculations(rows) {
+  const newRows = [...rows];
+  const patientsWithUREA = new Set();
+  
+  // Primero, identificar pacientes con UREA
+  rows.forEach(row => {
+    if (row.id_examen === '9147' && row.conc && row.conc !== '-') {
+      patientsWithUREA.add(row.paciente);
+    }
+  });
+  
+  // Para cada paciente con UREA, verificar si ya tiene BUN
+  patientsWithUREA.forEach(paciente => {
+    const patientRows = rows.filter(r => r.paciente === paciente);
+    const hasBUN = patientRows.some(r => r.id_examen === '9134');
+    const ureaRow = patientRows.find(r => r.id_examen === '9147');
+    
+    if (!hasBUN && ureaRow) {
+      // Calcular BUN
+      const bunValue = calculateBUNFromUrea(ureaRow.conc);
+      
+      if (bunValue) {
+        // Crear NUEVA FILA para BUN
+        const bunRow = {
+          paciente: ureaRow.paciente,
+          tipo: '-',
+          tecnica: ureaRow.tecnica,
+          prueba: 'BUN (calculado)',
+          id_examen: '9134',
+          conc: bunValue,
+          unidades: 'mg/dL',
+          fecha: ureaRow.fecha,
+          apiMessage: `🧮 Calculado desde UREA ${ureaRow.conc} ÷ 2.14`,
+          rowClass: 'row-bun-calculated',
+          isCalculated: true
+        };
+        
+        // Agregar la nueva fila
+        newRows.push(bunRow);
+        
+        // También actualizar la fila de UREA para indicar que se usó
+        const originalUreaRow = newRows.find(r => r.paciente === paciente && r.id_examen === '9147');
+        if (originalUreaRow) {
+          originalUreaRow.apiMessage = `→ Usado para calcular BUN: ${bunValue} mg/dL`;
+          originalUreaRow.rowClass = 'row-bun-calculated';
+        }
+      }
+    }
+  });
+  
+  // Ordenar las filas por paciente para mejor visualización
+  newRows.sort((a, b) => {
+    if (a.paciente !== b.paciente) return a.paciente.localeCompare(b.paciente);
+    return (a.prueba || '').localeCompare(b.prueba || '');
+  });
+  
+  return newRows;
 }
 
 /* ====== Render ====== */
@@ -499,17 +529,18 @@ function render(rows){
     if (filter && !(r.paciente.includes(filter) || normalize(r.prueba).includes(filter) || (r.id_examen && r.id_examen.includes(filter)))) continue;
     visible++;
     
-    // Determinar clase CSS para la fila
     let rowClass = r.rowClass || 'row-pending';
     
-    // Determinar clase para el mensaje
     let msgClass = 'api-pending';
     if (rowClass === 'row-success') msgClass = 'api-success';
     else if (rowClass === 'row-error') msgClass = 'api-error';
     else if (rowClass === 'row-sending') msgClass = 'api-sending';
+    else if (rowClass === 'row-bun-calculated') msgClass = 'api-info';
     
-    // Estilo para ID_EXAMEN
-    const idStyle = r.id_examen ? "background:#ecfdf5;color:#166534;font-weight:700" : "color:#ef4444";
+    // Estilo especial para filas calculadas
+    const idStyle = r.id_examen ? 
+      (r.isCalculated ? "background:#e6f7ff;color:#0050b3;font-weight:700" : "background:#ecfdf5;color:#166534;font-weight:700") : 
+      "color:#ef4444";
     
     html += `<tr class="${rowClass}">
       <td><strong>${r.paciente}</strong></td>
@@ -517,7 +548,7 @@ function render(rows){
       <td>${r.tecnica}</td>
       <td>${escapeHtml(r.prueba)}</td>
       <td style="${idStyle}">${r.id_examen || '-'}</td>
-      <td style="text-align:right">${r.conc}</td>
+      <td style="text-align:right; ${r.isCalculated ? 'font-weight:bold;' : ''}">${r.conc}</td>
       <td>${r.unidades}</td>
       <td>${r.fecha}</td>
       <td class="api-message ${msgClass}">${escapeHtml(r.apiMessage || '')}</td>
@@ -627,9 +658,7 @@ async function sendToArmarJson(payload) {
     return { ok: false, text: `Error de red: ${error.message}` };
   }
   
-  // Extraer solo el mensaje
   const message = extractMessageFromResponse(text);
-  
   return { ok: res.ok, text: message };
 }
 
@@ -647,8 +676,6 @@ function getFilteredRowsForSend() {
   });
 }
 
-// Envío a la API
-
 document.getElementById('sendApi').addEventListener('click', async () => {
   const idUsuario = document.getElementById('idUsuario').value.trim();
   if (!idUsuario) return alert('Ingresa el idUsuario antes de subir a la API');
@@ -663,7 +690,6 @@ document.getElementById('sendApi').addEventListener('click', async () => {
 
   if (!confirm(`Se enviarán ${payloads.length} peticiones a la API.\n¿Continuar?`)) return;
 
-  /* ===== UI PROGRESO ===== */
   const progressBox = document.getElementById('uploadProgress');
   const progressBar = document.getElementById('progressBar');
   const progressText = document.getElementById('progressText');
@@ -682,7 +708,6 @@ document.getElementById('sendApi').addEventListener('click', async () => {
   failCountEl.textContent = '0';
   progressText.textContent = `0 / ${total}`;
 
-  /* Marcar filas como enviando */
   rowsToSend.forEach(r => {
     r.apiMessage = 'Enviando…';
     r.rowClass = 'row-sending';
@@ -727,7 +752,6 @@ document.getElementById('sendApi').addEventListener('click', async () => {
         });
     }
 
-    /* ===== ACTUALIZAR BARRA ===== */
     const percent = Math.round((sent / total) * 100);
     progressBar.style.width = percent + '%';
     progressText.textContent = `${sent} / ${total}`;
@@ -740,15 +764,9 @@ document.getElementById('sendApi').addEventListener('click', async () => {
   alert(`Proceso terminado.\n✔ Éxitos: ${ok}\n❌ Errores: ${fail}`);
 });
 
-
-
-
-
 // Inicializar UI
 renderAuth();
-
-
-
   </script>
 </body>
 </html>
+
