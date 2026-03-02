@@ -37,16 +37,23 @@ export const Parametrizacion = async (req: Request, res: Response) => {
     /* ───── Llamada a SaludPlus ───── */
     const response = await axios.get(url, {
       headers: {
-        'Accept': 'application/json, text/plain, */*',
-        'Authorization': `Bearer ${token}`,
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-        'Referer': 'https://app.saludplus.co/',
+        Accept: 'application/json, text/plain, */*',
+        Authorization: `Bearer ${token}`,
+        'User-Agent': 'Mozilla/5.0',
+        Referer: 'https://app.saludplus.co/',
       },
       timeout: 15000,
     });
 
-    /* ───── Procesamiento de datos ───── */
-    const data = response.data?.[0];
+    /* ───── Validar respuesta API ───── */
+    if (!response.data?.isSuccessful) {
+      return res.status(400).json({
+        error: 'SaludPlus respondió con error',
+        detalle: response.data
+      });
+    }
+
+    const data = response.data?.result?.[0];
 
     if (!data) {
       return res.status(404).json({
