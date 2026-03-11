@@ -5,7 +5,9 @@ import { Parametrizacion } from '../Controller/Parametros';
 import { obtenerCadenaCompleta } from '../Controller/obtenerCadenaCompletaCore';
 import { BuscarAdmision } from '../Controller/BuscarAdmision';
 import { ArmarJsonController } from '../Controller/inte/CrearJsonPost';
-//import { vercion2 } from '../Controller/inte/Subir';
+
+
+import { enviarMensaje } from '../Controller/Whassat/enviarMensaje';
 
 
 const router = Router();
@@ -22,7 +24,7 @@ router.use('/Parametrizacion', Parametrizacion);
 router.post('/BuscarIdAdmision', BuscarAdmision);
 router.post('/obtenerCadenaCompleta', obtenerCadenaCompleta);
 router.post('/sURBIR', ArmarJsonController);
-//router.post('/vercion2', vercion2);
+router.post('/enviarMensaje', enviarMensaje);
 
 // 404 del router
 router.use((req, res) => {

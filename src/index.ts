@@ -1,6 +1,7 @@
 import express from 'express';
 import path from 'path';
-import Router from './Router/Router.js';
+import Router from './Router/Router';
+import RouterCitas from './Router/RouterCitas';
 
 const app = express();
 
@@ -26,9 +27,15 @@ app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, '../Index/Index.html'));
 });
 
+app.get('/Citas', (req, res) => {
+  res.sendFile(path.join(__dirname, '../Index/Citas/IndexCitas.html'));
+});
+
+
 // ✅ TU ROUTER
 app.use('/-RB-', Router);
 
+app.use('/CitasRB', RouterCitas);
 // ✅ 404
 app.use((req, res) => {
   res.status(404).send('Ruta no encontrada');

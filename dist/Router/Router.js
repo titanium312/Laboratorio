@@ -7,7 +7,7 @@ const Parametros_1 = require("../Controller/Parametros");
 const obtenerCadenaCompletaCore_1 = require("../Controller/obtenerCadenaCompletaCore");
 const BuscarAdmision_1 = require("../Controller/BuscarAdmision");
 const CrearJsonPost_1 = require("../Controller/inte/CrearJsonPost");
-//import { vercion2 } from '../Controller/inte/Subir';
+const enviarMensaje_1 = require("../Controller/Whassat/enviarMensaje");
 const router = (0, express_1.Router)();
 // Ruta del router → mensaje desde router
 router.get('/', (req, res) => {
@@ -19,7 +19,7 @@ router.use('/Parametrizacion', Parametros_1.Parametrizacion);
 router.post('/BuscarIdAdmision', BuscarAdmision_1.BuscarAdmision);
 router.post('/obtenerCadenaCompleta', obtenerCadenaCompletaCore_1.obtenerCadenaCompleta);
 router.post('/sURBIR', CrearJsonPost_1.ArmarJsonController);
-//router.post('/vercion2', vercion2);
+router.post('/enviarMensaje', enviarMensaje_1.enviarMensaje);
 // 404 del router
 router.use((req, res) => {
     res.status(404).send('Ruta no encontrada en router');
