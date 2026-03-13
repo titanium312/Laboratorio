@@ -31,6 +31,10 @@
     .input-transition { transition: all 0.2s ease-in-out; }
     .row-bun-calculated { background-color: #e6f7ff; }
     .row-bun-calculated:hover { background-color: #d9eaff; }
+    .row-ldl-calculated { background-color: #fef9e7; }
+    .row-ldl-calculated:hover { background-color: #fdf3d9; }
+    .row-success { background-color: #f0fdf4; }
+    .row-error { background-color: #fef2f2; }
   </style>
 </head>
 <body class="bg-gray-50 text-gray-700 font-sans antialiased min-h-screen flex flex-col">
@@ -155,13 +159,12 @@
 
     <script>
         /* ====== Config ====== */
-        // Corregido API_BASE para que sea una ruta funcional
         const API_BASE = "/-RB-/sURBIR"; 
         const LOGIN_URL = "https://api.saludplus.co/api/auth/Login";
 
         const EXAM_MAP = {
             "GLUCOSE": "11803", "GLUCOSA": "11803",
-            "CHOLESTEROL": "9096", "COL": "9096",
+            "CHOLESTEROL": "9096", "COL": "9096", "COLESTEROL TOTAL": "9096",
             "TRIGLYCERIDES": "9146", "TRIGLICERIDOS": "9146",
             "LDL": "9094", "COLESTEROL LDL": "9094",
             "CREATININE": "9173", "CREATININA": "9173",
@@ -277,6 +280,82 @@
             return prefix ? `${prefix}${bun}` : bun;
         }
 
+        function calculateLDL(total, hdl, tg) {
+            if (!total || !hdl || !tg) return null;
+            const parseNum = (val) => {
+                const m = String(val).match(/([<>]=?)?\s*(\d+[\.,]?\d*)/);
+                return m ? parseFloat(m[2].replace(',', '.')) : NaN;
+            };
+            const totalNum = parseNum(total);
+            const hdlNum = parseNum(hdl);
+            const tgNum = parseNum(tg);
+            if (isNaN(totalNum) || isNaN(hdlNum) || isNaN(tgNum) || tgNum >= 400) return null;
+            return (totalNum - hdlNum - (tgNum / 5)).toFixed(2);
+        }
+
+        function processAndAddDerivedCalculations(rows) {
+            let newRows = [...rows];
+            
+            // BUN desde UREA
+            const patientsWithUREA = new Set();
+            rows.forEach(row => { if (row.id_examen === '9147' && row.conc && row.conc !== '-') patientsWithUREA.add(row.paciente); });
+            patientsWithUREA.forEach(paciente => {
+                const patientRows = rows.filter(r => r.paciente === paciente);
+                const hasBUN = patientRows.some(r => r.id_examen === '9134');
+                const ureaRow = patientRows.find(r => r.id_examen === '9147');
+                if (!hasBUN && ureaRow) {
+                    const bunValue = calculateBUNFromUrea(ureaRow.conc);
+                    if (bunValue) {
+                        newRows.push({ paciente: ureaRow.paciente, tipo: '-', tecnica: ureaRow.tecnica, prueba: 'BUN (calculado)', id_examen: '9134', conc: bunValue, unidades: 'mg/dL', fecha: ureaRow.fecha, apiMessage: `🧮 Calc desde UREA`, rowClass: 'row-bun-calculated', isCalculated: true });
+                        const originalUreaRow = newRows.find(r => r.paciente === paciente && r.id_examen === '9147');
+                        if (originalUreaRow) { originalUreaRow.apiMessage = `→ BUN: ${bunValue}`; originalUreaRow.rowClass = 'row-bun-calculated'; }
+                    }
+                }
+            });
+
+            // LDL desde fórmula Friedewald
+            const patientsForLDL = new Map(); // paciente -> { total, hdl, tg }
+            newRows.forEach(row => {
+                if (!row.id_examen) return;
+                if (row.id_examen === '9096' && row.conc && row.conc !== '-') { // Colesterol Total
+                    if (!patientsForLDL.has(row.paciente)) patientsForLDL.set(row.paciente, {});
+                    patientsForLDL.get(row.paciente).total = row;
+                }
+                if (row.id_examen === '9093' && row.conc && row.conc !== '-') { // HDL
+                    if (!patientsForLDL.has(row.paciente)) patientsForLDL.set(row.paciente, {});
+                    patientsForLDL.get(row.paciente).hdl = row;
+                }
+                if (row.id_examen === '9146' && row.conc && row.conc !== '-') { // Triglicéridos
+                    if (!patientsForLDL.has(row.paciente)) patientsForLDL.set(row.paciente, {});
+                    patientsForLDL.get(row.paciente).tg = row;
+                }
+            });
+
+            patientsForLDL.forEach((val, paciente) => {
+                const hasDirectLDL = newRows.some(r => r.paciente === paciente && r.id_examen === '9094');
+                if (!hasDirectLDL && val.total && val.hdl && val.tg) {
+                    const ldlValue = calculateLDL(val.total.conc, val.hdl.conc, val.tg.conc);
+                    if (ldlValue) {
+                        newRows.push({
+                            paciente: paciente,
+                            tipo: '-',
+                            tecnica: val.total.tecnica || 'SER',
+                            prueba: 'LDL (calculado)',
+                            id_examen: '9094',
+                            conc: ldlValue,
+                            unidades: 'mg/dL',
+                            fecha: val.total.fecha,
+                            apiMessage: `🧮 Calc: CT=${val.total.conc}, HDL=${val.hdl.conc}, TG=${val.tg.conc}`,
+                            rowClass: 'row-ldl-calculated',
+                            isCalculated: true
+                        });
+                    }
+                }
+            });
+
+            return newRows.sort((a, b) => a.paciente.localeCompare(b.paciente));
+        }
+
         function parseText(text) {
             const rows = [];
             const lines = text.replace(/\r/g, "").split('\n');
@@ -331,28 +410,7 @@
 
                 rows.push({ paciente, tipo, tecnica, prueba, id_examen: id_examen || "", conc, unidades, fecha: fecha || "", apiMessage: '', rowClass: 'row-pending', isCalculated: false });
             }
-            return processAndAddBUNCalculations(rows);
-        }
-
-        function processAndAddBUNCalculations(rows) {
-            const newRows = [...rows];
-            const patientsWithUREA = new Set();
-            rows.forEach(row => { if (row.id_examen === '9147' && row.conc && row.conc !== '-') patientsWithUREA.add(row.paciente); });
-            
-            patientsWithUREA.forEach(paciente => {
-                const patientRows = rows.filter(r => r.paciente === paciente);
-                const hasBUN = patientRows.some(r => r.id_examen === '9134');
-                const ureaRow = patientRows.find(r => r.id_examen === '9147');
-                if (!hasBUN && ureaRow) {
-                    const bunValue = calculateBUNFromUrea(ureaRow.conc);
-                    if (bunValue) {
-                        newRows.push({ paciente: ureaRow.paciente, tipo: '-', tecnica: ureaRow.tecnica, prueba: 'BUN (calculado)', id_examen: '9134', conc: bunValue, unidades: 'mg/dL', fecha: ureaRow.fecha, apiMessage: `🧮 Calc desde UREA`, rowClass: 'row-bun-calculated', isCalculated: true });
-                        const originalUreaRow = newRows.find(r => r.paciente === paciente && r.id_examen === '9147');
-                        if (originalUreaRow) { originalUreaRow.apiMessage = `→ BUN: ${bunValue}`; originalUreaRow.rowClass = 'row-bun-calculated'; }
-                    }
-                }
-            });
-            return newRows.sort((a, b) => a.paciente.localeCompare(b.paciente));
+            return processAndAddDerivedCalculations(rows);
         }
 
         /* ====== Render UI ====== */
@@ -474,4 +532,3 @@
     </script>
 </body>
 </html>
-
