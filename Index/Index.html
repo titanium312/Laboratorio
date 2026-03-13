@@ -153,620 +153,325 @@
     </div>
   </footer>
 
-  <script>
-/* ====== Config ====== */
-const API_BASE = "https://laboratorio-psi-mauve.vercel.app/-RB-/sURBIR";
-const LOGIN_URL = "https://api.saludplus.co/api/auth/Login";
+    <script>
+        /* ====== Config ====== */
+        // Corregido API_BASE para que sea una ruta funcional
+        const API_BASE = "/-RB-/sURBIR"; 
+        const LOGIN_URL = "https://api.saludplus.co/api/auth/Login";
 
-const EXAM_MAP = {
-  "GLUCOSE": "11803",
-  "GLUCOSA": "11803",
-
-  "CHOLESTEROL": "9096",
-  "COL": "9096",
-
-  "TRIGLYCERIDES": "9146",
-  "TRIGLICERIDOS": "9146",
-
-  "LDL": "9094",
-  "COLESTEROL LDL": "9094",
-
-  "CREATININE": "9173",
-  "CREATININA": "9173",
-
-  "BUN": "9134",
-  "NITROGENO UREICO": "9134",
-  "NITRÓGENO UREICO": "9134",
-
-  "UREA": "9147",
-  "UREA EN SANGRE": "9147",
-  "UREA UV": "9147",
-  "UREA SANGRE": "9147",
-
-  "URIC ACID": "9079",
-  "ACIDO URICO": "9079",
-
-  "BILIRUBIN DIRECT": "9087",
-  "BILIRUBIN INDIRECT": "9087",
-  "INDIRECT BILIRUBIN": "9087",
-  "BILIRUBIN TOTAL": "9087",
-  "BILIRRUBINA TOTAL": "9087",
-
-  "CHOL HDL DIRECT": "9093",
-  "HDL": "9093",
-
-  "CHOL LDL DIRECT": "9094"
-};
-
-const CURVA_PREFIX = /^(PRE|POST|1[/]?2H?|1H|2H|3H|B)$/i;
-function normalize(s){return (s||"").toString().trim().toUpperCase();}
-
-function extractMessageFromResponse(text) {
-  try {
-    const json = JSON.parse(text);
-    if (json.mensaje) return json.mensaje;
-    if (json.respuestaSaludPlus && json.respuestaSaludPlus.mensaje) return json.respuestaSaludPlus.mensaje;
-    if (json.success && json.respuestaSaludPlus) return "Envío exitoso";
-    return text.length > 100 ? text.substring(0, 100) + "..." : text;
-  } catch (e) {
-    const mensajeMatch = text.match(/"mensaje"\s*:\s*"([^"]+)"/);
-    if (mensajeMatch && mensajeMatch[1]) return mensajeMatch[1];
-    return text.length > 100 ? text.substring(0, 100) + "..." : text;
-  }
-}
-
-/* ====== Token / Usuario ====== */
-let _TOKEN = null;
-let _USER = null;
-
-function renderAuth() {
-  const el = document.getElementById('authArea');
-  el.innerHTML = '';
-
-  if (!_USER) {
-    el.innerHTML = `
-      <div class="flex items-center gap-2 bg-gray-100 border border-gray-300 rounded-full px-2 py-1 shadow-sm">
-        <input id="loginUser" class="bg-transparent text-gray-700 placeholder-gray-400 text-sm px-3 py-1 w-32 focus:outline-none" type="text" placeholder="Usuario">
-        <div class="w-px h-5 bg-gray-300"></div>
-        <input id="loginPass" class="bg-transparent text-gray-700 placeholder-gray-400 text-sm px-3 py-1 w-32 focus:outline-none" type="password" placeholder="Contraseña">
-        <button id="btnLogin" class="flex items-center gap-1 bg-salu-900 hover:bg-salu-800 text-white font-semibold text-sm px-4 py-1.5 rounded-full transition active:scale-95">🔐 Entrar</button>
-      </div>
-    `;
-    document.getElementById('btnLogin').addEventListener('click', doLogin);
-  } else {
-    const initials = _USER.iniciales || (_USER.nombre || _USER.usuario || '?').split(' ').map(x => x[0]).slice(0, 2).join('');
-    el.innerHTML = `
-      <div class="flex items-center gap-3 bg-gray-100 border border-gray-300 rounded-full px-3 py-1.5 shadow-sm">
-        <div class="w-9 h-9 rounded-full bg-salu-900 text-white flex items-center justify-center font-bold text-sm">${initials}</div>
-        <div class="leading-tight">
-          <div class="text-sm font-semibold text-gray-900">${escapeHtml(_USER.nombre || _USER.usuario)}</div>
-          <div class="text-xs text-gray-500">ID ${_USER.id ?? '-'} · ${_USER.isAdmin ? 'ADMIN' : 'USUARIO'}</div>
-        </div>
-        <button id="btnLogout" class="ml-2 text-xs text-red-600 hover:text-red-700 border border-red-300 px-3 py-1 rounded-full transition">Salir</button>
-      </div>
-    `;
-    document.getElementById('btnLogout').addEventListener('click', () => { _TOKEN = null; _USER = null; renderAuth(); });
-  }
-}
-
-async function doLogin() {
-  const user = document.getElementById('loginUser').value.trim();
-  const pass = document.getElementById('loginPass').value.trim();
-  if(!user || !pass) return alert('Usuario y password requeridos');
-  try {
-    const res = await fetch(LOGIN_URL, {
-      method: 'POST', headers: {'Content-Type':'application/json'},
-      body: JSON.stringify({username: user, password: pass})
-    });
-    if(!res.ok) {
-      const txt = await res.text();
-      console.error('Login failed', txt);
-      return alert('Error de login: ' + (txt || res.status));
-    }
-    const data = await res.json();
-    _TOKEN = data.token || data.accessToken || null;
-    _USER = {
-      id: data.id ?? null,
-      nombre: data.nombre ?? data.displayName ?? data.usuario ?? null,
-      usuario: data.usuario ?? data.username ?? null,
-      estado: data.estado ?? true,
-      isAdmin: data.isAdmin ?? false,
-      iniciales: data.iniciales ?? null,
-      perfiles: data.perfiles ?? []
-    };
-    const idInput = document.getElementById('idUsuario');
-    if (idInput && _USER.id) idInput.value = _USER.id;
-    renderAuth();
-    alert('Login correcto. Ahora puedes enviar resultados a ArmarJson.');
-  } catch (err) {
-    console.error('Login error', err);
-    alert('Error de red durante login');
-  }
-}
-
-function escapeHtml(s){ return String(s||'').replace(/[&<>\\"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','\\':'\\\\','"':'&quot;',"'":"&#39;"})[c]); }
-
-/* ====== Parsing ====== */
-const dateRe = /^\d{1,2}\/\d{1,2}\/\d{4}$/;
-const timeRe = /^\d{1,2}:\d{2}$/;
-const numRe = /^\d+[\.,]?\d*$/;
-const cmpNumRe = /^[<>]=?\d+[\.,]?\d*$/;
-const dashSlashRe = /^[-\/]{2,}$/;
-const resultWordsRe = /^(NEGATIVO|POSITIVO|REACTIVO|NO|TRAZAS|N\/A|INDETERMINADO)$/i;
-const unitRe = /^(mg\/?d?l|mg|mmol\/l|mmol|g\/dl|g|iu\/l|iu|%|u\/l|ml|mL|ug\/mL|mg\/L)$/i;
-
-function looksLikeResult(token, nextToken) {
-  if (!token) return false;
-  if (numRe.test(token)) return true;
-  if (cmpNumRe.test(token)) return true;
-  if (dashSlashRe.test(token)) return true;
-  if (resultWordsRe.test(token)) return true;
-  if (unitRe.test(nextToken)) return true;
-  if (dateRe.test(nextToken) || timeRe.test(nextToken)) return true;
-  if (/^[\d\-\+\/]+$/.test(token)) return true;
-  return false;
-}
-
-/* ====== Función para calcular BUN a partir de UREA (división entre 2.14) ====== */
-function calculateBUNFromUrea(ureaValue) {
-  if (!ureaValue || ureaValue === '-') return null;
-  
-  const numMatch = String(ureaValue).match(/([<>]=?)?\s*(\d+[\.,]?\d*)/);
-  if (!numMatch) return null;
-  
-  const prefix = numMatch[1] || '';
-  let numStr = numMatch[2].replace(',', '.');
-  const num = parseFloat(numStr);
-  
-  if (isNaN(num) || num === 0) return null;
-  
-  // Calcular BUN = UREA ÷ 2.14
-  const bun = num / 2.14;
-  
-  // Formatear con 2 decimales como en el ejemplo (9.49)
-  const bunFormatted = bun.toFixed(2);
-  
-  return prefix ? `${prefix}${bunFormatted}` : bunFormatted;
-}
-
-function parseText(text) {
-  const rows = [];
-  const lines = text.replace(/\r/g, "").split('\n');
-  
-  for (let raw of lines) {
-    raw = raw.trim();
-    if (!raw) continue;
-    if (!/^\d{5,7}/.test(raw)) continue;
-    
-    const parts = raw.split(/\s+/).filter(Boolean);
-    if (parts.length < 3) continue;
-    
-    let idx = 0;
-    const paciente = parts[idx++];
-    let tipo = "-";
-    if (idx < parts.length && CURVA_PREFIX.test(parts[idx])) { 
-      tipo = parts[idx].toUpperCase(); 
-      if (tipo === "1/2") tipo = "1/2H"; 
-      idx++; 
-    }
-    
-    let tecnica = "SER";
-    if (idx < parts.length && ["SER","PLASMA","ORINA","SUERO","HECES"].includes(normalize(parts[idx]))) { 
-      tecnica = parts[idx]; 
-      idx++; 
-    }
-    
-    let pruebaParts = [];
-    let conc = "";
-    let unidades = "mg/dL";
-    
-    while (idx < parts.length) {
-      const word = parts[idx];
-      const next = parts[idx+1] || "";
-      if (dateRe.test(word)) { 
-        pruebaParts.push(word); 
-        idx++; 
-        continue; 
-      }
-      if (looksLikeResult(word, next)) { 
-        conc = word.replace(',', '.').trim(); 
-        idx++; 
-        break; 
-      }
-      pruebaParts.push(word); 
-      idx++;
-    }
-    
-    const prueba = pruebaParts.join(" ").trim();
-    
-    if (idx < parts.length && unitRe.test(parts[idx])) { 
-      unidades = parts[idx]; 
-      idx++; 
-    }
-    else if (idx < parts.length && /mg|mmol|g\/dl|iu|%|ug/i.test(parts[idx])) { 
-      unidades = parts[idx]; 
-      idx++; 
-    }
-    
-    let fecha = "";
-    if (idx < parts.length && dateRe.test(parts[idx])) { 
-      fecha = parts[idx]; 
-      if (idx+1 < parts.length && timeRe.test(parts[idx+1])) 
-        fecha += ' ' + parts[idx+1]; 
-    }
-    
-    if (!/^[-\/\s]+$/.test(conc)) {
-      const rawConc = (conc||'').toString().trim();
-      const comparatorMatch = rawConc.match(/^([<>]=?)([\d\.]+)$/);
-      if (comparatorMatch) {
-        const comp = comparatorMatch[1]; 
-        const num = Number(comparatorMatch[2].replace(',', '.'));
-        if (!isNaN(num)) { 
-          const rounded = (Math.round(num*10)/10).toFixed(1); 
-          conc = `${comp}${rounded}`;
-        } else conc = rawConc;
-      } else if (/^[+-]?\d+(\.\d+)?$/.test(rawConc)) {
-        const n = Number(rawConc);
-        if (!isNaN(n)) {
-          conc = Number.isInteger(n) ? String(n) : (Math.round(n * 10) / 10).toFixed(1);
-        } else {
-          conc = rawConc;
-        }
-      }
-    }
-    
-    let id_examen = "";
-    const pruebaNorm = normalize(prueba);
-    
-    if (pruebaNorm.includes("GLUCOS") || pruebaNorm.includes("GLUCOSE")) {
-      if (tipo === "PRE" || tipo === "POST") id_examen = "9121";
-      else if (["1/2H","1H","2H","3H","B"].includes(tipo)) id_examen = "9122";
-      else id_examen = "11803";
-    } else {
-      for (const key in EXAM_MAP) {
-        if (pruebaNorm.includes(normalize(key))) { 
-          id_examen = EXAM_MAP[key]; 
-          break; 
-        }
-      }
-    }
-    
-    rows.push({ 
-      paciente, 
-      tipo, 
-      tecnica, 
-      prueba, 
-      id_examen: id_examen || "", 
-      conc, 
-      unidades, 
-      fecha: fecha || "", 
-      apiMessage: '', 
-      rowClass: 'row-pending',
-      isCalculated: false
-    });
-  }
-  
-  // Procesar cálculos de BUN y CREAR NUEVAS FILAS
-  return processAndAddBUNCalculations(rows);
-}
-
-/* ====== Función para procesar y AGREGAR filas de BUN calculado ====== */
-function processAndAddBUNCalculations(rows) {
-  const newRows = [...rows];
-  const patientsWithUREA = new Set();
-  
-  // Primero, identificar pacientes con UREA
-  rows.forEach(row => {
-    if (row.id_examen === '9147' && row.conc && row.conc !== '-') {
-      patientsWithUREA.add(row.paciente);
-    }
-  });
-  
-  // Para cada paciente con UREA, verificar si ya tiene BUN
-  patientsWithUREA.forEach(paciente => {
-    const patientRows = rows.filter(r => r.paciente === paciente);
-    const hasBUN = patientRows.some(r => r.id_examen === '9134');
-    const ureaRow = patientRows.find(r => r.id_examen === '9147');
-    
-    if (!hasBUN && ureaRow) {
-      // Calcular BUN
-      const bunValue = calculateBUNFromUrea(ureaRow.conc);
-      
-      if (bunValue) {
-        // Crear NUEVA FILA para BUN
-        const bunRow = {
-          paciente: ureaRow.paciente,
-          tipo: '-',
-          tecnica: ureaRow.tecnica,
-          prueba: 'BUN (calculado)',
-          id_examen: '9134',
-          conc: bunValue,
-          unidades: 'mg/dL',
-          fecha: ureaRow.fecha,
-          apiMessage: `🧮 Calculado desde UREA ${ureaRow.conc} ÷ 2.14`,
-          rowClass: 'row-bun-calculated',
-          isCalculated: true
+        const EXAM_MAP = {
+            "GLUCOSE": "11803", "GLUCOSA": "11803",
+            "CHOLESTEROL": "9096", "COL": "9096",
+            "TRIGLYCERIDES": "9146", "TRIGLICERIDOS": "9146",
+            "LDL": "9094", "COLESTEROL LDL": "9094",
+            "CREATININE": "9173", "CREATININA": "9173",
+            "BUN": "9134", "NITROGENO UREICO": "9134", "NITRÓGENO UREICO": "9134",
+            "UREA": "9147", "UREA EN SANGRE": "9147", "UREA UV": "9147", "UREA SANGRE": "9147",
+            "URIC ACID": "9079", "ACIDO URICO": "9079",
+            "BILIRUBIN DIRECT": "9087", "BILIRUBIN INDIRECT": "9087", "INDIRECT BILIRUBIN": "9087", "BILIRUBIN TOTAL": "9087", "BILIRRUBINA TOTAL": "9087",
+            "CHOL HDL DIRECT": "9093", "HDL": "9093",
+            "CHOL LDL DIRECT": "9094"
         };
-        
-        // Agregar la nueva fila
-        newRows.push(bunRow);
-        
-        // También actualizar la fila de UREA para indicar que se usó
-        const originalUreaRow = newRows.find(r => r.paciente === paciente && r.id_examen === '9147');
-        if (originalUreaRow) {
-          originalUreaRow.apiMessage = `→ Usado para calcular BUN: ${bunValue} mg/dL`;
-          originalUreaRow.rowClass = 'row-bun-calculated';
+
+        const CURVA_PREFIX = /^(PRE|POST|1[/]?2H?|1H|2H|3H|B)$/i;
+        function normalize(s){return (s||"").toString().trim().toUpperCase();}
+
+        function extractMessageFromResponse(text) {
+            try {
+                const json = JSON.parse(text);
+                if (json.mensaje) return json.mensaje;
+                if (json.respuestaSaludPlus && json.respuestaSaludPlus.mensaje) return json.respuestaSaludPlus.mensaje;
+                if (json.success && json.respuestaSaludPlus) return "Envío exitoso";
+                return text.length > 100 ? text.substring(0, 100) + "..." : text;
+            } catch (e) {
+                const mensajeMatch = text.match(/"mensaje"\s*:\s*"([^"]+)"/);
+                if (mensajeMatch && mensajeMatch[1]) return mensajeMatch[1];
+                return text.length > 100 ? text.substring(0, 100) + "..." : text;
+            }
         }
-      }
-    }
-  });
-  
-  // Ordenar las filas por paciente para mejor visualización
-  newRows.sort((a, b) => {
-    if (a.paciente !== b.paciente) return a.paciente.localeCompare(b.paciente);
-    return (a.prueba || '').localeCompare(b.prueba || '');
-  });
-  
-  return newRows;
-}
 
-/* ====== Render ====== */
-let lastRows = [];
+        /* ====== Token / Usuario ====== */
+        let _TOKEN = null;
+        let _USER = null;
 
-function render(rows){
-  const filter = normalize(document.getElementById('filterInput').value);
-  const onlyMapped = document.getElementById('mappedOnly').checked;
-  let visible = 0;
-  
-  let html = `<table><thead><tr>
-    <th>Paciente</th><th>Tipo</th><th>Técnica</th><th>Prueba</th>
-    <th>ID_EXAMEN</th><th>Conc.</th><th>Unidades</th><th>Fecha/Hora</th>
-    <th>MENSAJE API</th>
-  </tr></thead><tbody>`;
-  
-  for (const r of rows) {
-    if (onlyMapped && !r.id_examen) continue;
-    if (filter && !(r.paciente.includes(filter) || normalize(r.prueba).includes(filter) || (r.id_examen && r.id_examen.includes(filter)))) continue;
-    visible++;
-    
-    let rowClass = r.rowClass || 'row-pending';
-    
-    let msgClass = 'api-pending';
-    if (rowClass === 'row-success') msgClass = 'api-success';
-    else if (rowClass === 'row-error') msgClass = 'api-error';
-    else if (rowClass === 'row-sending') msgClass = 'api-sending';
-    else if (rowClass === 'row-bun-calculated') msgClass = 'api-info';
-    
-    // Estilo especial para filas calculadas
-    const idStyle = r.id_examen ? 
-      (r.isCalculated ? "background:#e6f7ff;color:#0050b3;font-weight:700" : "background:#ecfdf5;color:#166534;font-weight:700") : 
-      "color:#ef4444";
-    
-    html += `<tr class="${rowClass}">
-      <td><strong>${r.paciente}</strong></td>
-      <td><strong>${r.tipo}</strong></td>
-      <td>${r.tecnica}</td>
-      <td>${escapeHtml(r.prueba)}</td>
-      <td style="${idStyle}">${r.id_examen || '-'}</td>
-      <td style="text-align:right; ${r.isCalculated ? 'font-weight:bold;' : ''}">${r.conc}</td>
-      <td>${r.unidades}</td>
-      <td>${r.fecha}</td>
-      <td class="api-message ${msgClass}">${escapeHtml(r.apiMessage || '')}</td>
-    </tr>`;
-  }
-  
-  html += `</tbody></table>`;
-  document.getElementById('countBadge').textContent = visible + ' filas';
-  document.getElementById('resultArea').innerHTML = html || "<p style='color:#666'>No se encontraron datos.</p>";
-}
+        function renderAuth() {
+            const el = document.getElementById('authArea');
+            el.innerHTML = '';
+            if (!_USER) {
+                el.innerHTML = `
+                    <div class="flex items-center gap-2 bg-gray-100 border border-gray-300 rounded-full px-2 py-1 shadow-sm">
+                        <input id="loginUser" class="bg-transparent text-gray-700 placeholder-gray-400 text-sm px-3 py-1 w-32 focus:outline-none" type="text" placeholder="Usuario">
+                        <div class="w-px h-5 bg-gray-300"></div>
+                        <input id="loginPass" class="bg-transparent text-gray-700 placeholder-gray-400 text-sm px-3 py-1 w-32 focus:outline-none" type="password" placeholder="Pass">
+                        <button id="btnLogin" class="bg-salu-900 hover:bg-salu-800 text-white font-semibold text-sm px-4 py-1.5 rounded-full transition active:scale-95">🔐 Entrar</button>
+                    </div>`;
+                document.getElementById('btnLogin').addEventListener('click', doLogin);
+            } else {
+                const initials = _USER.iniciales || (_USER.nombre || _USER.usuario || '?').split(' ').map(x => x[0]).slice(0, 2).join('');
+                el.innerHTML = `
+                    <div class="flex items-center gap-3 bg-gray-100 border border-gray-300 rounded-full px-3 py-1.5 shadow-sm">
+                        <div class="w-9 h-9 rounded-full bg-salu-900 text-white flex items-center justify-center font-bold text-sm">${initials}</div>
+                        <div class="leading-tight">
+                            <div class="text-sm font-semibold text-gray-900">${escapeHtml(_USER.nombre || _USER.usuario)}</div>
+                            <div class="text-xs text-gray-500">ID ${_USER.id ?? '-'} · ${_USER.isAdmin ? 'ADMIN' : 'USER'}</div>
+                        </div>
+                        <button id="btnLogout" class="ml-2 text-xs text-red-600 hover:text-red-700 border border-red-300 px-3 py-1 rounded-full transition">Salir</button>
+                    </div>`;
+                document.getElementById('btnLogout').addEventListener('click', () => { _TOKEN = null; _USER = null; renderAuth(); });
+            }
+        }
 
-// Eventos
-document.getElementById('file').addEventListener('change', async e=>{ 
-  const file=e.target.files[0]; 
-  if(!file) return; 
-  const text=await file.text(); 
-  document.getElementById('input').value=text; 
-});
+        async function doLogin() {
+            const user = document.getElementById('loginUser').value.trim();
+            const pass = document.getElementById('loginPass').value.trim();
+            if(!user || !pass) return alert('Usuario y password requeridos');
+            try {
+                const res = await fetch(LOGIN_URL, {
+                    method: 'POST', headers: {'Content-Type':'application/json'},
+                    body: JSON.stringify({username: user, password: pass})
+                });
+                if(!res.ok) throw new Error('Error en credenciales');
+                const data = await res.json();
+                _TOKEN = data.token || data.accessToken || null;
+                _USER = {
+                    id: data.id ?? null,
+                    nombre: data.nombre ?? data.displayName ?? data.usuario ?? null,
+                    usuario: data.usuario ?? data.username ?? null,
+                    isAdmin: data.isAdmin ?? false,
+                    iniciales: data.iniciales ?? null
+                };
+                if (_USER.id) document.getElementById('idUsuario').value = _USER.id;
+                renderAuth();
+                alert('Login correcto');
+            } catch (err) {
+                alert('Error de login: ' + err.message);
+            }
+        }
 
-document.getElementById('parse').addEventListener('click', ()=>{ 
-  const txt=document.getElementById('input').value.trim(); 
-  if(!txt) return alert('Pega o carga un archivo primero'); 
-  lastRows = parseText(txt); 
-  render(lastRows); 
-});
+        function escapeHtml(s){ return String(s||'').replace(/[&<>\\"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','\\':'\\\\','"':'&quot;',"'":"&#39;"})[c]); }
 
-document.getElementById('clear').addEventListener('click', ()=>{ 
-  document.getElementById('input').value=''; 
-  lastRows=[]; 
-  document.getElementById('resultArea').innerHTML=''; 
-  document.getElementById('countBadge').textContent='0 filas';
-});
+        /* ====== Parsing ====== */
+        const dateRe = /^\d{1,2}\/\d{1,2}\/\d{4}$/;
+        const timeRe = /^\d{1,2}:\d{2}$/;
+        const numRe = /^\d+[\.,]?\d*$/;
+        const cmpNumRe = /^[<>]=?\d+[\.,]?\d*$/;
+        const dashSlashRe = /^[-\/]{2,}$/;
+        const resultWordsRe = /^(NEGATIVO|POSITIVO|REACTIVO|NO|TRAZAS|N\/A|INDETERMINADO)$/i;
+        const unitRe = /^(mg\/?d?l|mg|mmol\/l|mmol|g\/dl|g|iu\/l|iu|%|u\/l|ml|mL|ug\/mL|mg\/L)$/i;
 
-document.getElementById('filterInput').addEventListener('input', ()=>render(lastRows)); 
-document.getElementById('mappedOnly').addEventListener('change', ()=>render(lastRows));
+        function looksLikeResult(token, nextToken) {
+            if (!token) return false;
+            if (numRe.test(token) || cmpNumRe.test(token) || dashSlashRe.test(token) || resultWordsRe.test(token)) return true;
+            if (unitRe.test(nextToken) || dateRe.test(nextToken) || timeRe.test(nextToken)) return true;
+            return /^[\d\-\+\/]+$/.test(token);
+        }
 
-/* ====== Build payloads ====== */
-function buildApiPayloads(rows, idUsuario) {
-  const grouped = new Map();
-  for (let i = 0; i < rows.length; i++) { 
-    const r = rows[i];
-    if (!r.id_examen) continue;
-    const key = `${r.paciente}|${r.id_examen}`;
-    if (!grouped.has(key)) grouped.set(key, {rows: [], idProcedimientoObjetivo: r.id_examen, documento: r.paciente, indices: []});
-    grouped.get(key).rows.push(r);
-    grouped.get(key).indices.push(i);
-  }
+        function calculateBUNFromUrea(ureaValue) {
+            if (!ureaValue || ureaValue === '-') return null;
+            const numMatch = String(ureaValue).match(/([<>]=?)?\s*(\d+[\.,]?\d*)/);
+            if (!numMatch) return null;
+            const prefix = numMatch[1] || '';
+            const num = parseFloat(numMatch[2].replace(',', '.'));
+            if (isNaN(num) || num === 0) return null;
+            const bun = (num / 2.14).toFixed(2);
+            return prefix ? `${prefix}${bun}` : bun;
+        }
 
-  const payloads = [];
-  for (const [key, groupData] of grouped.entries()) {
-    const { documento, idProcedimientoObjetivo, rows: group } = groupData;
-    const examId = idProcedimientoObjetivo;
-    let body = { idUsuario: Number(idUsuario) };
+        function parseText(text) {
+            const rows = [];
+            const lines = text.replace(/\r/g, "").split('\n');
+            for (let raw of lines) {
+                raw = raw.trim();
+                if (!raw || !/^\d{5,15}/.test(raw)) continue;
+                const parts = raw.split(/\s+/).filter(Boolean);
+                if (parts.length < 3) continue;
 
-    if (examId === '9087') {
-      const total = group.find(g=>/TOTAL/i.test(g.prueba));
-      const directa = group.find(g=>/DIRECTA|DIRECT/i.test(g.prueba));
-      const indirecta = group.find(g=>/INDIRECTA|INDIRECT|BILURB/i.test(g.prueba));
-      const totalVal = (total && total.conc) ? total.conc : '0';
-      const directaVal = (directa && directa.conc) ? directa.conc : '0';
-      const indirectaVal = (indirecta && indirecta.conc) ? indirecta.conc : '0';
-      body.resultadosArray = [totalVal, directaVal, indirectaVal];
-    } else if (examId === '9121') {
-      const pre = group.find(g=>g.tipo==='PRE');
-      const post = group.find(g=>g.tipo==='POST');
-      const preVal=(pre&&pre.conc)?pre.conc:'0';
-      const postVal=(post&&post.conc)?post.conc:'0';
-      body.resultadosArray = [preVal, postVal];
-    } else if (examId === '9122') {
-      const slots = [
-        {label:'GLUCOSA 2 HORAS', tipo:'2H'}, {label:'GLUCOSA 3 HORAS', tipo:'3H'},
-        {label:'GLUCOSA 1 HORA', tipo:'1H'}, {label:'GLUCOSA MEDIA HORA', tipo:'1/2H'},
-        {label:'OBSERVACIÓN', tipo:null}, {label:'GLUCOSA BASAL', tipo:'B'}
-      ];
-      const resultadosArray = slots.map(slot=>{
-        if(!slot.tipo) return '0';
-        const row = group.find(g=>g.tipo===slot.tipo);
-        return (row&&row.conc)?row.conc:'0';
-      });
-      body.resultadosArray = resultadosArray;
-    } else {
-      const first = group[0];
-      const val = (first&&first.conc)?first.conc:'0';
-      body.resultado = String(val);
-    }
+                let idx = 0;
+                const paciente = parts[idx++];
+                let tipo = "-";
+                if (idx < parts.length && CURVA_PREFIX.test(parts[idx])) { 
+                    tipo = parts[idx].toUpperCase(); 
+                    if (tipo === "1/2") tipo = "1/2H"; 
+                    idx++; 
+                }
 
-    payloads.push({
-      documento,
-      idProcedimientoObjetivo: examId,
-      body,
-      indices: groupData.indices 
-    });
-  }
-  return payloads;
-}
+                let tecnica = "SER";
+                if (idx < parts.length && ["SER","PLASMA","ORINA","SUERO","HECES"].includes(normalize(parts[idx]))) { 
+                    tecnica = parts[idx]; 
+                    idx++; 
+                }
 
-/* ====== Send to API ====== */
-async function sendToArmarJson(payload) {
-  if (!_TOKEN) throw new Error('No hay token. Inicia sesión primero.');
-  const url = `${API_BASE}?token=${encodeURIComponent(_TOKEN)}&documento=${encodeURIComponent(payload.documento)}&idProcedimientoObjetivo=${encodeURIComponent(payload.idProcedimientoObjetivo)}&idUsuario=${encodeURIComponent(payload.body.idUsuario)}`;
-  
-  let res, text;
-  try {
-    res = await fetch(url, { method:'POST', headers:{ 'Content-Type':'application/json' }, body: JSON.stringify(payload.body) });
-    text = await res.text();
-  } catch (error) {
-    return { ok: false, text: `Error de red: ${error.message}` };
-  }
-  
-  const message = extractMessageFromResponse(text);
-  return { ok: res.ok, text: message };
-}
+                let pruebaParts = [], conc = "", unidades = "mg/dL";
+                while (idx < parts.length) {
+                    const word = parts[idx], next = parts[idx+1] || "";
+                    if (dateRe.test(word)) { pruebaParts.push(word); idx++; continue; }
+                    if (looksLikeResult(word, next)) { conc = word.replace(',', '.').trim(); idx++; break; }
+                    pruebaParts.push(word); idx++;
+                }
+                const prueba = pruebaParts.join(" ").trim();
+                if (idx < parts.length && (unitRe.test(parts[idx]) || /mg|mmol|g\/dl|iu|%|ug/i.test(parts[idx]))) { unidades = parts[idx]; idx++; }
 
-function getFilteredRowsForSend() {
-  const filter = normalize(document.getElementById('filterInput').value);
-  const onlyMapped = document.getElementById('mappedOnly').checked;
-  return lastRows.filter(r => {
-    if (!r.id_examen) return false;
-    if (onlyMapped && !r.id_examen) return false;
-    if (filter) {
-      const f = filter;
-      if (!(r.paciente.includes(f) || normalize(r.prueba).includes(f) || (r.id_examen && r.id_examen.includes(f)))) return false;
-    }
-    return true;
-  });
-}
+                let fecha = "";
+                if (idx < parts.length && dateRe.test(parts[idx])) { 
+                    fecha = parts[idx]; 
+                    if (idx+1 < parts.length && timeRe.test(parts[idx+1])) fecha += ' ' + parts[idx+1]; 
+                }
 
-document.getElementById('sendApi').addEventListener('click', async () => {
-  const idUsuario = document.getElementById('idUsuario').value.trim();
-  if (!idUsuario) return alert('Ingresa el idUsuario antes de subir a la API');
-  if (!lastRows.length) return alert('Primero parsea el archivo TXT');
-  if (!_TOKEN) return alert('Debes iniciar sesión para obtener token antes de enviar');
+                let id_examen = "";
+                const pruebaNorm = normalize(prueba);
+                if (pruebaNorm.includes("GLUCOS") || pruebaNorm.includes("GLUCOSE")) {
+                    if (tipo === "PRE" || tipo === "POST") id_examen = "9121";
+                    else if (["1/2H","1H","2H","3H","B"].includes(tipo)) id_examen = "9122";
+                    else id_examen = "11803";
+                } else {
+                    for (const key in EXAM_MAP) {
+                        if (pruebaNorm.includes(normalize(key))) { id_examen = EXAM_MAP[key]; break; }
+                    }
+                }
 
-  const rowsToSend = getFilteredRowsForSend();
-  if (!rowsToSend.length) return alert('No hay filas con ID_EXAMEN para enviar');
+                rows.push({ paciente, tipo, tecnica, prueba, id_examen: id_examen || "", conc, unidades, fecha: fecha || "", apiMessage: '', rowClass: 'row-pending', isCalculated: false });
+            }
+            return processAndAddBUNCalculations(rows);
+        }
 
-  const payloads = buildApiPayloads(rowsToSend, idUsuario);
-  if (!payloads.length) return alert('No hay payloads válidos');
+        function processAndAddBUNCalculations(rows) {
+            const newRows = [...rows];
+            const patientsWithUREA = new Set();
+            rows.forEach(row => { if (row.id_examen === '9147' && row.conc && row.conc !== '-') patientsWithUREA.add(row.paciente); });
+            
+            patientsWithUREA.forEach(paciente => {
+                const patientRows = rows.filter(r => r.paciente === paciente);
+                const hasBUN = patientRows.some(r => r.id_examen === '9134');
+                const ureaRow = patientRows.find(r => r.id_examen === '9147');
+                if (!hasBUN && ureaRow) {
+                    const bunValue = calculateBUNFromUrea(ureaRow.conc);
+                    if (bunValue) {
+                        newRows.push({ paciente: ureaRow.paciente, tipo: '-', tecnica: ureaRow.tecnica, prueba: 'BUN (calculado)', id_examen: '9134', conc: bunValue, unidades: 'mg/dL', fecha: ureaRow.fecha, apiMessage: `🧮 Calc desde UREA`, rowClass: 'row-bun-calculated', isCalculated: true });
+                        const originalUreaRow = newRows.find(r => r.paciente === paciente && r.id_examen === '9147');
+                        if (originalUreaRow) { originalUreaRow.apiMessage = `→ BUN: ${bunValue}`; originalUreaRow.rowClass = 'row-bun-calculated'; }
+                    }
+                }
+            });
+            return newRows.sort((a, b) => a.paciente.localeCompare(b.paciente));
+        }
 
-  if (!confirm(`Se enviarán ${payloads.length} peticiones a la API.\n¿Continuar?`)) return;
+        /* ====== Render UI ====== */
+        let lastRows = [];
+        function render(rows){
+            const filter = normalize(document.getElementById('filterInput').value);
+            const onlyMapped = document.getElementById('mappedOnly').checked;
+            let visible = 0;
+            let html = `<table><thead><tr><th>Paciente</th><th>Tipo</th><th>Técnica</th><th>Prueba</th><th>ID</th><th>Conc.</th><th>Und.</th><th>Fecha</th><th>API</th></tr></thead><tbody>`;
+            
+            for (const r of rows) {
+                if (onlyMapped && !r.id_examen) continue;
+                if (filter && !(r.paciente.includes(filter) || normalize(r.prueba).includes(filter) || (r.id_examen && r.id_examen.includes(filter)))) continue;
+                visible++;
+                
+                const idStyle = r.id_examen ? (r.isCalculated ? "background:#e6f7ff;color:#0050b3;font-weight:700" : "background:#ecfdf5;color:#166534;font-weight:700") : "color:#ef4444";
+                html += `<tr class="${r.rowClass}">
+                    <td><strong>${r.paciente}</strong></td><td>${r.tipo}</td><td>${r.tecnica}</td><td>${escapeHtml(r.prueba)}</td>
+                    <td style="${idStyle}">${r.id_examen || '-'}</td><td style="text-align:right">${r.conc}</td><td>${r.unidades}</td><td>${r.fecha}</td>
+                    <td class="api-message">${escapeHtml(r.apiMessage || '')}</td>
+                </tr>`;
+            }
+            document.getElementById('countBadge').textContent = visible + ' filas';
+            document.getElementById('resultArea').innerHTML = html + `</tbody></table>`;
+        }
 
-  const progressBox = document.getElementById('uploadProgress');
-  const progressBar = document.getElementById('progressBar');
-  const progressText = document.getElementById('progressText');
-  const okCountEl = document.getElementById('okCount');
-  const failCountEl = document.getElementById('failCount');
+        /* ====== Build payloads & API ====== */
+        function buildApiPayloads(rows, idUsuario) {
+            const grouped = new Map();
+            rows.forEach((r, i) => {
+                if (!r.id_examen) return;
+                const key = `${r.paciente}|${r.id_examen}`;
+                if (!grouped.has(key)) grouped.set(key, {rows: [], idProcedimientoObjetivo: r.id_examen, documento: r.paciente, indices: []});
+                grouped.get(key).rows.push(r);
+                grouped.get(key).indices.push(i);
+            });
 
-  progressBox.classList.remove('hidden');
-  progressBar.style.width = '0%';
+            const payloads = [];
+            for (const [key, groupData] of grouped.entries()) {
+                const { documento, idProcedimientoObjetivo, rows: group } = groupData;
+                let body = { idUsuario: Number(idUsuario) };
 
-  let total = payloads.length;
-  let sent = 0;
-  let ok = 0;
-  let fail = 0;
+                if (idProcedimientoObjetivo === '9087') {
+                    const total = group.find(g=>/TOTAL/i.test(g.prueba)), directa = group.find(g=>/DIRECT/i.test(g.prueba)), indirecta = group.find(g=>/INDIRECT/i.test(g.prueba));
+                    body.resultadosArray = [(total?.conc||'0'), (directa?.conc||'0'), (indirecta?.conc||'0')];
+                } else if (idProcedimientoObjetivo === '9121') {
+                    const pre = group.find(g=>g.tipo==='PRE'), post = group.find(g=>g.tipo==='POST');
+                    body.resultadosArray = [(pre?.conc||'0'), (post?.conc||'0')];
+                } else if (idProcedimientoObjetivo === '9122') {
+                    const slots = ['2H', '3H', '1H', '1/2H', null, 'B'];
+                    body.resultadosArray = slots.map(s => s ? (group.find(g=>g.tipo===s)?.conc || '0') : '0');
+                } else {
+                    body.resultado = String(group[0]?.conc || '0');
+                }
+                payloads.push({ documento, idProcedimientoObjetivo, body });
+            }
+            return payloads;
+        }
 
-  okCountEl.textContent = '0';
-  failCountEl.textContent = '0';
-  progressText.textContent = `0 / ${total}`;
+        async function sendToArmarJson(payload) {
+            if (!_TOKEN) throw new Error('No hay token');
+            const url = `${API_BASE}?token=${encodeURIComponent(_TOKEN)}&documento=${encodeURIComponent(payload.documento)}&idProcedimientoObjetivo=${encodeURIComponent(payload.idProcedimientoObjetivo)}&idUsuario=${encodeURIComponent(payload.body.idUsuario)}`;
+            try {
+                const res = await fetch(url, { method:'POST', headers:{ 'Content-Type':'application/json' }, body: JSON.stringify(payload.body) });
+                const text = await res.text();
+                return { ok: res.ok, text: extractMessageFromResponse(text) };
+            } catch (err) { return { ok: false, text: err.message }; }
+        }
 
-  rowsToSend.forEach(r => {
-    r.apiMessage = 'Enviando…';
-    r.rowClass = 'row-sending';
-  });
-  render(lastRows);
-
-  for (const p of payloads) {
-    try {
-      const result = await sendToArmarJson(p);
-      sent++;
-
-      const matchingRows = lastRows.filter(r =>
-        r.paciente === p.documento &&
-        r.id_examen === p.idProcedimientoObjetivo
-      );
-
-      if (result.ok) {
-        ok++;
-        matchingRows.forEach(r => {
-          r.apiMessage = `✅ ${result.text}`;
-          r.rowClass = 'row-success';
+        /* ====== Eventos ====== */
+        document.getElementById('file').addEventListener('change', async e=>{ 
+            const file=e.target.files[0]; if(!file) return; 
+            document.getElementById('input').value = await file.text(); 
         });
-      } else {
-        fail++;
-        matchingRows.forEach(r => {
-          r.apiMessage = `❌ ${result.text}`;
-          r.rowClass = 'row-error';
+
+        document.getElementById('parse').addEventListener('click', ()=>{ 
+            const txt=document.getElementById('input').value.trim(); 
+            if(!txt) return alert('Pega datos primero'); 
+            lastRows = parseText(txt); render(lastRows); 
         });
-      }
 
-    } catch (err) {
-      sent++;
-      fail++;
-      lastRows
-        .filter(r =>
-          r.paciente === p.documento &&
-          r.id_examen === p.idProcedimientoObjetivo
-        )
-        .forEach(r => {
-          r.apiMessage = `❌ Error de red`;
-          r.rowClass = 'row-error';
+        document.getElementById('clear').addEventListener('click', ()=>{ 
+            document.getElementById('input').value=''; lastRows=[]; document.getElementById('resultArea').innerHTML=''; 
         });
-    }
 
-    const percent = Math.round((sent / total) * 100);
-    progressBar.style.width = percent + '%';
-    progressText.textContent = `${sent} / ${total}`;
-    okCountEl.textContent = ok;
-    failCountEl.textContent = fail;
+        document.getElementById('sendApi').addEventListener('click', async () => {
+            const idU = document.getElementById('idUsuario').value.trim();
+            if (!idU || !lastRows.length || !_TOKEN) return alert('Verifica: ID Usuario, Datos procesados y Sesión activa');
+            
+            const payloads = buildApiPayloads(lastRows.filter(r => r.id_examen), idU);
+            if (!confirm(`Enviar ${payloads.length} exámenes?`)) return;
 
-    render(lastRows);
-  }
+            const prog = document.getElementById('uploadProgress');
+            prog.classList.remove('hidden');
+            let ok = 0, fail = 0;
 
-  alert(`Proceso terminado.\n✔ Éxitos: ${ok}\n❌ Errores: ${fail}`);
-});
+            for (let i=0; i<payloads.length; i++) {
+                const p = payloads[i];
+                const res = await sendToArmarJson(p);
+                if (res.ok) ok++; else fail++;
+                
+                lastRows.filter(r => r.paciente === p.documento && r.id_examen === p.idProcedimientoObjetivo).forEach(r => {
+                    r.apiMessage = res.ok ? `✅ ${res.text}` : `❌ ${res.text}`;
+                    r.rowClass = res.ok ? 'row-success' : 'row-error';
+                });
 
-// Inicializar UI
-renderAuth();
-  </script>
+                document.getElementById('progressBar').style.width = ((i+1)/payloads.length*100) + '%';
+                document.getElementById('okCount').textContent = ok;
+                document.getElementById('failCount').textContent = fail;
+                render(lastRows);
+            }
+            alert('Proceso finalizado');
+        });
+
+        document.getElementById('filterInput').addEventListener('input', ()=>render(lastRows));
+        document.getElementById('mappedOnly').addEventListener('change', ()=>render(lastRows));
+
+        renderAuth();
+    </script>
 </body>
 </html>
 
