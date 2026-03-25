@@ -1,11 +1,10 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="es">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
-  <title>Salu Plus | Gestión de Laboratorio Clínico</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Salu Plus | Gestión de Laboratorio</title>
   
-  <!-- Tailwind CSS CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
   
   <script>
@@ -16,9 +15,7 @@
             salu: {
               900: '#1e3a8a',
               800: '#1e40af',
-              700: '#1e4bd2',
-              600: '#2563eb',
-              50: '#eff6ff',
+              50: '#f9fafb',
             }
           }
         }
@@ -27,778 +24,548 @@
   </script>
 
   <style>
-    /* ===== VARIABLES CSS ===== */
-    :root {
-      --color-primary: #1e3a8a;
-      --color-primary-dark: #1e40af;
-      --color-success: #22c55e;
-      --color-error: #ef4444;
-      --color-warning: #eab308;
-      --color-info: #0284c7;
-      --transition-default: all 0.2s cubic-bezier(0.2, 0.9, 0.4, 1.1);
-    }
-
-    /* ===== ESTILOS DE TABLA ===== */
-    .data-table {
-      width: 100%;
-      border-collapse: collapse;
-      font-size: 0.8125rem;
-    }
-    
-    .data-table th {
-      background-color: #f8fafc;
-      color: #0f172a;
-      font-weight: 600;
-      padding: 0.875rem 1rem;
-      text-align: left;
-      border-bottom: 2px solid #e2e8f0;
-      font-size: 0.75rem;
-      text-transform: uppercase;
-      letter-spacing: 0.05em;
-      position: sticky;
-      top: 0;
-      background-color: #f8fafc;
-      z-index: 10;
-    }
-    
-    .data-table td {
-      padding: 0.875rem 1rem;
-      border-bottom: 1px solid #f1f5f9;
-      color: #1e293b;
-      vertical-align: middle;
-    }
-    
-    .data-table tbody tr {
-      transition: var(--transition-default);
-      border-left: 3px solid transparent;
-    }
-    
-    .data-table tbody tr:hover {
-      background-color: #fafbff;
-    }
-    
-    /* ===== ESTILOS DE FILAS ===== */
-    .row-bun-calculated {
-      background-color: #eef9ff;
-      border-left-color: var(--color-info);
-    }
-    
-    .row-bun-calculated:hover {
-      background-color: #e1f0fa;
-    }
-    
-    .row-ldl-calculated {
-      background-color: #fffbeb;
-      border-left-color: var(--color-warning);
-    }
-    
-    .row-ldl-calculated:hover {
-      background-color: #fef7db;
-    }
-    
-    .row-success {
-      background-color: #f0fdf4;
-      border-left-color: var(--color-success);
-    }
-    
-    .row-success:hover {
-      background-color: #e8f5e9;
-    }
-    
-    .row-error {
-      background-color: #fef2f2;
-      border-left-color: var(--color-error);
-    }
-    
-    .row-error:hover {
-      background-color: #fee2e2;
-    }
-    
-    .row-pending {
-      border-left-color: #cbd5e1;
-    }
-    
-    /* ===== COMPONENTES UI ===== */
-    .badge-count {
-      background: #eef2ff;
-      color: var(--color-primary);
-      border-radius: 9999px;
-      padding: 0.25rem 0.875rem;
-      font-weight: 600;
-      font-size: 0.75rem;
-    }
-    
-    .api-message {
-      font-size: 0.7rem;
-      max-width: 180px;
-      word-break: break-word;
-      line-height: 1.3;
-    }
-    
-    .scrollable-table {
-      overflow-x: auto;
-      border-radius: 0.75rem;
-      max-height: 520px;
-      overflow-y: auto;
-    }
-    
-    /* ===== FORMULARIOS ===== */
-    input:focus, textarea:focus, select:focus {
-      outline: none;
-      ring: 2px solid rgba(30, 58, 138, 0.2);
-      border-color: var(--color-primary);
-    }
-    
-    /* ===== ANIMACIONES ===== */
-    @keyframes fadeIn {
-      from { opacity: 0; transform: translateY(10px); }
-      to { opacity: 1; transform: translateY(0); }
-    }
-    
-    .fade-in {
-      animation: fadeIn 0.3s ease-out;
-    }
-    
-    /* ===== SCROLLBAR PERSONALIZADA ===== */
-    .scrollable-table::-webkit-scrollbar {
-      width: 8px;
-      height: 8px;
-    }
-    
-    .scrollable-table::-webkit-scrollbar-track {
-      background: #f1f5f9;
-      border-radius: 4px;
-    }
-    
-    .scrollable-table::-webkit-scrollbar-thumb {
-      background: #cbd5e1;
-      border-radius: 4px;
-    }
-    
-    .scrollable-table::-webkit-scrollbar-thumb:hover {
-      background: #94a3b8;
-    }
+    table { width: 100%; border-collapse: collapse; margin-top: 1rem; font-size: 0.875rem; }
+    th { background-color: #f3f4f6; color: #1f2937; font-weight: 600; padding: 0.75rem; text-align: left; border-bottom: 2px solid #e5e7eb; }
+    td { padding: 0.75rem; border-bottom: 1px solid #e5e7eb; color: #4b5563; }
+    tr:hover { background-color: #f9fafb; }
+    .input-transition { transition: all 0.2s ease-in-out; }
+    .row-bun-calculated { background-color: #e6f7ff; }
+    .row-bun-calculated:hover { background-color: #d9eaff; }
+    .row-ldl-calculated { background-color: #fef9e7; }
+    .row-ldl-calculated:hover { background-color: #fdf3d9; }
+    .row-success { background-color: #f0fdf4; }
+    .row-error { background-color: #fef2f2; }
   </style>
 </head>
-<body class="bg-gradient-to-br from-gray-50 to-slate-100 font-sans antialiased min-h-screen flex flex-col">
+<body class="bg-gray-50 text-gray-700 font-sans antialiased min-h-screen flex flex-col">
 
-  <header class="bg-white/95 backdrop-blur-sm shadow-sm border-b border-gray-200 sticky top-0 z-20">
+  <header class="bg-white shadow-sm border-b border-gray-200">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
       <div class="flex items-center gap-3">
-        <div class="w-10 h-10 bg-salu-900 rounded-xl flex items-center justify-center text-white font-bold text-xl shadow-md">S+</div>
+        <div class="w-10 h-10 bg-salu-900 rounded-lg flex items-center justify-center text-white font-bold text-xl">S+</div>
         <div>
-          <h1 class="text-2xl font-bold tracking-tight bg-gradient-to-r from-salu-900 to-salu-700 bg-clip-text text-transparent">Salu Plus</h1>
-          <p class="text-xs text-gray-500 font-medium">Laboratorio clínico · precisión diagnóstica</p>
+          <h1 class="text-2xl font-bold text-gray-900 tracking-tight">Salu Plus</h1>
+          <p class="text-xs text-gray-500 uppercase tracking-wide">Excelencia en Laboratorio</p>
         </div>
       </div>
       <div id="authArea" class="text-sm"></div>
     </div>
   </header>
 
-  <main class="flex-grow py-8 px-4 sm:px-6 lg:px-8">
-    <div class="max-w-7xl mx-auto">
+  <main class="flex-grow py-10 px-4 sm:px-6 lg:px-8">
+    <div class="max-w-5xl mx-auto">
       
-      <!-- Encabezado descriptivo -->
-      <div class="mb-8 text-center max-w-3xl mx-auto fade-in">
-        <h2 class="text-3xl font-bold text-gray-900 mb-3">Gestión Inteligente de Análisis</h2>
+      <div class="mb-8 text-center max-w-2xl mx-auto">
+        <h2 class="text-3xl font-semibold text-gray-900 mb-3">Gestión de Análisis Clínicos</h2>
         <p class="text-gray-600 leading-relaxed">
-          Procesamiento de datos con cálculos automáticos (LDL-Friedewald, BUN desde Urea), 
-          validación de estándares y sincronización segura con API.
+          Procesamiento de datos con los estándares de calidad, precisión y seguridad que caracterizan a Salu Plus.
         </p>
       </div>
 
-      <!-- Panel principal -->
-      <div class="bg-white shadow-xl rounded-2xl border border-gray-200 overflow-hidden fade-in">
+      <div class="bg-white shadow-lg rounded-xl border border-gray-200 overflow-hidden">
         
-        <div class="bg-gray-50/80 px-6 py-4 border-b border-gray-200 flex flex-wrap justify-between items-center gap-3">
-          <h3 class="text-lg font-semibold text-gray-800 flex items-center gap-2">
-            📄 Importador de resultados
-          </h3>
-          <span class="badge-count" id="countBadge">0 filas</span>
+        <div class="bg-gray-50 px-6 py-4 border-b border-gray-200 flex justify-between items-center">
+          <h3 class="text-lg font-medium text-gray-800">Importar TXT de Laboratorio</h3>
+          <span class="badge bg-blue-100 text-salu-900 text-xs px-2 py-1 rounded-full font-semibold" id="countBadge">0 filas</span>
         </div>
 
-        <div class="p-6 md:p-7 space-y-7">
+        <div class="p-6 space-y-6">
           
-          <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
-            <!-- Columna izquierda: carga de datos -->
-            <div class="space-y-5">
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div class="space-y-4">
               <div>
-                <label class="block text-sm font-semibold text-gray-700 mb-1.5 flex items-center gap-2">
-                  <svg class="w-4 h-4 text-salu-800" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/>
-                  </svg>
-                  Archivo TXT / CSV
-                </label>
-                <input id="fileInput" type="file" accept=".txt,.csv" 
-                  class="block w-full text-sm text-gray-600 file:mr-4 file:py-2.5 file:px-5 file:rounded-xl file:border-0 file:text-sm file:font-semibold file:bg-salu-50 file:text-salu-900 hover:file:bg-salu-100 cursor-pointer border border-gray-300 rounded-xl focus:ring-2 focus:ring-salu-900/30 transition">
+                <label class="block text-sm font-medium text-gray-700 mb-1">Cargar archivo .txt</label>
+                <input id="file" type="file" accept=".txt" 
+                  class="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-salu-900 hover:file:bg-blue-100 cursor-pointer border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-salu-900 focus:border-transparent input-transition">
               </div>
 
               <div>
-                <label class="block text-sm font-semibold text-gray-700 mb-1.5">Pegar contenido del laboratorio</label>
-                <textarea id="rawTextArea" rows="6" 
-                  placeholder="Ejemplo:&#10;10023456 PRE SER GLUCOSA 95 mg/dL 15/04/2025&#10;10023456 SER COLESTEROL TOTAL 185 mg/dL 15/04/2025&#10;10023456 SER TRIGLICERIDOS 150 mg/dL 15/04/2025&#10;10023456 SER HDL 45 mg/dL 15/04/2025&#10;10023456 SER UREA 32 mg/dL 15/04/2025" 
-                  class="w-full p-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-salu-900/20 focus:border-salu-900 outline-none text-sm font-mono bg-gray-50 resize-y"></textarea>
-              </div>
-              
-              <div class="flex flex-wrap gap-3 pt-2">
-                <button id="parseBtn" class="bg-salu-900 text-white py-2.5 px-5 rounded-xl hover:bg-salu-800 transition-all font-medium shadow-sm flex items-center gap-2">
-                  <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
-                  </svg>
-                  Procesar y analizar
-                </button>
-                <button id="clearBtn" class="border border-gray-300 bg-white text-gray-700 py-2.5 px-5 rounded-xl hover:bg-gray-50 transition text-sm font-medium">
-                  Limpiar todo
-                </button>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Pegar contenido manual</label>
+                <textarea id="input" rows="6" placeholder="Pegue aquí el texto crudo del laboratorio..." 
+                  class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-salu-900 focus:border-transparent outline-none text-sm font-mono text-gray-600 input-transition resize-none"></textarea>
               </div>
             </div>
 
-            <!-- Columna derecha: filtros y estado API -->
-            <div class="bg-slate-50 rounded-xl p-5 border border-gray-200 space-y-5 shadow-inner">
-              <div class="flex flex-col space-y-3">
-                <label class="text-xs font-bold text-gray-500 uppercase tracking-wider">🔍 Filtros dinámicos</label>
-                <input id="filterSearch" type="text" placeholder="Buscar por paciente, prueba o ID examen..." 
-                  class="w-full p-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-salu-900/20 text-sm bg-white">
-                <label class="flex items-center gap-2 cursor-pointer select-none">
-                  <input id="onlyMappedCheck" type="checkbox" class="h-4 w-4 text-salu-900 rounded border-gray-300 focus:ring-salu-900">
-                  <span class="text-sm text-gray-700">Mostrar solo filas con ID de examen válido</span>
-                </label>
-              </div>
-
-              <div class="border-t border-gray-200 pt-4">
-                <div class="flex items-center gap-3 justify-between flex-wrap">
-                  <div class="flex-grow">
-                    <label class="block text-xs font-bold text-salu-900 uppercase mb-1">ID Usuario (API)</label>
-                    <input id="idUsuarioApi" type="number" placeholder="Ej: 6874" 
-                      class="w-full bg-gray-100 border border-gray-300 text-gray-600 text-sm rounded-xl p-2.5" readonly disabled>
+            <div class="flex flex-col justify-between space-y-4">
+              
+              <div class="grid grid-cols-2 gap-3">
+                <button id="parse" class="col-span-2 bg-salu-900 text-white py-2 px-4 rounded-lg hover:bg-blue-800 transition font-medium shadow-md flex items-center justify-center gap-2">
+                  <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clip-rule="evenodd" /></svg>
+                  Parsear Datos
+                </button>
+                <button id="clear" class="border border-gray-300 text-gray-700 py-2 px-4 rounded-lg hover:bg-gray-50 transition text-sm">
+                  Limpiar
+                </button>
+				
+                <div id="uploadProgress" class="hidden mt-6">
+                  <div class="flex justify-between mb-1 text-sm">
+                    <span class="font-medium text-salu-900">Subiendo resultados a la API…</span>
+                    <span id="progressText" class="text-gray-600">0 / 0</span>
                   </div>
-                  <button id="sendApiBtn" class="bg-white border border-salu-300 text-salu-800 font-semibold py-2.5 px-5 rounded-xl hover:bg-salu-50 transition shadow-sm mt-2 whitespace-nowrap disabled:opacity-50 disabled:cursor-not-allowed">
-                    📤 Subir a API
-                  </button>
+                  <div class="w-full bg-gray-200 rounded-full h-3 overflow-hidden">
+                    <div id="progressBar" class="bg-salu-900 h-3 rounded-full transition-all duration-300" style="width: 0%"></div>
+                  </div>
+                  <div class="mt-2 text-xs text-gray-500">
+                    ✔ <span id="okCount">0</span> éxitos · ❌ <span id="failCount">0</span> errores
+                  </div>
                 </div>
               </div>
-              
-              <!-- Barra de progreso -->
-              <div id="progressContainer" class="hidden mt-3 pt-2">
-                <div class="flex justify-between text-xs font-medium mb-1">
-                  <span class="text-salu-800">Enviando resultados...</span>
-                  <span id="progressCounter" class="text-gray-600">0 / 0</span>
-                </div>
-                <div class="w-full bg-gray-200 rounded-full h-2.5 overflow-hidden">
-                  <div id="progressFill" class="bg-salu-900 h-2.5 rounded-full transition-all duration-300 ease-out" style="width: 0%"></div>
-                </div>
-                <div class="flex gap-4 mt-2 text-xs">
-                  <span>✅ <span id="successCount">0</span> éxitos</span>
-                  <span>❌ <span id="errorCount">0</span> errores</span>
+
+              <div class="bg-gray-50 p-4 rounded-lg border border-gray-200 space-y-3">
+                <label class="block text-xs font-semibold text-gray-500 uppercase">Filtros de Visualización</label>
+                <input id="filterInput" placeholder="Buscar por paciente, prueba o ID..." 
+                  class="w-full p-2 border border-gray-300 rounded focus:ring-1 focus:ring-salu-900 outline-none text-sm">
+                
+                <div class="flex items-center">
+                  <input id="mappedOnly" type="checkbox" class="h-4 w-4 text-salu-900 border-gray-300 rounded focus:ring-salu-900">
+                  <label for="mappedOnly" class="ml-2 block text-sm text-gray-700">Solo con ID asignado</label>
                 </div>
               </div>
+
             </div>
           </div>
           
-          <hr class="border-gray-200">
-          
-          <!-- Información de cálculo automático -->
-          <div class="bg-blue-50/60 rounded-xl p-3 text-xs text-salu-800 flex flex-wrap gap-x-6 gap-y-1 border border-blue-100">
-            <span class="flex items-center gap-1"><span class="w-2 h-2 bg-blue-500 rounded-full"></span> 🔄 BUN calculado desde Urea (factor 2.14)</span>
-            <span class="flex items-center gap-1"><span class="w-2 h-2 bg-yellow-500 rounded-full"></span> 🧪 LDL calculado (Friedewald) si TG &lt;400 mg/dL</span>
-            <span class="flex items-center gap-1"><span class="w-2 h-2 bg-emerald-500 rounded-full"></span> ✅ Éxito API</span>
-            <span class="flex items-center gap-1"><span class="w-2 h-2 bg-red-400 rounded-full"></span> ❌ Error envío</span>
+          <hr class="border-gray-100">
+
+          <div class="flex items-center gap-4 bg-blue-50 p-4 rounded-lg border border-blue-100">
+            <div class="flex-grow">
+              <label class="block text-xs font-bold text-salu-900 mb-1">ID DE USUARIO (API)</label>
+              <input id="idUsuario" type="number" placeholder="Ej: 12345" disabled 
+                class="w-full bg-white border border-blue-200 text-gray-600 text-sm rounded p-2 opacity-70 cursor-not-allowed">
+            </div>
+            <button id="sendApi" class="mt-4 bg-white border border-blue-300 text-salu-900 font-medium py-2 px-6 rounded-lg hover:bg-blue-100 transition shadow-sm whitespace-nowrap">
+              Subir a API ArmarJson
+            </button>
           </div>
+
         </div>
       </div>
 
-      <!-- Tabla de resultados -->
-      <div id="resultTableContainer" class="mt-8 bg-white shadow-xl rounded-2xl border border-gray-200 overflow-hidden fade-in">
-        <div class="scrollable-table">
-          <div id="dynamicTable" class="min-w-[720px]">
-            <p class="text-center text-gray-400 py-12 italic text-sm">📋 Los datos procesados se mostrarán aquí luego de hacer clic en "Procesar y analizar".</p>
-          </div>
-        </div>
+      <div id="resultArea" class="mt-8 bg-white shadow-lg rounded-xl border border-gray-200 overflow-x-auto min-h-[100px] p-1">
+        <p class="text-center text-gray-400 py-10 italic">Los resultados procesados aparecerán aquí.</p>
       </div>
 
     </div>
   </main>
 
-  <footer class="bg-white border-t border-gray-200 mt-10">
-    <div class="max-w-7xl mx-auto py-5 px-4 sm:px-6 lg:px-8 flex flex-col md:flex-row justify-between items-center gap-3 text-xs">
-      <p class="text-gray-500">&copy; 2025 Salu Plus — Innovación en diagnóstico clínico.</p>
-      <div class="text-gray-400 bg-gray-50 px-3 py-1 rounded-full border border-gray-100">
-        🔒 Conexión segura · Datos confidenciales
+  <footer class="bg-white border-t border-gray-200 mt-auto">
+    <div class="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8 flex flex-col md:flex-row justify-between items-center gap-4">
+      <p class="text-sm text-gray-500">&copy; 2025 Salu Plus Laboratorio. Confianza que se analiza.</p>
+      <div class="text-xs text-gray-400 bg-gray-50 px-3 py-1 rounded border border-gray-100">
+        <span class="font-semibold">Seguridad:</span> El token de sesión se gestiona internamente y no es visible.
       </div>
     </div>
   </footer>
 
-  <script>
-    // ============================================================
-    // SALU PLUS - SISTEMA DE GESTIÓN DE LABORATORIO
-    // Versión: 2.0 - Código optimizado y organizado
-    // ============================================================
-    
-    (function() {
-      // ==================== CONFIGURACIÓN ====================
-      const CONFIG = {
-        API: {
-          BASE: "https://api.saludplus.co/api/Laboratorio/GuardarResultadoExamen",
-          LOGIN: "https://api.saludplus.co/api/auth/Login"
-        },
-        EXAM_MAP: {
-          "GLUCOSE": "11803", "GLUCOSA": "11803",
-          "CHOLESTEROL": "9096", "COL": "9096", "COLESTEROL TOTAL": "9096",
-          "TRIGLYCERIDES": "9146", "TRIGLICERIDOS": "9146",
-          "LDL": "9094", "COLESTEROL LDL": "9094",
-          "CREATININE": "9173", "CREATININA": "9173",
-          "BUN": "9134", "NITROGENO UREICO": "9134", "NITRÓGENO UREICO": "9134",
-          "UREA": "9147", "UREA EN SANGRE": "9147", "UREA UV": "9147", "UREA SANGRE": "9147",
-          "URIC ACID": "9079", "ACIDO URICO": "9079",
-          "BILIRUBIN DIRECT": "9087", "BILIRUBIN INDIRECT": "9087", "BILIRUBIN TOTAL": "9087", "BILIRRUBINA TOTAL": "9087",
-          "CHOL HDL DIRECT": "9093", "HDL": "9093",
-          "CHOL LDL DIRECT": "9094"
-        },
-        CURVA_PREFIX: /^(PRE|POST|1\/2H?|1H|2H|3H|B)$/i,
-        DATE_RE: /^\d{1,2}\/\d{1,2}\/\d{4}$/,
-        UNIT_RE: /^(mg\/dL|mg\/dl|mmol\/L|g\/dL|IU\/L|%|U\/L|mg\/mL|ug\/mL)$/i
-      };
-      
-      // ==================== ESTADO GLOBAL ====================
-      let appState = {
-        rows: [],
-        sessionToken: null,
-        currentUser: null
-      };
-      
-      // ==================== UTILIDADES ====================
-      const Utils = {
-        normalize: (s) => (s || "").toString().trim().toUpperCase(),
-        escapeHtml: (str) => String(str || '').replace(/[&<>]/g, (m) => {
-          if (m === '&') return '&amp;';
-          if (m === '<') return '&lt;';
-          if (m === '>') return '&gt;';
-          return m;
-        }),
-        parseNumber: (val) => {
-          if (!val || val === '-') return NaN;
-          const match = String(val).match(/([<>]=?)?\s*(\d+[\.,]?\d*)/);
-          if (!match) return NaN;
-          return parseFloat(match[2].replace(',', '.'));
-        },
-        extractMessage: (text) => {
-          try {
-            const json = JSON.parse(text);
-            return json.mensaje || json.successfulMessage || json.message || (json.isSuccessful ? "Envío exitoso" : "Error en el envío");
-          } catch (e) {
-            const match = text.match(/"mensaje"\s*:\s*"([^"]+)"/);
-            return match ? match[1] : (text.length > 80 ? text.substring(0, 80) + "..." : text);
-          }
-        }
-      };
-      
-      // ==================== CÁLCULOS CLÍNICOS ====================
-      const Calculations = {
-        bunFromUrea: (ureaValue) => {
-          const num = Utils.parseNumber(ureaValue);
-          if (isNaN(num) || num === 0) return null;
-          const bun = (num / 2.14).toFixed(2);
-          const match = String(ureaValue).match(/^([<>]=?)/);
-          return match ? `${match[1]}${bun}` : bun;
-        },
-        
-        ldlFriedewald: (totalVal, hdlVal, tgVal) => {
-          const total = Utils.parseNumber(totalVal);
-          const hdl = Utils.parseNumber(hdlVal);
-          const tg = Utils.parseNumber(tgVal);
-          if (isNaN(total) || isNaN(hdl) || isNaN(tg) || tg >= 400) return null;
-          const ldl = total - hdl - (tg / 5);
-          return ldl > 0 ? ldl.toFixed(2) : null;
-        },
-        
-        addDerivedRows: (rows) => {
-          let updated = [...rows];
-          
-          // BUN desde UREA
-          const ureaPatients = new Set(updated.filter(r => r.id_examen === '9147' && r.conc && r.conc !== '-').map(r => r.paciente));
-          ureaPatients.forEach(pac => {
-            const hasBUN = updated.some(r => r.paciente === pac && r.id_examen === '9134');
-            const ureaRow = updated.find(r => r.paciente === pac && r.id_examen === '9147');
-            if (!hasBUN && ureaRow) {
-              const bunVal = Calculations.bunFromUrea(ureaRow.conc);
-              if (bunVal) {
-                updated.push({
-                  paciente: ureaRow.paciente, tipo: '-', tecnica: ureaRow.tecnica || 'SER',
-                  prueba: 'BUN (calculado)', id_examen: '9134', conc: bunVal, unidades: 'mg/dL',
-                  fecha: ureaRow.fecha, apiMessage: '🧮 Calculado desde Urea', rowClass: 'row-bun-calculated', isCalculated: true
-                });
-              }
-            }
-          });
-          
-          // LDL Friedewald
-          const ldlMap = new Map();
-          updated.forEach(r => {
-            if (!r.id_examen || !r.conc || r.conc === '-') return;
-            if (r.id_examen === '9096') ldlMap.set(r.paciente, { ...ldlMap.get(r.paciente), total: r });
-            if (r.id_examen === '9093') ldlMap.set(r.paciente, { ...ldlMap.get(r.paciente), hdl: r });
-            if (r.id_examen === '9146') ldlMap.set(r.paciente, { ...ldlMap.get(r.paciente), tg: r });
-          });
-          
-          ldlMap.forEach((data, pac) => {
-            const hasDirectLDL = updated.some(r => r.paciente === pac && r.id_examen === '9094');
-            if (!hasDirectLDL && data.total && data.hdl && data.tg) {
-              const ldlVal = Calculations.ldlFriedewald(data.total.conc, data.hdl.conc, data.tg.conc);
-              if (ldlVal) {
-                updated.push({
-                  paciente: pac, tipo: '-', tecnica: data.total.tecnica || 'SER',
-                  prueba: 'LDL (calculado Friedewald)', id_examen: '9094', conc: ldlVal, unidades: 'mg/dL',
-                  fecha: data.total.fecha, apiMessage: `🧪 CT=${data.total.conc}, HDL=${data.hdl.conc}, TG=${data.tg.conc}`,
-                  rowClass: 'row-ldl-calculated', isCalculated: true
-                });
-              }
-            }
-          });
-          
-          return updated.sort((a, b) => a.paciente.localeCompare(b.paciente));
-        }
-      };
-      
-      // ==================== PARSER DE TEXTO ====================
-      const Parser = {
-        looksLikeResult: (token, nextToken) => {
-          if (!token) return false;
-          if (/^\d+[\.,]?\d*$/.test(token) || /^[<>]=?\d+[\.,]?\d*$/.test(token) || /^[-\/]{2,}$/.test(token)) return true;
-          if (CONFIG.UNIT_RE.test(nextToken) || CONFIG.DATE_RE.test(nextToken)) return true;
-          return /^[\d\-\+\/]+$/.test(token);
-        },
-        
-        parse: (rawText) => {
-          const lines = rawText.replace(/\r/g, '').split('\n');
-          const resultRows = [];
-          
-          for (let line of lines) {
-            line = line.trim();
-            if (!line || !/^\d{4,15}/.test(line)) continue;
-            
-            const tokens = line.split(/\s+/).filter(t => t);
-            if (tokens.length < 3) continue;
-            
-            let idx = 0;
-            const paciente = tokens[idx++];
-            let tipo = "-";
-            if (idx < tokens.length && CONFIG.CURVA_PREFIX.test(tokens[idx])) {
-              tipo = tokens[idx].toUpperCase();
-              if (tipo === "1/2") tipo = "1/2H";
-              idx++;
-            }
-            
-            let tecnica = "SER";
-            if (idx < tokens.length && ["SER", "PLASMA", "ORINA", "SUERO", "HECES"].includes(Utils.normalize(tokens[idx]))) {
-              tecnica = tokens[idx];
-              idx++;
-            }
-            
-            let pruebaTokens = [];
-            let conc = "", unidades = "mg/dL";
-            
-            while (idx < tokens.length) {
-              const word = tokens[idx];
-              const next = tokens[idx + 1] || "";
-              
-              if (CONFIG.DATE_RE.test(word)) {
-                pruebaTokens.push(word);
-                idx++;
-                continue;
-              }
-              
-              if (this.looksLikeResult(word, next)) {
-                conc = word.replace(',', '.');
-                idx++;
-                break;
-              }
-              
-              pruebaTokens.push(word);
-              idx++;
-            }
-            
-            if (idx < tokens.length && CONFIG.UNIT_RE.test(tokens[idx])) {
-              unidades = tokens[idx];
-              idx++;
-            }
-            
-            let fecha = "";
-            if (idx < tokens.length && CONFIG.DATE_RE.test(tokens[idx])) {
-              fecha = tokens[idx];
-              if (idx + 1 < tokens.length && /^\d{1,2}:\d{2}$/.test(tokens[idx + 1])) {
-                fecha += ' ' + tokens[idx + 1];
-              }
-            }
-            
-            const pruebaRaw = pruebaTokens.join(" ").trim();
-            let id_examen = "";
-            const pruebaNorm = Utils.normalize(pruebaRaw);
-            
-            if (pruebaNorm.includes("GLUCOS") || pruebaNorm.includes("GLUCOSE")) {
-              if (tipo === "PRE" || tipo === "POST") id_examen = "9121";
-              else if (["1/2H", "1H", "2H", "3H", "B"].includes(tipo)) id_examen = "9122";
-              else id_examen = "11803";
-            } else {
-              for (const [key, code] of Object.entries(CONFIG.EXAM_MAP)) {
-                if (pruebaNorm.includes(Utils.normalize(key))) {
-                  id_examen = code;
-                  break;
-                }
-              }
-            }
-            
-            resultRows.push({
-              paciente, tipo, tecnica, prueba: pruebaRaw, id_examen, conc, unidades,
-              fecha: fecha || "", apiMessage: '', rowClass: 'row-pending', isCalculated: false
-            });
-          }
-          
-          return Calculations.addDerivedRows(resultRows);
-        }
-      };
-      
-      // ==================== AUTENTICACIÓN ====================
-      const Auth = {
-        login: async (username, password) => {
-          try {
-            const response = await fetch(CONFIG.API.LOGIN, {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
-              body: JSON.stringify({ username, password })
-            });
-            
-            if (!response.ok) throw new Error(`HTTP ${response.status}`);
-            const data = await response.json();
-            
-            if (data.isSuccessful && data.result) {
-              appState.sessionToken = data.result.token;
-              appState.currentUser = {
-                id: data.result.id,
-                nombre: data.result.nombre,
-                usuario: data.result.usuario,
-                iniciales: data.result.iniciales || (data.result.nombre || 'U').substring(0, 2)
-              };
-              document.getElementById('idUsuarioApi').value = appState.currentUser.id;
-              document.getElementById('idUsuarioApi').disabled = false;
-              UI.renderAuth();
-              return true;
-            }
-            throw new Error(data.mensaje || 'Credenciales inválidas');
-          } catch (err) {
-            console.error('Login error:', err);
-            alert('Error de autenticación: ' + err.message);
-            return false;
-          }
-        },
-        
-        logout: () => {
-          appState.sessionToken = null;
-          appState.currentUser = null;
-          document.getElementById('idUsuarioApi').value = '';
-          document.getElementById('idUsuarioApi').disabled = true;
-          UI.renderAuth();
-        }
-      };
-      
-      // ==================== API CLIENT ====================
-      const ApiClient = {
-        sendResult: async (paciente, idProcedimiento, idUsuario, resultado, metadata = {}) => {
-          if (!appState.sessionToken) throw new Error('No autenticado');
-          
-          const payload = {
-            idUsuario: Number(idUsuario),
-            documento: paciente,
-            idProcedimientoObjetivo: idProcedimiento,
-            resultado: String(resultado),
-            ...metadata
-          };
-          
-          const url = `${CONFIG.API.BASE}?token=${encodeURIComponent(appState.sessionToken)}`;
-          const response = await fetch(url, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload)
-          });
-          
-          const text = await response.text();
-          return { ok: response.ok, message: Utils.extractMessage(text) };
-        },
-        
-        sendBatch: async (rows, idUsuario, onProgress) => {
-          const toSend = rows.filter(r => r.id_examen && r.conc && r.conc !== '-');
-          let success = 0, error = 0;
-          
-          for (let i = 0; i < toSend.length; i++) {
-            const item = toSend[i];
+    <script>
+        /* ====== Config ====== */
+        const API_BASE = "/-RB-/sURBIR"; 
+        const LOGIN_URL = "https://api.saludplus.co/api/auth/Login";
+
+        const EXAM_MAP = {
+            "GLUCOSE": "11803", "GLUCOSA": "11803",
+            "CHOLESTEROL": "9096", "COL": "9096", "COLESTEROL TOTAL": "9096",
+            "TRIGLYCERIDES": "9146", "TRIGLICERIDOS": "9146",
+            "LDL": "9094", "COLESTEROL LDL": "9094",
+            "CREATININE": "9173", "CREATININA": "9173",
+            "BUN": "9134", "NITROGENO UREICO": "9134", "NITRÓGENO UREICO": "9134",
+            "UREA": "9147", "UREA EN SANGRE": "9147", "UREA UV": "9147", "UREA SANGRE": "9147",
+            "URIC ACID": "9079", "ACIDO URICO": "9079",
+            "BILIRUBIN DIRECT": "9087", "BILIRUBIN INDIRECT": "9087", "INDIRECT BILIRUBIN": "9087", "BILIRUBIN TOTAL": "9087", "BILIRRUBINA TOTAL": "9087",
+            "CHOL HDL DIRECT": "9093", "HDL": "9093",
+            "CHOL LDL DIRECT": "9094"
+        };
+
+        const CURVA_PREFIX = /^(PRE|POST|1[/]?2H?|1H|2H|3H|B)$/i;
+        function normalize(s){return (s||"").toString().trim().toUpperCase();}
+
+        function extractMessageFromResponse(text) {
             try {
-              const res = await ApiClient.sendResult(item.paciente, item.id_examen, idUsuario, item.conc, { observacion: item.prueba });
-              item.apiMessage = res.ok ? `✅ ${res.message}` : `❌ ${res.message}`;
-              item.rowClass = res.ok ? 'row-success' : 'row-error';
-              if (res.ok) success++; else error++;
-            } catch (err) {
-              item.apiMessage = `⚠️ Error: ${err.message}`;
-              item.rowClass = 'row-error';
-              error++;
+                const json = JSON.parse(text);
+                if (json.mensaje) return json.mensaje;
+                if (json.respuestaSaludPlus && json.respuestaSaludPlus.mensaje) return json.respuestaSaludPlus.mensaje;
+                if (json.success && json.respuestaSaludPlus) return "Envío exitoso";
+                return text.length > 100 ? text.substring(0, 100) + "..." : text;
+            } catch (e) {
+                const mensajeMatch = text.match(/"mensaje"\s*:\s*"([^"]+)"/);
+                if (mensajeMatch && mensajeMatch[1]) return mensajeMatch[1];
+                return text.length > 100 ? text.substring(0, 100) + "..." : text;
             }
+        }
+
+        /* ====== Token / Usuario ====== */
+        let _TOKEN = null;
+        let _USER = null;
+
+        function renderAuth() {
+            const el = document.getElementById('authArea');
+            el.innerHTML = '';
+            if (!_USER) {
+                el.innerHTML = `
+                    <div class="flex items-center gap-2 bg-gray-100 border border-gray-300 rounded-full px-2 py-1 shadow-sm">
+                        <input id="loginUser" class="bg-transparent text-gray-700 placeholder-gray-400 text-sm px-3 py-1 w-32 focus:outline-none" type="text" placeholder="Usuario">
+                        <div class="w-px h-5 bg-gray-300"></div>
+                        <input id="loginPass" class="bg-transparent text-gray-700 placeholder-gray-400 text-sm px-3 py-1 w-32 focus:outline-none" type="password" placeholder="Pass">
+                        <button id="btnLogin" class="bg-salu-900 hover:bg-salu-800 text-white font-semibold text-sm px-4 py-1.5 rounded-full transition active:scale-95">🔐 Entrar</button>
+                    </div>`;
+                document.getElementById('btnLogin').addEventListener('click', doLogin);
+            } else {
+                const initials = _USER.iniciales || (_USER.nombre || _USER.usuario || '?').split(' ').map(x => x[0]).slice(0, 2).join('');
+                el.innerHTML = `
+                    <div class="flex items-center gap-3 bg-gray-100 border border-gray-300 rounded-full px-3 py-1.5 shadow-sm">
+                        <div class="w-9 h-9 rounded-full bg-salu-900 text-white flex items-center justify-center font-bold text-sm">${initials}</div>
+                        <div class="leading-tight">
+                            <div class="text-sm font-semibold text-gray-900">${escapeHtml(_USER.nombre || _USER.usuario)}</div>
+                            <div class="text-xs text-gray-500">ID ${_USER.id ?? '-'} · ${_USER.isAdmin ? 'ADMIN' : 'USER'}</div>
+                        </div>
+                        <button id="btnLogout" class="ml-2 text-xs text-red-600 hover:text-red-700 border border-red-300 px-3 py-1 rounded-full transition">Salir</button>
+                    </div>`;
+                document.getElementById('btnLogout').addEventListener('click', () => { _TOKEN = null; _USER = null; renderAuth(); });
+            }
+        }
+
+        async function doLogin() {
+            const user = document.getElementById('loginUser').value.trim();
+            const pass = document.getElementById('loginPass').value.trim();
+            if(!user || !pass) return alert('Usuario y password requeridos');
             
-            if (onProgress) onProgress(i + 1, toSend.length, success, error);
-            UI.renderTable(appState.rows);
-            await new Promise(r => setTimeout(r, 50));
-          }
-          
-          return { success, error, total: toSend.length };
+            const btnLogin = document.getElementById('btnLogin');
+            const originalText = btnLogin.textContent;
+            btnLogin.textContent = '⏳ Conectando...';
+            btnLogin.disabled = true;
+            
+            try {
+                const res = await fetch(LOGIN_URL, {
+                    method: 'POST', 
+                    headers: {'Content-Type':'application/json'},
+                    body: JSON.stringify({username: user, password: pass})
+                });
+                
+                if(!res.ok) {
+                    const errorText = await res.text();
+                    throw new Error(`Error ${res.status}: ${errorText}`);
+                }
+                
+                const data = await res.json();
+                
+                // CORRECCIÓN: El token está dentro de result.token, no en la raíz
+                if (data.result && data.result.token) {
+                    _TOKEN = data.result.token;
+                    _USER = {
+                        id: data.result.id ?? null,
+                        nombre: data.result.nombre ?? data.result.displayName ?? data.result.usuario ?? null,
+                        usuario: data.result.usuario ?? data.result.username ?? null,
+                        isAdmin: data.result.isAdmin ?? false,
+                        iniciales: data.result.iniciales ?? null,
+                        email: data.result.email ?? null,
+                        refresh_token: data.result.refresh_token ?? null,
+                        expiration: data.result.expiration ?? null
+                    };
+                    
+                    if (_USER.id) document.getElementById('idUsuario').value = _USER.id;
+                    renderAuth();
+                    alert(`✅ Login exitoso\nBienvenido: ${_USER.nombre || _USER.usuario}`);
+                } else {
+                    throw new Error('La respuesta no contiene token. Estructura inesperada: ' + JSON.stringify(data));
+                }
+            } catch (err) {
+                console.error('Error de login:', err);
+                alert('❌ Error de login: ' + err.message);
+            } finally {
+                btnLogin.textContent = originalText;
+                btnLogin.disabled = false;
+            }
         }
-      };
-      
-      // ==================== UI RENDER ====================
-      const UI = {
-        renderAuth: () => {
-          const container = document.getElementById('authArea');
-          if (!appState.currentUser) {
-            container.innerHTML = `
-              <div class="flex items-center gap-2 bg-gray-100 border border-gray-300 rounded-full px-3 py-1 shadow-sm">
-                <input id="loginUsername" class="bg-transparent text-sm w-28 focus:outline-none placeholder-gray-400" placeholder="usuario" type="text">
-                <input id="loginPassword" class="bg-transparent text-sm w-28 focus:outline-none placeholder-gray-400" placeholder="contraseña" type="password">
-                <button id="authLoginBtn" class="bg-salu-900 text-white text-xs px-4 py-1.5 rounded-full hover:bg-salu-800 transition">Ingresar</button>
-              </div>`;
-            document.getElementById('authLoginBtn')?.addEventListener('click', async () => {
-              const user = document.getElementById('loginUsername').value.trim();
-              const pass = document.getElementById('loginPassword').value.trim();
-              if (user && pass) await Auth.login(user, pass);
-              else alert('Complete usuario y contraseña');
+
+        function escapeHtml(s){ return String(s||'').replace(/[&<>\\"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','\\':'\\\\','"':'&quot;',"'":"&#39;"})[c]); }
+
+        /* ====== Parsing ====== */
+        const dateRe = /^\d{1,2}\/\d{1,2}\/\d{4}$/;
+        const timeRe = /^\d{1,2}:\d{2}$/;
+        const numRe = /^\d+[\.,]?\d*$/;
+        const cmpNumRe = /^[<>]=?\d+[\.,]?\d*$/;
+        const dashSlashRe = /^[-\/]{2,}$/;
+        const resultWordsRe = /^(NEGATIVO|POSITIVO|REACTIVO|NO|TRAZAS|N\/A|INDETERMINADO)$/i;
+        const unitRe = /^(mg\/?d?l|mg|mmol\/l|mmol|g\/dl|g|iu\/l|iu|%|u\/l|ml|mL|ug\/mL|mg\/L)$/i;
+
+        function looksLikeResult(token, nextToken) {
+            if (!token) return false;
+            if (numRe.test(token) || cmpNumRe.test(token) || dashSlashRe.test(token) || resultWordsRe.test(token)) return true;
+            if (unitRe.test(nextToken) || dateRe.test(nextToken) || timeRe.test(nextToken)) return true;
+            return /^[\d\-\+\/]+$/.test(token);
+        }
+
+        function calculateBUNFromUrea(ureaValue) {
+            if (!ureaValue || ureaValue === '-') return null;
+            const numMatch = String(ureaValue).match(/([<>]=?)?\s*(\d+[\.,]?\d*)/);
+            if (!numMatch) return null;
+            const prefix = numMatch[1] || '';
+            const num = parseFloat(numMatch[2].replace(',', '.'));
+            if (isNaN(num) || num === 0) return null;
+            const bun = (num / 2.14).toFixed(2);
+            return prefix ? `${prefix}${bun}` : bun;
+        }
+
+        function calculateLDL(total, hdl, tg) {
+            if (!total || !hdl || !tg) return null;
+            const parseNum = (val) => {
+                const m = String(val).match(/([<>]=?)?\s*(\d+[\.,]?\d*)/);
+                return m ? parseFloat(m[2].replace(',', '.')) : NaN;
+            };
+            const totalNum = parseNum(total);
+            const hdlNum = parseNum(hdl);
+            const tgNum = parseNum(tg);
+            if (isNaN(totalNum) || isNaN(hdlNum) || isNaN(tgNum) || tgNum >= 400) return null;
+            return (totalNum - hdlNum - (tgNum / 5)).toFixed(2);
+        }
+
+        function processAndAddDerivedCalculations(rows) {
+            let newRows = [...rows];
+            
+            // BUN desde UREA
+            const patientsWithUREA = new Set();
+            rows.forEach(row => { if (row.id_examen === '9147' && row.conc && row.conc !== '-') patientsWithUREA.add(row.paciente); });
+            patientsWithUREA.forEach(paciente => {
+                const patientRows = rows.filter(r => r.paciente === paciente);
+                const hasBUN = patientRows.some(r => r.id_examen === '9134');
+                const ureaRow = patientRows.find(r => r.id_examen === '9147');
+                if (!hasBUN && ureaRow) {
+                    const bunValue = calculateBUNFromUrea(ureaRow.conc);
+                    if (bunValue) {
+                        newRows.push({ paciente: ureaRow.paciente, tipo: '-', tecnica: ureaRow.tecnica, prueba: 'BUN (calculado)', id_examen: '9134', conc: bunValue, unidades: 'mg/dL', fecha: ureaRow.fecha, apiMessage: `🧮 Calc desde UREA`, rowClass: 'row-bun-calculated', isCalculated: true });
+                        const originalUreaRow = newRows.find(r => r.paciente === paciente && r.id_examen === '9147');
+                        if (originalUreaRow) { originalUreaRow.apiMessage = `→ BUN: ${bunValue}`; originalUreaRow.rowClass = 'row-bun-calculated'; }
+                    }
+                }
             });
-          } else {
-            container.innerHTML = `
-              <div class="flex items-center gap-3 bg-salu-50 border border-salu-200 rounded-full px-4 py-1.5 shadow-sm">
-                <div class="w-8 h-8 rounded-full bg-salu-900 text-white flex items-center justify-center font-bold text-sm">${Utils.escapeHtml(appState.currentUser.iniciales)}</div>
-                <div class="text-sm font-semibold text-gray-800">${Utils.escapeHtml(appState.currentUser.nombre || appState.currentUser.usuario)}</div>
-                <button id="logoutBtn" class="text-xs text-red-600 hover:text-red-800 border border-red-300 px-3 py-1 rounded-full transition">Salir</button>
-              </div>`;
-            document.getElementById('logoutBtn')?.addEventListener('click', () => Auth.logout());
-          }
-        },
-        
-        renderTable: (rows) => {
-          const filterText = Utils.normalize(document.getElementById('filterSearch').value);
-          const onlyMapped = document.getElementById('onlyMappedCheck').checked;
-          
-          let filtered = rows.filter(r => {
-            if (onlyMapped && !r.id_examen) return false;
-            if (filterText && !(r.paciente.includes(filterText) || Utils.normalize(r.prueba).includes(filterText) || (r.id_examen && r.id_examen.includes(filterText)))) return false;
-            return true;
-          });
-          
-          document.getElementById('countBadge').innerHTML = `${filtered.length} / ${rows.length} filas`;
-          
-          if (filtered.length === 0) {
-            document.getElementById('dynamicTable').innerHTML = `<p class="text-center text-gray-400 py-12 italic">🔍 No hay resultados que coincidan con los filtros.</p>`;
-            return;
-          }
-          
-          let html = `<table class="data-table"><thead><tr>
-            <th>Paciente</th><th>Tipo</th><th>Técnica</th><th>Prueba</th><th>ID Examen</th><th>Conc.</th><th>Unidad</th><th>Fecha</th><th>Estado API</th>
-          </tr></thead><tbody>`;
-          
-          for (const r of filtered) {
-            const idStyle = r.id_examen ? (r.isCalculated ? "font-bold text-blue-700" : "font-mono text-green-700") : "text-red-500 italic";
-            html += `<tr class="${r.rowClass}">
-              <td class="font-medium">${Utils.escapeHtml(r.paciente)}</td>
-              <td>${Utils.escapeHtml(r.tipo)}</td>
-              <td>${Utils.escapeHtml(r.tecnica)}</td>
-              <td title="${Utils.escapeHtml(r.prueba)}">${Utils.escapeHtml(r.prueba.substring(0, 40))}${r.prueba.length > 40 ? '…' : ''}</td>
-              <td class="${idStyle} text-center">${r.id_examen || '—'}</td>
-              <td class="text-right font-mono">${Utils.escapeHtml(r.conc)}</td>
-              <td>${Utils.escapeHtml(r.unidades)}</td>
-              <td class="text-xs">${Utils.escapeHtml(r.fecha)}</td>
-              <td class="api-message">${Utils.escapeHtml(r.apiMessage || '⏳ Pendiente')}</td>
-            </tr>`;
-          }
-          
-          html += `</tbody></table>`;
-          document.getElementById('dynamicTable').innerHTML = html;
-        },
-        
-        showProgress: (show) => {
-          const container = document.getElementById('progressContainer');
-          if (show) container.classList.remove('hidden');
-          else container.classList.add('hidden');
-        },
-        
-        updateProgress: (current, total, success, error) => {
-          const percent = (current / total) * 100;
-          document.getElementById('progressFill').style.width = `${percent}%`;
-          document.getElementById('progressCounter').innerText = `${current}/${total}`;
-          document.getElementById('successCount').innerText = success;
-          document.getElementById('errorCount').innerText = error;
+
+            // LDL desde fórmula Friedewald
+            const patientsForLDL = new Map(); // paciente -> { total, hdl, tg }
+            newRows.forEach(row => {
+                if (!row.id_examen) return;
+                if (row.id_examen === '9096' && row.conc && row.conc !== '-') { // Colesterol Total
+                    if (!patientsForLDL.has(row.paciente)) patientsForLDL.set(row.paciente, {});
+                    patientsForLDL.get(row.paciente).total = row;
+                }
+                if (row.id_examen === '9093' && row.conc && row.conc !== '-') { // HDL
+                    if (!patientsForLDL.has(row.paciente)) patientsForLDL.set(row.paciente, {});
+                    patientsForLDL.get(row.paciente).hdl = row;
+                }
+                if (row.id_examen === '9146' && row.conc && row.conc !== '-') { // Triglicéridos
+                    if (!patientsForLDL.has(row.paciente)) patientsForLDL.set(row.paciente, {});
+                    patientsForLDL.get(row.paciente).tg = row;
+                }
+            });
+
+            patientsForLDL.forEach((val, paciente) => {
+                const hasDirectLDL = newRows.some(r => r.paciente === paciente && r.id_examen === '9094');
+                if (!hasDirectLDL && val.total && val.hdl && val.tg) {
+                    const ldlValue = calculateLDL(val.total.conc, val.hdl.conc, val.tg.conc);
+                    if (ldlValue) {
+                        newRows.push({
+                            paciente: paciente,
+                            tipo: '-',
+                            tecnica: val.total.tecnica || 'SER',
+                            prueba: 'LDL (calculado)',
+                            id_examen: '9094',
+                            conc: ldlValue,
+                            unidades: 'mg/dL',
+                            fecha: val.total.fecha,
+                            apiMessage: `🧮 Calc: CT=${val.total.conc}, HDL=${val.hdl.conc}, TG=${val.tg.conc}`,
+                            rowClass: 'row-ldl-calculated',
+                            isCalculated: true
+                        });
+                    }
+                }
+            });
+
+            return newRows.sort((a, b) => a.paciente.localeCompare(b.paciente));
         }
-      };
-      
-      // ==================== EVENTOS PRINCIPALES ====================
-      const initEvents = () => {
-        document.getElementById('fileInput').addEventListener('change', async (e) => {
-          const file = e.target.files[0];
-          if (file) {
-            const content = await file.text();
-            document.getElementById('rawTextArea').value = content;
-          }
+
+        function parseText(text) {
+            const rows = [];
+            const lines = text.replace(/\r/g, "").split('\n');
+            for (let raw of lines) {
+                raw = raw.trim();
+                if (!raw || !/^\d{5,15}/.test(raw)) continue;
+                const parts = raw.split(/\s+/).filter(Boolean);
+                if (parts.length < 3) continue;
+
+                let idx = 0;
+                const paciente = parts[idx++];
+                let tipo = "-";
+                if (idx < parts.length && CURVA_PREFIX.test(parts[idx])) { 
+                    tipo = parts[idx].toUpperCase(); 
+                    if (tipo === "1/2") tipo = "1/2H"; 
+                    idx++; 
+                }
+
+                let tecnica = "SER";
+                if (idx < parts.length && ["SER","PLASMA","ORINA","SUERO","HECES"].includes(normalize(parts[idx]))) { 
+                    tecnica = parts[idx]; 
+                    idx++; 
+                }
+
+                let pruebaParts = [], conc = "", unidades = "mg/dL";
+                while (idx < parts.length) {
+                    const word = parts[idx], next = parts[idx+1] || "";
+                    if (dateRe.test(word)) { pruebaParts.push(word); idx++; continue; }
+                    if (looksLikeResult(word, next)) { conc = word.replace(',', '.').trim(); idx++; break; }
+                    pruebaParts.push(word); idx++;
+                }
+                const prueba = pruebaParts.join(" ").trim();
+                if (idx < parts.length && (unitRe.test(parts[idx]) || /mg|mmol|g\/dl|iu|%|ug/i.test(parts[idx]))) { unidades = parts[idx]; idx++; }
+
+                let fecha = "";
+                if (idx < parts.length && dateRe.test(parts[idx])) { 
+                    fecha = parts[idx]; 
+                    if (idx+1 < parts.length && timeRe.test(parts[idx+1])) fecha += ' ' + parts[idx+1]; 
+                }
+
+                let id_examen = "";
+                const pruebaNorm = normalize(prueba);
+                if (pruebaNorm.includes("GLUCOS") || pruebaNorm.includes("GLUCOSE")) {
+                    if (tipo === "PRE" || tipo === "POST") id_examen = "9121";
+                    else if (["1/2H","1H","2H","3H","B"].includes(tipo)) id_examen = "9122";
+                    else id_examen = "11803";
+                } else {
+                    for (const key in EXAM_MAP) {
+                        if (pruebaNorm.includes(normalize(key))) { id_examen = EXAM_MAP[key]; break; }
+                    }
+                }
+
+                rows.push({ paciente, tipo, tecnica, prueba, id_examen: id_examen || "", conc, unidades, fecha: fecha || "", apiMessage: '', rowClass: 'row-pending', isCalculated: false });
+            }
+            return processAndAddDerivedCalculations(rows);
+        }
+
+        /* ====== Render UI ====== */
+        let lastRows = [];
+        function render(rows){
+            const filter = normalize(document.getElementById('filterInput').value);
+            const onlyMapped = document.getElementById('mappedOnly').checked;
+            let visible = 0;
+            let html = `<table><thead><tr><th>Paciente</th><th>Tipo</th><th>Técnica</th><th>Prueba</th><th>ID</th><th>Conc.</th><th>Und.</th><th>Fecha</th><th>API</th></tr></thead><tbody>`;
+            
+            for (const r of rows) {
+                if (onlyMapped && !r.id_examen) continue;
+                if (filter && !(r.paciente.includes(filter) || normalize(r.prueba).includes(filter) || (r.id_examen && r.id_examen.includes(filter)))) continue;
+                visible++;
+                
+                const idStyle = r.id_examen ? (r.isCalculated ? "background:#e6f7ff;color:#0050b3;font-weight:700" : "background:#ecfdf5;color:#166534;font-weight:700") : "color:#ef4444";
+                html += `<tr class="${r.rowClass}">
+                    <td><strong>${r.paciente}</strong></td>
+                    <td>${r.tipo}</td>
+                    <td>${r.tecnica}</td>
+                    <td>${escapeHtml(r.prueba)}</td>
+                    <td style="${idStyle}">${r.id_examen || '-'}</td>
+                    <td style="text-align:right">${r.conc}</td>
+                    <td>${r.unidades}</td>
+                    <td>${r.fecha}</td>
+                    <td class="api-message">${escapeHtml(r.apiMessage || '')}</td>
+                </tr>`;
+            }
+            document.getElementById('countBadge').textContent = visible + ' filas';
+            document.getElementById('resultArea').innerHTML = html + `</tbody></table>`;
+            if(visible === 0) document.getElementById('resultArea').innerHTML = '<p class="text-center text-gray-400 py-10 italic">No hay datos que coincidan con los filtros.</p>';
+        }
+
+        /* ====== Build payloads & API ====== */
+        function buildApiPayloads(rows, idUsuario) {
+            const grouped = new Map();
+            rows.forEach((r, i) => {
+                if (!r.id_examen) return;
+                const key = `${r.paciente}|${r.id_examen}`;
+                if (!grouped.has(key)) grouped.set(key, {rows: [], idProcedimientoObjetivo: r.id_examen, documento: r.paciente, indices: []});
+                grouped.get(key).rows.push(r);
+                grouped.get(key).indices.push(i);
+            });
+
+            const payloads = [];
+            for (const [key, groupData] of grouped.entries()) {
+                const { documento, idProcedimientoObjetivo, rows: group } = groupData;
+                let body = { idUsuario: Number(idUsuario) };
+
+                if (idProcedimientoObjetivo === '9087') {
+                    const total = group.find(g=>/TOTAL/i.test(g.prueba)), directa = group.find(g=>/DIRECT/i.test(g.prueba)), indirecta = group.find(g=>/INDIRECT/i.test(g.prueba));
+                    body.resultadosArray = [(total?.conc||'0'), (directa?.conc||'0'), (indirecta?.conc||'0')];
+                } else if (idProcedimientoObjetivo === '9121') {
+                    const pre = group.find(g=>g.tipo==='PRE'), post = group.find(g=>g.tipo==='POST');
+                    body.resultadosArray = [(pre?.conc||'0'), (post?.conc||'0')];
+                } else if (idProcedimientoObjetivo === '9122') {
+                    const slots = ['2H', '3H', '1H', '1/2H', null, 'B'];
+                    body.resultadosArray = slots.map(s => s ? (group.find(g=>g.tipo===s)?.conc || '0') : '0');
+                } else {
+                    body.resultado = String(group[0]?.conc || '0');
+                }
+                payloads.push({ documento, idProcedimientoObjetivo, body });
+            }
+            return payloads;
+        }
+
+        async function sendToArmarJson(payload) {
+            if (!_TOKEN) throw new Error('No hay token');
+            const url = `${API_BASE}?token=${encodeURIComponent(_TOKEN)}&documento=${encodeURIComponent(payload.documento)}&idProcedimientoObjetivo=${encodeURIComponent(payload.idProcedimientoObjetivo)}&idUsuario=${encodeURIComponent(payload.body.idUsuario)}`;
+            try {
+                const res = await fetch(url, { method:'POST', headers:{ 'Content-Type':'application/json' }, body: JSON.stringify(payload.body) });
+                const text = await res.text();
+                return { ok: res.ok, text: extractMessageFromResponse(text) };
+            } catch (err) { return { ok: false, text: err.message }; }
+        }
+
+        /* ====== Eventos ====== */
+        document.getElementById('file').addEventListener('change', async e=>{ 
+            const file=e.target.files[0]; if(!file) return; 
+            document.getElementById('input').value = await file.text(); 
         });
-        
-        document.getElementById('parseBtn').addEventListener('click', () => {
-          const raw = document.getElementById('rawTextArea').value.trim();
-          if (!raw) {
-            alert('Ingrese datos o cargue un archivo');
-            return;
-          }
-          appState.rows = Parser.parse(raw);
-          UI.renderTable(appState.rows);
+
+        document.getElementById('parse').addEventListener('click', ()=>{ 
+            const txt=document.getElementById('input').value.trim(); 
+            if(!txt) return alert('Pega datos primero'); 
+            lastRows = parseText(txt); render(lastRows); 
         });
-        
-        document.getElementById('clearBtn').addEventListener('click', () => {
-          document.getElementById('rawTextArea').value = '';
-          appState.rows = [];
-          UI.renderTable([]);
-          UI.showProgress(false);
-          document.getElementById('successCount').innerText = '0';
-          document.getElementById('errorCount').innerText = '0';
+
+        document.getElementById('clear').addEventListener('click', ()=>{ 
+            document.getElementById('input').value=''; lastRows=[]; document.getElementById('resultArea').innerHTML='<p class="text-center text-gray-400 py-10 italic">Los resultados procesados aparecerán aquí.</p>'; 
         });
-        
-        document.getElementById('sendApiBtn').addEventListener('click', async () => {
-          const idUsuario = document.getElementById('idUsuarioApi').value.trim();
-          if (!idUsuario || !appState.rows.length || !appState.sessionToken) {
-            alert('Asegúrese de tener sesión activa, datos procesados e ID de usuario válido.');
-            return;
-          }
-          
-          const toSend = appState.rows.filter(r => r.id_examen && r.conc && r.conc !== '-');
-          if (toSend.length === 0) {
-            alert('No hay filas con ID de examen válido');
-            return;
-          }
-          
-          if (!confirm(`Enviar ${toSend.length} determinaciones a la API de Salu Plus?`)) return;
-          
-          UI.showProgress(true);
-          const result = await ApiClient.sendBatch(appState.rows, idUsuario, (cur, total, success, error) => {
-            UI.updateProgress(cur, total, success, error);
-          });
-          
-          alert(`Envío completado: ${result.success} exitosos, ${result.error} con error.`);
-          setTimeout(() => UI.showProgress(false), 2000);
+
+        document.getElementById('sendApi').addEventListener('click', async () => {
+            const idU = document.getElementById('idUsuario').value.trim();
+            if (!idU || !lastRows.length || !_TOKEN) return alert('Verifica: ID Usuario, Datos procesados y Sesión activa');
+            
+            const rowsWithId = lastRows.filter(r => r.id_examen);
+            if (rowsWithId.length === 0) return alert('No hay filas con ID de examen asignado');
+            
+            const payloads = buildApiPayloads(rowsWithId, idU);
+            if (!confirm(`Enviar ${payloads.length} exámenes?`)) return;
+
+            const prog = document.getElementById('uploadProgress');
+            prog.classList.remove('hidden');
+            let ok = 0, fail = 0;
+
+            for (let i=0; i<payloads.length; i++) {
+                const p = payloads[i];
+                const res = await sendToArmarJson(p);
+                if (res.ok) ok++; else fail++;
+                
+                lastRows.filter(r => r.paciente === p.documento && r.id_examen === p.idProcedimientoObjetivo).forEach(r => {
+                    r.apiMessage = res.ok ? `✅ ${res.text}` : `❌ ${res.text}`;
+                    r.rowClass = res.ok ? 'row-success' : 'row-error';
+                });
+
+                document.getElementById('progressBar').style.width = ((i+1)/payloads.length*100) + '%';
+                document.getElementById('okCount').textContent = ok;
+                document.getElementById('failCount').textContent = fail;
+                document.getElementById('progressText').textContent = `${i+1} / ${payloads.length}`;
+                render(lastRows);
+            }
+            alert(`✅ Proceso finalizado\nÉxitos: ${ok}\nErrores: ${fail}`);
         });
-        
-        document.getElementById('filterSearch').addEventListener('input', () => UI.renderTable(appState.rows));
-        document.getElementById('onlyMappedCheck').addEventListener('change', () => UI.renderTable(appState.rows));
-      };
-      
-      // ==================== INICIALIZACIÓN ====================
-      const init = () => {
-        initEvents();
-        UI.renderAuth();
-      };
-      
-      // Iniciar aplicación
-      init();
-    })();
-  </script>
+
+        document.getElementById('filterInput').addEventListener('input', ()=>render(lastRows));
+        document.getElementById('mappedOnly').addEventListener('change', ()=>render(lastRows));
+
+        renderAuth();
+    </script>
 </body>
 </html>
