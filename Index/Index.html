@@ -33,6 +33,8 @@
     .row-bun-calculated:hover { background-color: #d9eaff; }
     .row-ldl-calculated { background-color: #fef9e7; }
     .row-ldl-calculated:hover { background-color: #fdf3d9; }
+    .row-ct-calculated { background-color: #faf5ff; }
+    .row-ct-calculated:hover { background-color: #f3e8ff; }
     .row-success { background-color: #f0fdf4; }
     .row-error { background-color: #fef2f2; }
   </style>
@@ -96,7 +98,7 @@
                 <button id="clear" class="border border-gray-300 text-gray-700 py-2 px-4 rounded-lg hover:bg-gray-50 transition text-sm">
                   Limpiar
                 </button>
-				
+                
                 <div id="uploadProgress" class="hidden mt-6">
                   <div class="flex justify-between mb-1 text-sm">
                     <span class="font-medium text-salu-900">Subiendo resultados a la API…</span>
@@ -248,7 +250,6 @@
                 
                 const data = await res.json();
                 
-                // CORRECCIÓN: El token está dentro de result.token, no en la raíz
                 if (data.result && data.result.token) {
                     _TOKEN = data.result.token;
                     _USER = {
@@ -319,10 +320,27 @@
             return (totalNum - hdlNum - (tgNum / 5)).toFixed(2);
         }
 
+        /**
+         * Calcula Colesterol Total a partir de HDL, LDL y Triglicéridos
+         * Fórmula: CT = HDL + LDL + (TG / 5)
+         */
+        function calculateTotalCholesterol(hdl, ldl, tg) {
+            if (!hdl || !ldl || !tg) return null;
+            const parseNum = (val) => {
+                const m = String(val).match(/([<>]=?)?\s*(\d+[\.,]?\d*)/);
+                return m ? parseFloat(m[2].replace(',', '.')) : NaN;
+            };
+            const hdlNum = parseNum(hdl);
+            const ldlNum = parseNum(ldl);
+            const tgNum = parseNum(tg);
+            if (isNaN(hdlNum) || isNaN(ldlNum) || isNaN(tgNum)) return null;
+            return (hdlNum + ldlNum + (tgNum / 5)).toFixed(2);
+        }
+
         function processAndAddDerivedCalculations(rows) {
             let newRows = [...rows];
             
-            // BUN desde UREA
+            // ── BUN desde UREA ──
             const patientsWithUREA = new Set();
             rows.forEach(row => { if (row.id_examen === '9147' && row.conc && row.conc !== '-') patientsWithUREA.add(row.paciente); });
             patientsWithUREA.forEach(paciente => {
@@ -339,8 +357,57 @@
                 }
             });
 
-            // LDL desde fórmula Friedewald
-            const patientsForLDL = new Map(); // paciente -> { total, hdl, tg }
+            // ── COLESTEROL TOTAL desde HDL + LDL + TG ──
+            // Fórmula: CT = HDL + LDL + (TG / 5)
+            const patientsForCT = new Map();
+            newRows.forEach(row => {
+                if (!row.id_examen) return;
+                if (row.id_examen === '9093' && row.conc && row.conc !== '-') { // HDL
+                    if (!patientsForCT.has(row.paciente)) patientsForCT.set(row.paciente, {});
+                    patientsForCT.get(row.paciente).hdl = row;
+                }
+                if (row.id_examen === '9094' && row.conc && row.conc !== '-') { // LDL directo
+                    if (!patientsForCT.has(row.paciente)) patientsForCT.set(row.paciente, {});
+                    patientsForCT.get(row.paciente).ldl = row;
+                }
+                if (row.id_examen === '9146' && row.conc && row.conc !== '-') { // Triglicéridos
+                    if (!patientsForCT.has(row.paciente)) patientsForCT.set(row.paciente, {});
+                    patientsForCT.get(row.paciente).tg = row;
+                }
+            });
+
+            patientsForCT.forEach((val, paciente) => {
+                const hasTotalChol = newRows.some(r => r.paciente === paciente && r.id_examen === '9096');
+                // Solo calcular si NO hay colesterol total Y se tiene HDL + LDL directo + TG
+                if (!hasTotalChol && val.hdl && val.ldl && val.tg) {
+                    const ctValue = calculateTotalCholesterol(val.hdl.conc, val.ldl.conc, val.tg.conc);
+                    if (ctValue) {
+                        newRows.push({
+                            paciente: paciente,
+                            tipo: '-',
+                            tecnica: val.hdl.tecnica || 'SER',
+                            prueba: 'COLESTEROL TOTAL (calculado)',
+                            id_examen: '9096',
+                            conc: ctValue,
+                            unidades: 'mg/dL',
+                            fecha: val.hdl.fecha,
+                            apiMessage: `🧮 Calc: HDL=${val.hdl.conc}, LDL=${val.ldl.conc}, TG=${val.tg.conc}`,
+                            rowClass: 'row-ct-calculated',
+                            isCalculated: true
+                        });
+                        // Marcar las filas que contribuyeron al cálculo
+                        [val.hdl, val.ldl, val.tg].forEach(r => {
+                            if (!r.apiMessage) {
+                                r.apiMessage = `→ CT calc: ${ctValue}`;
+                                r.rowClass = 'row-ct-calculated';
+                            }
+                        });
+                    }
+                }
+            });
+
+            // ── LDL desde fórmula Friedewald ──
+            const patientsForLDL = new Map();
             newRows.forEach(row => {
                 if (!row.id_examen) return;
                 if (row.id_examen === '9096' && row.conc && row.conc !== '-') { // Colesterol Total
