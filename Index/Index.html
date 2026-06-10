@@ -30,9 +30,44 @@
     .row-ct-calculated { background-color: #faf5ff; }
     .row-success { background-color: #f0fdf4; }
     .row-error { background-color: #fef2f2; }
+    
+    /* Estilos del Modal */
+    .modal-overlay {
+      position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+      background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center;
+      z-index: 50; opacity: 0; pointer-events: none; transition: opacity 0.3s ease;
+    }
+    .modal-overlay.active { opacity: 1; pointer-events: auto; }
+    .modal-box {
+      background: white; padding: 2rem; border-radius: 1rem; width: 100%; max-width: 400px;
+      box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25); transform: scale(0.9); transition: transform 0.3s ease;
+    }
+    .modal-overlay.active .modal-box { transform: scale(1); }
   </style>
 </head>
 <body class="bg-gray-50 text-gray-700 font-sans antialiased min-h-screen flex flex-col">
+
+  <!-- Modal de Login -->
+  <div id="loginModal" class="modal-overlay">
+    <div class="modal-box">
+      <h2 class="text-2xl font-bold text-gray-900 mb-6 text-center">Iniciar Sesión</h2>
+      <div class="space-y-4">
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Usuario</label>
+          <input id="loginUser" type="text" placeholder="Ej: rbarreto" class="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-salu-900 focus:border-transparent outline-none">
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Contraseña</label>
+          <input id="loginPass" type="password" placeholder="••••••••" class="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-salu-900 focus:border-transparent outline-none">
+        </div>
+        <div id="loginError" class="text-red-600 text-sm hidden">Credenciales inválidas o error de conexión.</div>
+        <button id="loginBtn" class="w-full bg-salu-900 text-white py-2 px-4 rounded-lg hover:bg-blue-800 transition font-medium shadow-md">
+          Entrar
+        </button>
+        <button id="closeModalBtn" class="w-full text-gray-500 py-2 px-4 hover:text-gray-800 transition text-sm">Cancelar</button>
+      </div>
+    </div>
+  </div>
 
   <header class="bg-white shadow-sm border-b border-gray-200">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
@@ -94,7 +129,7 @@
           
           <hr class="border-gray-100">
 
-          <!-- Cálculos Mejorados -->
+          <!-- Cálculos Mejorados (CON FÓRMULAS) -->
           <div class="bg-amber-50 p-6 rounded-2xl border border-amber-200">
             <div class="flex items-center justify-between mb-5">
               <h3 class="text-lg font-semibold text-amber-900">Cálculos Automáticos</h3>
@@ -104,22 +139,27 @@
               </label>
             </div>
             
-            <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
-              <label class="flex items-center gap-3 p-3 bg-white rounded-xl border border-amber-100 hover:border-amber-300 cursor-pointer transition">
-                <input type="checkbox" id="calcBUN" class="w-5 h-5 text-amber-600">
-                <span class="font-medium">BUN</span>
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <label class="flex items-start gap-3 p-4 bg-white rounded-xl border border-amber-100 hover:border-amber-300 cursor-pointer transition">
+                <input type="checkbox" id="calcBUN" class="w-5 h-5 text-amber-600 mt-0.5">
+                <div>
+                  <span class="font-medium text-gray-800">BUN</span>
+                  <p class="text-xs text-gray-500 mt-1 font-mono">UREA / 2.14</p>
+                </div>
               </label>
-              <label class="flex items-center gap-3 p-3 bg-white rounded-xl border border-amber-100 hover:border-amber-300 cursor-pointer transition">
-                <input type="checkbox" id="calcHDL" class="w-5 h-5 text-amber-600">
-                <span class="font-medium">HDL</span>
+              <label class="flex items-start gap-3 p-4 bg-white rounded-xl border border-amber-100 hover:border-amber-300 cursor-pointer transition">
+                <input type="checkbox" id="calcHDL" class="w-5 h-5 text-amber-600 mt-0.5">
+                <div>
+                  <span class="font-medium text-gray-800">HDL</span>
+                  <p class="text-xs text-gray-500 mt-1 font-mono">CT × 0.25</p>
+                </div>
               </label>
-              <label class="flex items-center gap-3 p-3 bg-white rounded-xl border border-amber-100 hover:border-amber-300 cursor-pointer transition">
-                <input type="checkbox" id="calcLDL" class="w-5 h-5 text-amber-600">
-                <span class="font-medium">LDL</span>
-              </label>
-              <label class="flex items-center gap-3 p-3 bg-white rounded-xl border border-amber-100 hover:border-amber-300 cursor-pointer transition">
-                <input type="checkbox" id="calcCT" class="w-5 h-5 text-amber-600">
-                <span class="font-medium">Colesterol Total</span>
+              <label class="flex items-start gap-3 p-4 bg-white rounded-xl border border-amber-100 hover:border-amber-300 cursor-pointer transition">
+                <input type="checkbox" id="calcLDL" class="w-5 h-5 text-amber-600 mt-0.5">
+                <div>
+                  <span class="font-medium text-gray-800">LDL</span>
+                  <p class="text-xs text-gray-500 mt-1 font-mono">CT - HDL - (TG / 5)</p>
+                </div>
               </label>
             </div>
 
@@ -136,7 +176,7 @@
           <div class="flex items-center gap-4 bg-blue-50 p-4 rounded-lg border border-blue-100">
             <div class="flex-grow">
               <label class="block text-xs font-bold text-salu-900 mb-1">ID DE USUARIO (API)</label>
-              <input id="idUsuario" type="number" placeholder="Ej: 12345" disabled class="w-full bg-white border border-blue-200 text-gray-600 text-sm rounded p-2 opacity-70 cursor-not-allowed">
+              <input id="idUsuario" type="number" placeholder="Inicie sesión para cargar" disabled class="w-full bg-white border border-blue-200 text-gray-600 text-sm rounded p-2 opacity-70 cursor-not-allowed">
             </div>
             <button id="sendApi" class="mt-4 bg-white border border-blue-300 text-salu-900 font-medium py-2 px-6 rounded-lg hover:bg-blue-100 transition shadow-sm whitespace-nowrap">
               Subir a API ArmarJson
@@ -218,16 +258,10 @@
       return (ctN - hdlN - (tgN / 5)).toFixed(2);
     }
 
-    function calculateHDL(ct, ldl, tg) {
-      const ctN = parseNum(ct), ldlN = parseNum(ldl), tgN = parseNum(tg);
-      if (isNaN(ctN) || isNaN(ldlN) || isNaN(tgN)) return null;
-      return (ctN - ldlN - (tgN / 5)).toFixed(2);
-    }
-
-    function calculateCT(hdl, ldl, tg) {
-      const hdlN = parseNum(hdl), ldlN = parseNum(ldl), tgN = parseNum(tg);
-      if (isNaN(hdlN) || isNaN(ldlN) || isNaN(tgN)) return null;
-      return (hdlN + ldlN + (tgN / 5)).toFixed(2);
+    function calculateHDL(ct) {
+      const ctN = parseNum(ct);
+      if (isNaN(ctN) || ctN === 0) return null;
+      return (ctN * 0.25).toFixed(2);
     }
 
     function addSelectedCalculations(rows, selected) {
@@ -249,19 +283,17 @@
 
         if (selected.bun && !hasBUN && urea) {
           const val = calculateBUNFromUrea(urea.conc);
-          if (val) newRows.push({paciente, tipo:'-', tecnica:'CALC', prueba:'BUN (calculado)', id_examen:'9134', conc:val, unidades:'mg/dL', fecha:urea.fecha, apiMessage:'🧮 Calc desde UREA', rowClass:'row-bun-calculated', isCalculated:true});
+          if (val) newRows.push({paciente, tipo:'-', tecnica:'CALC', prueba:'BUN (calculado)', id_examen:'9134', conc:val, unidades:'mg/dL', fecha:urea.fecha, apiMessage:'🧮 UREA / 2.14', rowClass:'row-bun-calculated', isCalculated:true});
         }
-        if (selected.hdl && !hasHDL && hasCT && hasLDL && hasTG) {
-          const val = calculateHDL(ct.conc, ldl.conc, tg.conc);
-          if (val) newRows.push({paciente, tipo:'-', tecnica:'CALC', prueba:'HDL (calculado)', id_examen:'9093', conc:val, unidades:'mg/dL', fecha:ct.fecha, apiMessage:'🧮 Calculado', rowClass:'row-ct-calculated', isCalculated:true});
+        
+        if (selected.hdl && !hasHDL && hasCT) {
+          const val = calculateHDL(ct.conc);
+          if (val) newRows.push({paciente, tipo:'-', tecnica:'CALC', prueba:'HDL (calculado)', id_examen:'9093', conc:val, unidades:'mg/dL', fecha:ct.fecha, apiMessage:'🧮 CT × 0.25', rowClass:'row-ct-calculated', isCalculated:true});
         }
+        
         if (selected.ldl && !hasLDL && hasCT && hasHDL && hasTG) {
           const val = calculateLDL(ct.conc, hdl.conc, tg.conc);
           if (val) newRows.push({paciente, tipo:'-', tecnica:'CALC', prueba:'LDL (calculado)', id_examen:'9094', conc:val, unidades:'mg/dL', fecha:ct.fecha, apiMessage:'🧮 Friedewald', rowClass:'row-ldl-calculated', isCalculated:true});
-        }
-        if (selected.ct && !hasCT && hasHDL && hasLDL && hasTG) {
-          const val = calculateCT(hdl.conc, ldl.conc, tg.conc);
-          if (val) newRows.push({paciente, tipo:'-', tecnica:'CALC', prueba:'COLESTEROL TOTAL (calculado)', id_examen:'9096', conc:val, unidades:'mg/dL', fecha:hdl.fecha, apiMessage:'🧮 Calculado', rowClass:'row-ct-calculated', isCalculated:true});
         }
       });
 
@@ -294,7 +326,7 @@
         if (!hasBUN && ureaRow) {
           const bunValue = calculateBUNFromUrea(ureaRow.conc);
           if (bunValue) {
-            newRows.push({ paciente: ureaRow.paciente, tipo: '-', tecnica: ureaRow.tecnica, prueba: 'BUN (calculado)', id_examen: '9134', conc: bunValue, unidades: 'mg/dL', fecha: ureaRow.fecha, apiMessage: `🧮 Calc desde UREA`, rowClass: 'row-bun-calculated', isCalculated: true });
+            newRows.push({ paciente: ureaRow.paciente, tipo: '-', tecnica: ureaRow.tecnica, prueba: 'BUN (calculado)', id_examen: '9134', conc: bunValue, unidades: 'mg/dL', fecha: ureaRow.fecha, apiMessage: `🧮 UREA / 2.14`, rowClass: 'row-bun-calculated', isCalculated: true });
           }
         }
       });
@@ -386,13 +418,128 @@
       document.getElementById('resultArea').innerHTML = html + `</tbody></table>`;
     }
 
-    /* ====== Eventos ====== */
+    /* ====== LÓGICA DE LOGIN Y API ====== */
+    const loginModal = document.getElementById('loginModal');
+    const loginBtn = document.getElementById('loginBtn');
+    const closeModalBtn = document.getElementById('closeModalBtn');
+    const loginError = document.getElementById('loginError');
+
+    function renderAuth() {
+      const authArea = document.getElementById('authArea');
+      const idUsuarioInput = document.getElementById('idUsuario');
+      
+      if (_TOKEN && _USER) {
+        authArea.innerHTML = `<span class="text-gray-600 mr-3">👋 ${_USER.nombre || _USER.usuario}</span><button id="logoutBtn" class="text-red-600 hover:text-red-800 font-medium transition">Cerrar sesión</button>`;
+        idUsuarioInput.value = _USER.id || '';
+        idUsuarioInput.disabled = false;
+        idUsuarioInput.classList.remove('opacity-70', 'cursor-not-allowed');
+        
+        document.getElementById('logoutBtn').addEventListener('click', () => {
+          _TOKEN = null; _USER = null;
+          renderAuth();
+        });
+      } else {
+        authArea.innerHTML = `<button id="showLoginBtn" class="bg-salu-900 text-white py-1.5 px-4 rounded-lg hover:bg-blue-800 transition text-sm font-medium shadow-sm">Iniciar Sesión</button>`;
+        idUsuarioInput.value = '';
+        idUsuarioInput.disabled = true;
+        idUsuarioInput.classList.add('opacity-70', 'cursor-not-allowed');
+        
+        document.getElementById('showLoginBtn').addEventListener('click', () => {
+          loginError.classList.add('hidden');
+          loginModal.classList.add('active');
+        });
+      }
+    }
+
+    closeModalBtn.addEventListener('click', () => loginModal.classList.remove('active'));
+    
+    loginBtn.addEventListener('click', async () => {
+      loginError.classList.add('hidden');
+      loginBtn.textContent = 'Verificando...';
+      loginBtn.disabled = true;
+      
+      try {
+        const user = document.getElementById('loginUser').value;
+        const pass = document.getElementById('loginPass').value;
+        
+        const res = await fetch(LOGIN_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'accept': 'application/json' },
+          body: JSON.stringify({ username: user, password: pass })
+        });
+        
+        if (!res.ok) throw new Error('Error de autenticación');
+        
+        const data = await res.json();
+        
+        if(data.isSuccessful && data.result) {
+          _TOKEN = data.result.token;
+          _USER = data.result;
+          
+          loginModal.classList.remove('active');
+          renderAuth();
+        } else {
+          throw new Error(data.errorMessage || 'Credenciales incorrectas');
+        }
+        
+      } catch (err) {
+        console.error(err);
+        loginError.textContent = err.message || 'Credenciales inválidas o error de conexión.';
+        loginError.classList.remove('hidden');
+      } finally {
+        loginBtn.textContent = 'Entrar';
+        loginBtn.disabled = false;
+      }
+    });
+
+    // Subir a API
+    document.getElementById('sendApi').addEventListener('click', async () => {
+      if (!_TOKEN) return alert('⚠️ Debes iniciar sesión primero para subir datos.');
+      
+      const idUsuario = document.getElementById('idUsuario').value;
+      if (!idUsuario) return alert('⚠️ El ID de usuario es obligatorio.');
+      
+      const rowsToSend = lastRows.filter(r => r.id_examen);
+      if (rowsToSend.length === 0) return alert('⚠️ No hay filas con ID de examen para enviar.');
+      
+      const payload = {
+        idUsuario: parseInt(idUsuario),
+        resultados: rowsToSend.map(r => ({
+          idPaciente: r.paciente,
+          idExamen: r.id_examen,
+          resultado: r.conc,
+          tipo: r.tipo,
+          fecha: r.fecha
+        }))
+      };
+      
+      try {
+        const res = await fetch(API_BASE, {
+          method: 'POST',
+          headers: { 
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${_TOKEN}`
+          },
+          body: JSON.stringify(payload)
+        });
+        
+        if (!res.ok) throw new Error(`Error ${res.status}: ${res.statusText}`);
+        
+        const data = await res.json();
+        alert('✅ Datos subidos correctamente a la API');
+        
+      } catch (err) {
+        console.error(err);
+        alert(`❌ Error al subir: ${err.message}`);
+      }
+    });
+
+    /* ====== Eventos de Interfaz ====== */
     document.getElementById('applyCalc').addEventListener('click', () => {
       const selected = {
         bun: document.getElementById('calcBUN').checked,
         hdl: document.getElementById('calcHDL').checked,
-        ldl: document.getElementById('calcLDL').checked,
-        ct: document.getElementById('calcCT').checked
+        ldl: document.getElementById('calcLDL').checked
       };
       if (!Object.values(selected).some(v => v)) return alert('Selecciona al menos un cálculo');
       lastRows = addSelectedCalculations(lastRows, selected);
@@ -402,7 +549,7 @@
 
     document.getElementById('selectAllCalc').addEventListener('change', function() {
       const checked = this.checked;
-      ['calcBUN','calcHDL','calcLDL','calcCT'].forEach(id => document.getElementById(id).checked = checked);
+      ['calcBUN','calcHDL','calcLDL'].forEach(id => document.getElementById(id).checked = checked);
     });
 
     document.getElementById('clearCalc').addEventListener('click', () => {
@@ -430,11 +577,7 @@
     document.getElementById('filterInput').addEventListener('input', () => render(lastRows));
     document.getElementById('mappedOnly').addEventListener('change', () => render(lastRows));
 
-    // Render Auth
-    function renderAuth() { /* ... tu código original de auth */ 
-      // (Mantengo simplificado para espacio)
-      console.log("Auth renderizado");
-    }
+    // Inicializar Auth al cargar la página
     renderAuth();
   </script>
 </body>
