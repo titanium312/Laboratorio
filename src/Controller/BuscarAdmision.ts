@@ -64,7 +64,7 @@ export const BuscarAdmision = async (req: Request, res: Response) => {
       (r: any) => r.numeroAdmision?.toString() === documento.toString()
     );
 
-    // ───────── 2️⃣ Si no aparece, buscar en Admisiones ─────────
+    // ───────── 2️⃣ Si no aparece, buscar en Admisiones con fechas fijas ─────────
     if (!encontrado) {
       const resultadosAdm = await consultarEndpoint(URL_ADM, {
         filters: documento.toString(),
@@ -81,8 +81,8 @@ export const BuscarAdmision = async (req: Request, res: Response) => {
         filtersCustom: JSON.stringify({
           admisiones: true,
           idCaracteristica: 5193,
-          dateInicial: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(),
-          dateFinal: new Date().toISOString(),
+          dateInicial: '2024-01-01T00:00:00.000Z',   // Fecha fija inicio
+          dateFinal: '2026-12-31T23:59:59.999Z',     // Fecha fija fin  canbiar esta fehca si yapaso  
           type: 'DateFilter',
           name: 'fechaAdmision'
         }),

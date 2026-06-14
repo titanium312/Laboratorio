@@ -1,4 +1,4 @@
-// src/controllers/filtradoController.ts ← VERSIÓN FINAL Y LIMPIA (Devuelve solo el array de objetos)
+// src/controllers/filtradoController.ts ← VERSIÓN CORREGIDA (sin error TS7030)
 import { Request, Response } from 'express';
 import axios from 'axios';
 
@@ -15,12 +15,13 @@ interface AdmisionData {
     numeroAdmision: string; // Corregí 'Admicion' a 'Admision'
 }
 
-export const filtrado = async (req: Request, res: Response) => {
+export const filtrado = async (req: Request, res: Response): Promise<void> => { // 👈 Añadí Promise<void>
     try {
         const filtro = (req.body.filters || "").toString().trim();
 
         if (!filtro) {
-            return res.status(400).json({ success: false, error: "Falta el filtro" });
+            res.status(400).json({ success: false, error: "Falta el filtro" });
+            return; // ✅ RETURN EXPLÍCITO AQUÍ
         }
 
         // 1. Llamada a la API externa (se mantienen los parámetros de la API)
@@ -30,7 +31,6 @@ export const filtrado = async (req: Request, res: Response) => {
             iDisplayLength: 100, 
             sSearch: filtro
         }, {
-            // ... (Parámetros y Headers se mantienen igual)
             params: {
                 fechaInicial: "*",
                 fechaFinal: "*",
@@ -75,6 +75,7 @@ export const filtrado = async (req: Request, res: Response) => {
         
         // 4. Devolver la respuesta en un formato JSON limpio y estructurado (Array de objetos)
         res.json({ success: true, data: datosLimpios });
+        return; // ✅ RETURN EXPLÍCITO (opcional pero consistente)
 
     } catch (error: any) {
         console.error("Error SaludPlus:", error.message);
@@ -83,5 +84,6 @@ export const filtrado = async (req: Request, res: Response) => {
             data: [],
             error: "Error al consultar admisiones"
         });
+        return; // ✅ RETURN EXPLÍCITO AQUÍ - ¡ESTO ES LO QUE FALTABA!
     }
 };

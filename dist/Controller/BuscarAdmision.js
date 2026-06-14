@@ -22,7 +22,6 @@ const BuscarAdmision = async (req, res) => {
                 message: 'El token es obligatorio'
             });
         }
-        // ───────── Función interna para llamar SaludPlus ─────────
         const consultarEndpoint = async (url, body) => {
             const response = await axios_1.default.post(url, body, {
                 headers: {
@@ -39,7 +38,6 @@ const BuscarAdmision = async (req, res) => {
             }
             return response.data.result ?? [];
         };
-        // ───────── 1️⃣ Buscar en resultadoLaboratorio ─────────
         const resultadosLab = await consultarEndpoint(URL_LAB, {
             filters: documento.toString(),
             properties: [
@@ -56,7 +54,6 @@ const BuscarAdmision = async (req, res) => {
             filterAudit: '3'
         });
         let encontrado = resultadosLab.find((r) => r.numeroAdmision?.toString() === documento.toString());
-        // ───────── 2️⃣ Si no aparece, buscar en Admisiones ─────────
         if (!encontrado) {
             const resultadosAdm = await consultarEndpoint(URL_ADM, {
                 filters: documento.toString(),
@@ -73,8 +70,8 @@ const BuscarAdmision = async (req, res) => {
                 filtersCustom: JSON.stringify({
                     admisiones: true,
                     idCaracteristica: 5193,
-                    dateInicial: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(),
-                    dateFinal: new Date().toISOString(),
+                    dateInicial: '2024-01-01T00:00:00.000Z',
+                    dateFinal: '2026-12-31T23:59:59.999Z',
                     type: 'DateFilter',
                     name: 'fechaAdmision'
                 }),

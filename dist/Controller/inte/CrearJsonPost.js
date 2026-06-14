@@ -7,10 +7,6 @@ exports.ArmarJsonController = void 0;
 const axios_1 = __importDefault(require("axios"));
 const obtenerCadenaCompletaCore_1 = require("../obtenerCadenaCompletaCore");
 const ListaItem_1 = require("./ListaItem");
-/* ----------------------------------------------
-   Helpers
----------------------------------------------- */
-/** Devuelve la fecha/hora actual en strings formateados */
 function nowDateTimeStrings() {
     const d = new Date();
     const pad = (n) => (n < 10 ? '0' + n : String(n));
@@ -22,26 +18,21 @@ function nowDateTimeStrings() {
 function isNonEmptyString(v) {
     return typeof v === 'string' && v.trim() !== '';
 }
-/** Construir mapa inverso id -> nombre (usa el primer alias como representativo) */
 const EXAMENES_ID_A_NOMBRE = (() => {
     const map = {};
     for (const nombre of Object.keys(ListaItem_1.EXAMENES)) {
         const id = String(ListaItem_1.EXAMENES[nombre]);
         if (!map[id])
-            map[id] = nombre; // primer alias encontrado
+            map[id] = nombre;
     }
     return map;
 })();
-/** Todas las claves/alias para un id determinado */
 function getAliasesForId(id) {
     const idStr = String(id);
     return Object.entries(ListaItem_1.EXAMENES)
         .filter(([, v]) => String(v) === idStr)
         .map(([k]) => k);
 }
-/* ----------------------------------------------
-   MAPEAR JSON INTERNO → FORMATO SALUDPLUS
----------------------------------------------- */
 function mapToSaludPlusFormat(jsonFinal) {
     return {
         idResultadoLaboratorio: Number(jsonFinal.idResultadoLaboratorio) || 0,
@@ -58,7 +49,7 @@ function mapToSaludPlusFormat(jsonFinal) {
             hora: proc.hora,
             resultadosLaboratorioCategorias: proc.ResultadosLaboratorioCategorias?.map((cat) => ({
                 id: cat.id || 0,
-                idCategoria: cat.idCategoria || 0, // CORREGIDO: idCategoria
+                idCategoria: cat.idCategoria || 0,
                 idResultadoLaboratorioProcedimiento: cat.idResultadoLaboratorioProcedimiento || 0,
                 resultado: cat.resultado || ''
             })) || [],
@@ -71,9 +62,6 @@ function mapToSaludPlusFormat(jsonFinal) {
         }))
     };
 }
-/* ----------------------------------------------
-   OBTENER TOKEN DE VARIAS FUENTES
----------------------------------------------- */
 function obtenerToken(req) {
     const tokenFromQuery = req.query?.token ?? undefined;
     const tokenFromHeader = req.headers['x-api-token'] ?? undefined;
@@ -85,14 +73,8 @@ function obtenerToken(req) {
     })();
     return tokenFromQuery || tokenFromHeader || tokenFromAuthHeader || process.env.SALUDPLUS_TOKEN;
 }
-/* ----------------------------------------------
-   CONTROLADOR PRINCIPAL
----------------------------------------------- */
 const ArmarJsonController = async (req, res) => {
     try {
-        /* --------------------------------------
-           VALIDACIONES BÁSICAS
-        -------------------------------------- */
         const documento = (req.query.documento || req.body.documento)?.toString()?.trim();
         const idProcedimientoObjetivoRaw = (req.query.idProcedimientoObjetivo || req.body.idProcedimientoObjetivo)?.toString()?.trim();
         const idUsuarioRaw = req.body?.idUsuario ?? req.query?.idUsuario;
@@ -106,7 +88,6 @@ const ArmarJsonController = async (req, res) => {
                 success: false,
                 message: 'El campo "idUsuario" es obligatorio y debe ser un número válido'
             });
-        // Obtener token ANTES de usarlo
         const TOKEN = obtenerToken(req);
         if (!isNonEmptyString(TOKEN)) {
             return res.status(400).json({
@@ -114,12 +95,10 @@ const ArmarJsonController = async (req, res) => {
                 message: 'Falta token para autenticar con SaludPlus. Pasa ?token=... o header x-api-token o Authorization: Bearer ...'
             });
         }
-        // Normalizar: el usuario puede enviar un alias (nombre del examen) o el id numérico.
         const requestedRaw = String(idProcedimientoObjetivoRaw ?? '').trim();
         const lookupKey = requestedRaw.toUpperCase();
-        const examIdFromList = ListaItem_1.EXAMENES[lookupKey]; // si envió nombre/alias
+        const examIdFromList = ListaItem_1.EXAMENES[lookupKey];
         const idProcedimientoObjetivoNormalizado = examIdFromList ? String(examIdFromList) : requestedRaw;
-        // Nombre representativo del examen solicitado (si lo podemos resolver)
         let nombreSolicitado = null;
         if (examIdFromList) {
             nombreSolicitado = lookupKey;
@@ -127,7 +106,6 @@ const ArmarJsonController = async (req, res) => {
         else {
             nombreSolicitado = EXAMENES_ID_A_NOMBRE[requestedRaw] ?? null;
         }
-        // Si envió un alias no reconocido y tampoco es un número, rechazar.
         if (!examIdFromList && !/^[0-9]+$/.test(requestedRaw)) {
             const allowed = Object.entries(ListaItem_1.EXAMENES).slice(0, 50).map(([k, v]) => ({ nombre: k, id: v }));
             return res.status(400).json({
@@ -136,16 +114,12 @@ const ArmarJsonController = async (req, res) => {
                 ejemplos: allowed
             });
         }
-        /* --------------------------------------
-           OBTENER DATOS DESDE EL CORE
-        -------------------------------------- */
         const consulta = await (0, obtenerCadenaCompletaCore_1.obtenerCadenaCompletaCore)(documento, idProcedimientoObjetivoNormalizado, TOKEN);
         if (!consulta?.success)
             return res.status(500).json(consulta);
         const registros = consulta.resultados ?? [];
         if (!Array.isArray(registros) || registros.length === 0)
             return res.status(404).json({ success: false, message: "No hay registros parametrizados" });
-        // preferimos el registro marcado por el core, si existe
         const exactMatch = registros.find(r => r.coincidencia === true);
         const match = exactMatch ?? registros[0];
         if (!match)
@@ -154,12 +128,9 @@ const ArmarJsonController = async (req, res) => {
                 message: `No se encontró el idProcedimientoObjetivo ${idProcedimientoObjetivoNormalizado}`,
                 consulta
             });
-        // ---------- VALIDACIÓN ADICIONAL: procedimiento enviado vs encontrado
         const matchIdProcedimientoStr = String(match.idProcedimiento ?? '').trim();
         const requestedIdStr = String(idProcedimientoObjetivoNormalizado ?? '').trim();
-        // Buscar nombre representativo para el id que devolvió el core
         const nombreEncontrado = EXAMENES_ID_A_NOMBRE[matchIdProcedimientoStr] ?? null;
-        // Si difieren, devolvemos el mensaje solicitado (con nombres o '(sin nombre)' cuando no existan)
         if (requestedIdStr && matchIdProcedimientoStr !== requestedIdStr) {
             const nombreSolMostrar = nombreSolicitado ?? '(sin nombre)';
             const nombreEncMostrar = nombreEncontrado ?? '(sin nombre)';
@@ -170,9 +141,6 @@ const ArmarJsonController = async (req, res) => {
             });
         }
         const { fecha, hora } = nowDateTimeStrings();
-        /* --------------------------------------
-           CONSTRUIR ITEMS
-        -------------------------------------- */
         let items = [];
         let resultadosArrayFromBody = undefined;
         const getResultadosArrayLimpio = () => {
@@ -181,9 +149,7 @@ const ArmarJsonController = async (req, res) => {
             }
             return undefined;
         };
-        // Usar el id que devolvió el core (match) para construir payloads
         const idProcedimientoStr = matchIdProcedimientoStr || idProcedimientoObjetivoNormalizado || '';
-        // 🔹 Caso especial: 9087 → BILIRRUBINA 3 ÍTEMS
         if (idProcedimientoStr === '9087') {
             resultadosArrayFromBody = getResultadosArrayLimpio();
             if (!Array.isArray(resultadosArrayFromBody) || resultadosArrayFromBody.length !== 3 || resultadosArrayFromBody.some(r => !isNonEmptyString(r))) {
@@ -196,7 +162,6 @@ const ArmarJsonController = async (req, res) => {
                 idResultadoLaboratorioProcedimiento: 0,
                 resultado: label
             }));
-            // 9121
         }
         else if (idProcedimientoStr === '9121') {
             resultadosArrayFromBody = getResultadosArrayLimpio();
@@ -210,7 +175,6 @@ const ArmarJsonController = async (req, res) => {
                 idResultadoLaboratorioProcedimiento: 0,
                 resultado: label
             }));
-            // 9122 (plantilla curva con IDs fijos)
         }
         else if (idProcedimientoStr === '9122') {
             const FIXED_ID_ITEMS = [7605, 8052, 7604, 8051, 9182, 7603];
@@ -226,7 +190,6 @@ const ArmarJsonController = async (req, res) => {
             }));
         }
         else {
-            // Default: 1 resultado
             if (!isNonEmptyString(req.body?.resultado)) {
                 return res.status(400).json({ success: false, message: 'Para este procedimiento debes enviar body.resultado' });
             }
@@ -237,9 +200,6 @@ const ArmarJsonController = async (req, res) => {
                     resultado: String(req.body.resultado).trim()
                 }];
         }
-        /* --------------------------------------
-           ARMAR JSON INTERNO (LIMPIO)
-        -------------------------------------- */
         const esPlantillaCurva9122 = idProcedimientoStr === '9122';
         const esBilirrubina9087 = idProcedimientoStr === '9087';
         const jsonFinal = {
@@ -257,9 +217,6 @@ const ArmarJsonController = async (req, res) => {
             idAdmision: match.idAdmision ?? null,
             idResultadoLaboratorio: (esPlantillaCurva9122 || esBilirrubina9087) ? 0 : (Number(match.idResultadoLaboratorioProcedimiento ?? match.idResultadoLaboratorio ?? 0) || 0)
         };
-        /* --------------------------------------
-           ENVIAR A SALUDPLUS
-        -------------------------------------- */
         const payloadSaludPlus = mapToSaludPlusFormat(jsonFinal);
         const resp = await axios_1.default.post('https://api.saludplus.co/api/resultadoLaboratorio', payloadSaludPlus, {
             headers: {
@@ -268,9 +225,6 @@ const ArmarJsonController = async (req, res) => {
                 'accept': 'application/json'
             }
         });
-        /* --------------------------------------
-           RESPUESTA FINAL (incluye nombres y aliases si hay)
-        -------------------------------------- */
         const responsePayload = {
             success: true,
             mensaje: 'Resultado enviado a SaludPlus correctamente',

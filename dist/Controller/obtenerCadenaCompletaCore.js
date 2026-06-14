@@ -10,11 +10,6 @@ const BuscarAdmision_1 = require("../Controller/BuscarAdmision");
 const Procedimiento_1 = require("../Controller/Procedimiento");
 const Parametros_1 = require("../Controller/Parametros");
 const BASE_URL = 'https://api.saludplus.co/api/resultadoLaboratorio';
-/**
- * CORE
- * ─────────────────────────────────────────────
- * Lógica pura, recibe documento, procedimiento y token
- */
 async function obtenerCadenaCompletaCore(documento, idProcedimientoObjetivo, token) {
     try {
         if (!documento?.trim()) {
@@ -26,7 +21,6 @@ async function obtenerCadenaCompletaCore(documento, idProcedimientoObjetivo, tok
         if (!token?.trim()) {
             throw new Error('El token es obligatorio');
         }
-        /* ───── Buscar admisión ───── */
         let jsonBuscar = null;
         await (0, BuscarAdmision_1.BuscarAdmision)({ body: { documento, token } }, {
             status: () => null,
@@ -40,7 +34,6 @@ async function obtenerCadenaCompletaCore(documento, idProcedimientoObjetivo, tok
                 detalle: jsonBuscar,
             };
         }
-        /** 🔥 AQUÍ ESTÁ LA CLAVE 🔥 **/
         if (!jsonBuscar.idAdmision) {
             return {
                 success: true,
@@ -49,13 +42,10 @@ async function obtenerCadenaCompletaCore(documento, idProcedimientoObjetivo, tok
                 resultados: [],
             };
         }
-        // Convertimos a array SOLO para reutilizar la lógica
         const idsAdmision = [jsonBuscar.idAdmision];
         const resultados = [];
-        /* ───── Procesar admisión ───── */
         for (const idAdmision of idsAdmision) {
             let procedimientos = [];
-            /* ───── Procedimiento interno ───── */
             let jsonProc = null;
             try {
                 await (0, Procedimiento_1.Procedimiento)({ body: { idAdmision, token } }, {
@@ -68,7 +58,6 @@ async function obtenerCadenaCompletaCore(documento, idProcedimientoObjetivo, tok
                 }
             }
             catch { }
-            /* ───── Fallback API externa ───── */
             if (procedimientos.length === 0) {
                 try {
                     const resp = await axios_1.default.get(`${BASE_URL}/GetAdmisionLaboratorio?idAdmision=${idAdmision}&isFactura=true`, {
@@ -87,13 +76,11 @@ async function obtenerCadenaCompletaCore(documento, idProcedimientoObjetivo, tok
                 }
             }
             let encontrado = false;
-            /* ───── Procesar procedimientos ───── */
             for (const proc of procedimientos) {
                 const idProc = (proc.idProcedimiento ?? proc.idProc)?.toString();
                 if (idProc !== idProcedimientoObjetivo)
                     continue;
                 encontrado = true;
-                /* ───── Parametrización ───── */
                 let jsonParam = null;
                 try {
                     await (0, Parametros_1.Parametrizacion)({
@@ -147,24 +134,23 @@ async function obtenerCadenaCompletaCore(documento, idProcedimientoObjetivo, tok
         };
     }
 }
-/**
- * CONTROLLER EXPRESS
- * ─────────────────────────────────────────────
- */
 const obtenerCadenaCompleta = async (req, res, next) => {
     try {
         const { documento, idProcedimientoObjetivo, token } = req.body;
         if (!documento || !idProcedimientoObjetivo || !token) {
-            return res.status(400).json({
+            res.status(400).json({
                 success: false,
                 error: 'documento, idProcedimientoObjetivo y token son obligatorios',
             });
+            return;
         }
         const resultado = await obtenerCadenaCompletaCore(documento, idProcedimientoObjetivo, token);
-        return res.json(resultado);
+        res.json(resultado);
+        return;
     }
     catch (err) {
         next(err);
+        return;
     }
 };
 exports.obtenerCadenaCompleta = obtenerCadenaCompleta;

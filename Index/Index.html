@@ -4,21 +4,16 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Salu Plus | Gestión de Laboratorio</title>
-  
   <script src="https://cdn.tailwindcss.com"></script>
-  
   <script>
     tailwind.config = {
       theme: {
         extend: {
-          colors: {
-            salu: { 900: '#1e3a8a', 800: '#1e40af', 50: '#f9fafb' }
-          }
+          colors: { salu: { 900: '#1e3a8a', 800: '#1e40af', 50: '#f9fafb' } }
         }
       }
     }
   </script>
-
   <style>
     table { width: 100%; border-collapse: collapse; margin-top: 1rem; font-size: 0.875rem; }
     th { background-color: #f3f4f6; color: #1f2937; font-weight: 600; padding: 0.75rem; text-align: left; border-bottom: 2px solid #e5e7eb; }
@@ -28,10 +23,10 @@
     .row-bun-calculated { background-color: #e6f7ff; }
     .row-ldl-calculated { background-color: #fef9e7; }
     .row-ct-calculated { background-color: #faf5ff; }
-    .row-success { background-color: #f0fdf4; }
-    .row-error { background-color: #fef2f2; }
-    
-    /* Estilos del Modal */
+    .row-success { background-color: #f0fdf4 !important; }
+    .row-error { background-color: #fef2f2 !important; }
+    .row-incomplete { background-color: #fffbeb !important; }
+
     .modal-overlay {
       position: fixed; top: 0; left: 0; width: 100%; height: 100%;
       background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center;
@@ -43,542 +38,467 @@
       box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25); transform: scale(0.9); transition: transform 0.3s ease;
     }
     .modal-overlay.active .modal-box { transform: scale(1); }
+
+    #globalProgressBar {
+      position: fixed; top: 0; left: 0; width: 0%; height: 3px;
+      background: linear-gradient(90deg, #1e3a8a, #3b82f6, #1e3a8a);
+      z-index: 1000; transition: width 0.2s ease;
+      box-shadow: 0 0 8px rgba(59,130,246,0.6);
+    }
+
+    .floating-stats {
+      position: fixed; bottom: 20px; right: 20px; width: 300px;
+      background: white; border-radius: 12px;
+      box-shadow: 0 10px 25px -5px rgba(0,0,0,0.1), 0 10px 10px -5px rgba(0,0,0,0.04);
+      z-index: 1000; transition: all 0.3s ease; border-left: 4px solid #1e3a8a; font-family: monospace;
+    }
+    .floating-stats.minimized {
+      width: auto; background: rgba(255,255,255,0.95); backdrop-filter: blur(4px);
+      border-radius: 40px; padding: 8px 16px; cursor: pointer;
+    }
+    .floating-stats.minimized .stats-content { display: none; }
+    .floating-stats.minimized .stats-header { margin-bottom: 0; padding: 0; }
+    .stats-header {
+      padding: 12px 16px; background: #f8fafc; border-radius: 12px 12px 0 0;
+      font-weight: bold; display: flex; justify-content: space-between; align-items: center;
+      cursor: pointer; border-bottom: 1px solid #e2e8f0;
+    }
+    .stats-content { padding: 12px 16px; }
+    .stat-row { display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 0.875rem; }
+    .stat-label { color: #475569; }
+    .stat-value { font-weight: 700; }
+    .progress-micro { height: 6px; background: #e2e8f0; border-radius: 3px; overflow: hidden; margin: 12px 0 8px; }
+    .progress-micro-fill { width: 0%; height: 100%; background: #1e3a8a; transition: width 0.2s; }
+    .float-toggle { font-size: 12px; color: #64748b; }
   </style>
 </head>
 <body class="bg-gray-50 text-gray-700 font-sans antialiased min-h-screen flex flex-col">
 
-  <!-- Modal de Login -->
-  <div id="loginModal" class="modal-overlay">
-    <div class="modal-box">
-      <h2 class="text-2xl font-bold text-gray-900 mb-6 text-center">Iniciar Sesión</h2>
-      <div class="space-y-4">
-        <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1">Usuario</label>
-          <input id="loginUser" type="text" placeholder="Ej: rbarreto" class="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-salu-900 focus:border-transparent outline-none">
-        </div>
-        <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1">Contraseña</label>
-          <input id="loginPass" type="password" placeholder="••••••••" class="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-salu-900 focus:border-transparent outline-none">
-        </div>
-        <div id="loginError" class="text-red-600 text-sm hidden">Credenciales inválidas o error de conexión.</div>
-        <button id="loginBtn" class="w-full bg-salu-900 text-white py-2 px-4 rounded-lg hover:bg-blue-800 transition font-medium shadow-md">
-          Entrar
-        </button>
-        <button id="closeModalBtn" class="w-full text-gray-500 py-2 px-4 hover:text-gray-800 transition text-sm">Cancelar</button>
-      </div>
+<div id="globalProgressBar"></div>
+
+<div id="floatingStats" class="floating-stats">
+  <div class="stats-header" id="statsHeader">
+    <span>📊 Envío a API</span>
+    <span class="float-toggle" id="toggleFloat">−</span>
+  </div>
+  <div class="stats-content" id="statsContent">
+    <div class="stat-row"><span class="stat-label">Total a enviar:</span><span class="stat-value" id="statTotal">0</span></div>
+    <div class="stat-row"><span class="stat-label">✅ Éxitos:</span><span class="stat-value text-green-600" id="statSuccess">0</span></div>
+    <div class="stat-row"><span class="stat-label">❌ Errores:</span><span class="stat-value text-red-600" id="statErrors">0</span></div>
+    <div class="progress-micro"><div class="progress-micro-fill" id="microProgress"></div></div>
+    <div class="stat-row"><span class="stat-label">Progreso:</span><span class="stat-value" id="statPercent">0%</span></div>
+  </div>
+</div>
+
+<div id="loginModal" class="modal-overlay">
+  <div class="modal-box">
+    <h2 class="text-2xl font-bold text-gray-900 mb-6 text-center">Iniciar Sesión</h2>
+    <div class="space-y-4">
+      <div><label class="block text-sm font-medium text-gray-700 mb-1">Usuario</label><input id="loginUser" type="text" class="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-salu-900"></div>
+      <div><label class="block text-sm font-medium text-gray-700 mb-1">Contraseña</label><input id="loginPass" type="password" class="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-salu-900"></div>
+      <div id="loginError" class="text-red-600 text-sm hidden">Credenciales inválidas o error de conexión.</div>
+      <button id="loginBtn" class="w-full bg-salu-900 text-white py-2 px-4 rounded-lg hover:bg-blue-800 transition font-medium shadow-md">Entrar</button>
+      <button id="closeModalBtn" class="w-full text-gray-500 py-2 px-4 hover:text-gray-800 transition text-sm">Cancelar</button>
     </div>
   </div>
+</div>
 
-  <header class="bg-white shadow-sm border-b border-gray-200">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
-      <div class="flex items-center gap-3">
-        <div class="w-10 h-10 bg-salu-900 rounded-lg flex items-center justify-center text-white font-bold text-xl">S+</div>
-        <div>
-          <h1 class="text-2xl font-bold text-gray-900 tracking-tight">Salu Plus</h1>
-          <p class="text-xs text-gray-500 uppercase tracking-wide">Excelencia en Laboratorio</p>
-        </div>
-      </div>
-      <div id="authArea" class="text-sm"></div>
-    </div>
-  </header>
+<header class="bg-white shadow-sm border-b border-gray-200">
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
+    <div class="flex items-center gap-3"><div class="w-10 h-10 bg-salu-900 rounded-lg flex items-center justify-center text-white font-bold text-xl">S+</div><div><h1 class="text-2xl font-bold text-gray-900 tracking-tight">Salu Plus</h1><p class="text-xs text-gray-500 uppercase tracking-wide">Excelencia en Laboratorio</p></div></div>
+    <div id="authArea" class="text-sm"></div>
+  </div>
+</header>
 
-  <main class="flex-grow py-10 px-4 sm:px-6 lg:px-8">
-    <div class="max-w-5xl mx-auto">
-      <div class="mb-8 text-center max-w-2xl mx-auto">
-        <h2 class="text-3xl font-semibold text-gray-900 mb-3">Gestión de Análisis Clínicos</h2>
-        <p class="text-gray-600 leading-relaxed">Procesamiento de datos con los estándares de calidad, precisión y seguridad que caracterizan a Salu Plus.</p>
-      </div>
+<main class="flex-grow py-10 px-4 sm:px-6 lg:px-8">
+  <div class="max-w-6xl mx-auto">
+    <div class="mb-8 text-center max-w-2xl mx-auto"><h2 class="text-3xl font-semibold text-gray-900 mb-3">Gestión de Análisis Clínicos</h2><p class="text-gray-600 leading-relaxed">Procesamiento de datos con los estándares de calidad, precisión y seguridad que caracterizan a Salu Plus.</p></div>
 
-      <div class="bg-white shadow-lg rounded-xl border border-gray-200 overflow-hidden">
-        <div class="bg-gray-50 px-6 py-4 border-b border-gray-200 flex justify-between items-center">
-          <h3 class="text-lg font-medium text-gray-800">Importar TXT de Laboratorio</h3>
-          <span class="badge bg-blue-100 text-salu-900 text-xs px-2 py-1 rounded-full font-semibold" id="countBadge">0 filas</span>
-        </div>
 
-        <div class="p-6 space-y-6">
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div class="space-y-4">
-              <div>
-                <label class="block text-sm font-medium text-gray-700 mb-1">Cargar archivo .txt</label>
-                <input id="file" type="file" accept=".txt" class="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-salu-900 hover:file:bg-blue-100 cursor-pointer border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-salu-900 focus:border-transparent input-transition">
-              </div>
-              <div>
-                <label class="block text-sm font-medium text-gray-700 mb-1">Pegar contenido manual</label>
-                <textarea id="input" rows="6" placeholder="Pegue aquí el texto crudo del laboratorio..." class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-salu-900 focus:border-transparent outline-none text-sm font-mono text-gray-600 input-transition resize-none"></textarea>
-              </div>
-            </div>
-
-            <div class="flex flex-col justify-between space-y-4">
-              <div class="grid grid-cols-2 gap-3">
-                <button id="parse" class="col-span-2 bg-salu-900 text-white py-2 px-4 rounded-lg hover:bg-blue-800 transition font-medium shadow-md flex items-center justify-center gap-2">
-                  Parsear Datos
-                </button>
-                <button id="clear" class="border border-gray-300 text-gray-700 py-2 px-4 rounded-lg hover:bg-gray-50 transition text-sm">Limpiar</button>
-              </div>
-
-              <div class="bg-gray-50 p-4 rounded-lg border border-gray-200 space-y-3">
-                <label class="block text-xs font-semibold text-gray-500 uppercase">Filtros de Visualización</label>
-                <input id="filterInput" placeholder="Buscar por paciente, prueba o ID..." class="w-full p-2 border border-gray-300 rounded focus:ring-1 focus:ring-salu-900 outline-none text-sm">
-                <div class="flex items-center">
-                  <input id="mappedOnly" type="checkbox" class="h-4 w-4 text-salu-900 border-gray-300 rounded focus:ring-salu-900">
-                  <label for="mappedOnly" class="ml-2 block text-sm text-gray-700">Solo con ID asignado</label>
-                </div>
-              </div>
-            </div>
+    <div class="bg-white shadow-lg rounded-xl border border-gray-200 overflow-hidden">
+      <div class="bg-gray-50 px-6 py-4 border-b border-gray-200 flex justify-between items-center"><h3 class="text-lg font-medium text-gray-800">Importar TXT de Laboratorio</h3><span class="bg-blue-100 text-salu-900 text-xs px-2 py-1 rounded-full font-semibold" id="countBadge">0 filas</span></div>
+      <div class="p-6 space-y-6">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div class="space-y-4">
+            <div><label class="block text-sm font-medium text-gray-700 mb-1">Cargar archivo .txt</label><input id="file" type="file" accept=".txt" class="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-salu-900 hover:file:bg-blue-100 cursor-pointer border border-gray-300 rounded-lg"></div>
+            <div><label class="block text-sm font-medium text-gray-700 mb-1">Pegar contenido manual</label><textarea id="input" rows="6" placeholder="Pegue aquí el texto crudo del laboratorio..." class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-salu-900 outline-none text-sm font-mono resize-none"></textarea></div>
           </div>
-          
-          <hr class="border-gray-100">
-
-          <!-- Cálculos Mejorados (CON FÓRMULAS) -->
-          <div class="bg-amber-50 p-6 rounded-2xl border border-amber-200">
-            <div class="flex items-center justify-between mb-5">
-              <h3 class="text-lg font-semibold text-amber-900">Cálculos Automáticos</h3>
-              <label class="flex items-center gap-2 cursor-pointer text-sm font-medium">
-                <input type="checkbox" id="selectAllCalc" class="w-4 h-4 text-amber-600 rounded">
-                Seleccionar todos
-              </label>
-            </div>
-            
-            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
-              <label class="flex items-start gap-3 p-4 bg-white rounded-xl border border-amber-100 hover:border-amber-300 cursor-pointer transition">
-                <input type="checkbox" id="calcBUN" class="w-5 h-5 text-amber-600 mt-0.5">
-                <div>
-                  <span class="font-medium text-gray-800">BUN</span>
-                  <p class="text-xs text-gray-500 mt-1 font-mono">UREA / 2.14</p>
-                </div>
-              </label>
-              <label class="flex items-start gap-3 p-4 bg-white rounded-xl border border-amber-100 hover:border-amber-300 cursor-pointer transition">
-                <input type="checkbox" id="calcHDL" class="w-5 h-5 text-amber-600 mt-0.5">
-                <div>
-                  <span class="font-medium text-gray-800">HDL</span>
-                  <p class="text-xs text-gray-500 mt-1 font-mono">CT × 0.25</p>
-                </div>
-              </label>
-              <label class="flex items-start gap-3 p-4 bg-white rounded-xl border border-amber-100 hover:border-amber-300 cursor-pointer transition">
-                <input type="checkbox" id="calcLDL" class="w-5 h-5 text-amber-600 mt-0.5">
-                <div>
-                  <span class="font-medium text-gray-800">LDL</span>
-                  <p class="text-xs text-gray-500 mt-1 font-mono">CT - HDL - (TG / 5)</p>
-                </div>
-              </label>
-            </div>
-
-            <div class="mt-6 flex gap-4">
-              <button id="applyCalc" class="flex-1 bg-amber-600 hover:bg-amber-700 text-white py-3 px-6 rounded-xl font-medium transition">
-                Aplicar Cálculos Seleccionados
-              </button>
-              <button id="clearCalc" class="px-6 py-3 text-gray-600 hover:text-red-600 font-medium transition">
-                Limpiar cálculos
-              </button>
-            </div>
-          </div>
-
-          <div class="flex items-center gap-4 bg-blue-50 p-4 rounded-lg border border-blue-100">
-            <div class="flex-grow">
-              <label class="block text-xs font-bold text-salu-900 mb-1">ID DE USUARIO (API)</label>
-              <input id="idUsuario" type="number" placeholder="Inicie sesión para cargar" disabled class="w-full bg-white border border-blue-200 text-gray-600 text-sm rounded p-2 opacity-70 cursor-not-allowed">
-            </div>
-            <button id="sendApi" class="mt-4 bg-white border border-blue-300 text-salu-900 font-medium py-2 px-6 rounded-lg hover:bg-blue-100 transition shadow-sm whitespace-nowrap">
-              Subir a API ArmarJson
-            </button>
+          <div class="flex flex-col justify-between space-y-4">
+            <div class="grid grid-cols-2 gap-3"><button id="parse" class="col-span-2 bg-salu-900 text-white py-2 px-4 rounded-lg hover:bg-blue-800 transition font-medium shadow-md flex items-center justify-center gap-2">Parsear Datos</button><button id="clear" class="border border-gray-300 text-gray-700 py-2 px-4 rounded-lg hover:bg-gray-50 transition text-sm">Limpiar</button></div>
+            <div class="bg-gray-50 p-4 rounded-lg border border-gray-200 space-y-3"><label class="block text-xs font-semibold text-gray-500 uppercase">Filtros de Visualización</label><input id="filterInput" placeholder="Buscar por paciente, prueba o ID..." class="w-full p-2 border border-gray-300 rounded focus:ring-1 focus:ring-salu-900 outline-none text-sm"><div class="flex items-center"><input id="mappedOnly" type="checkbox" class="h-4 w-4 text-salu-900 border-gray-300 rounded"><label for="mappedOnly" class="ml-2 block text-sm text-gray-700">Solo con ID asignado</label></div></div>
           </div>
         </div>
-      </div>
+        <hr class="border-gray-100">
 
-      <div id="resultArea" class="mt-8 bg-white shadow-lg rounded-xl border border-gray-200 overflow-x-auto min-h-[100px] p-1">
-        <p class="text-center text-gray-400 py-10 italic">Los resultados procesados aparecerán aquí.</p>
+
+    <!-- Tarjetas de resumen -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-4 mb-6">
+      <div class="bg-white rounded-lg shadow p-4 border-l-4 border-salu-900"><p class="text-xs text-gray-500 uppercase">Total Registros</p><p class="text-2xl font-bold text-gray-900" id="totalRecords">0</p></div>
+      <div class="bg-white rounded-lg shadow p-4 border-l-4 border-green-500"><p class="text-xs text-gray-500 uppercase">Enviados OK</p><p class="text-2xl font-bold text-green-600" id="successCount">0</p></div>
+      <div class="bg-white rounded-lg shadow p-4 border-l-4 border-red-500"><p class="text-xs text-gray-500 uppercase">Con Errores</p><p class="text-2xl font-bold text-red-600" id="errorCount">0</p></div>
+      <div class="bg-white rounded-lg shadow p-4 border-l-4 border-purple-500"><p class="text-xs text-gray-500 uppercase">Calculados</p><p class="text-2xl font-bold text-purple-700" id="calcCount">0</p></div>
+      <div class="bg-white rounded-lg shadow p-4 border-l-4 border-amber-500"><p class="text-xs text-gray-500 uppercase">Incompletos</p><p class="text-2xl font-bold text-amber-600" id="incompleteCount">0</p></div>
+    </div>
+
+
+        <div class="bg-amber-50 p-6 rounded-2xl border border-amber-200">
+          <div class="flex items-center justify-between mb-5"><h3 class="text-lg font-semibold text-amber-900">Cálculos Automáticos</h3><label class="flex items-center gap-2 cursor-pointer text-sm font-medium"><input type="checkbox" id="selectAllCalc" class="w-4 h-4 text-amber-600 rounded"> Seleccionar todos</label></div>
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <label class="flex items-start gap-3 p-4 bg-white rounded-xl border border-amber-100 hover:border-amber-300 cursor-pointer transition"><input type="checkbox" id="calcBUN" class="w-5 h-5 text-amber-600 mt-0.5"><div><span class="font-medium text-gray-800">BUN</span><p class="text-xs text-gray-500 mt-1 font-mono">UREA / 2.14</p></div></label>
+            <label class="flex items-start gap-3 p-4 bg-white rounded-xl border border-amber-100 hover:border-amber-300 cursor-pointer transition"><input type="checkbox" id="calcHDL" class="w-5 h-5 text-amber-600 mt-0.5"><div><span class="font-medium text-gray-800">HDL</span><p class="text-xs text-gray-500 mt-1 font-mono">CT × 0.25</p></div></label>
+            <label class="flex items-start gap-3 p-4 bg-white rounded-xl border border-amber-100 hover:border-amber-300 cursor-pointer transition"><input type="checkbox" id="calcLDL" class="w-5 h-5 text-amber-600 mt-0.5"><div><span class="font-medium text-gray-800">LDL</span><p class="text-xs text-gray-500 mt-1 font-mono">CT - HDL - (TG/5)</p></div></label>
+          </div>
+          <div class="mt-6 flex gap-4"><button id="applyCalc" class="flex-1 bg-amber-600 hover:bg-amber-700 text-white py-3 px-6 rounded-xl font-medium transition">Aplicar Cálculos Seleccionados</button><button id="clearCalc" class="px-6 py-3 text-gray-600 hover:text-red-600 font-medium transition">Limpiar cálculos</button></div>
+        </div>
+
+        <div class="flex flex-col sm:flex-row items-center gap-4 bg-blue-50 p-4 rounded-lg border border-blue-100">
+          <div class="flex-grow w-full"><label class="block text-xs font-bold text-salu-900 mb-1">ID DE USUARIO (API)</label><input id="idUsuario" type="number" placeholder="Inicie sesión para cargar" disabled class="w-full bg-white border border-blue-200 text-gray-600 text-sm rounded p-2 opacity-70 cursor-not-allowed"></div>
+          <div class="flex items-center gap-2 bg-white p-2 border border-blue-200 rounded-lg h-10"><input type="checkbox" id="allowIncomplete" class="w-4 h-4 text-amber-500 focus:ring-amber-500 border-gray-300 rounded"><label for="allowIncomplete" class="text-xs font-bold text-amber-700 whitespace-nowrap">Incluir Incompletos (*)</label></div>
+          <button id="sendApi" class="bg-white border border-blue-300 text-salu-900 font-medium py-2 px-6 rounded-lg hover:bg-blue-100 transition shadow-sm whitespace-nowrap w-full sm:w-auto">🚀 Subir a API</button>
+        </div>
       </div>
     </div>
-  </main>
 
-  <footer class="bg-white border-t border-gray-200 mt-auto">
-    <div class="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8 flex flex-col md:flex-row justify-between items-center gap-4">
-      <p class="text-sm text-gray-500">&copy; 2025 Salu Plus Laboratorio. Confianza que se analiza.</p>
-    </div>
-  </footer>
+    <div id="resultArea" class="mt-8 bg-white shadow-lg rounded-xl border border-gray-200 overflow-x-auto min-h-[100px] p-1"><p class="text-center text-gray-400 py-10 italic">Los resultados procesados aparecerán aquí.</p></div>
+  </div>
+</main>
 
-  <script>
-    /* ====== Config ====== */
-    const API_BASE = "/-RB-/sURBIR"; 
-    const LOGIN_URL = "https://api.saludplus.co/api/auth/Login";
+<footer class="bg-white border-t border-gray-200 mt-auto"><div class="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8 flex flex-col md:flex-row justify-between items-center gap-4"><p class="text-sm text-gray-500">&copy; 2025 Salu Plus Laboratorio. Confianza que se analiza.</p></div></footer>
 
-    const EXAM_MAP = {
-        "GLUCOSE": "11803", "GLUCOSA": "11803",
-        "CHOLESTEROL": "9096", "COL": "9096", "COLESTEROL TOTAL": "9096",
-        "TRIGLYCERIDES": "9146", "TRIGLICERIDOS": "9146",
-        "LDL": "9094", "COLESTEROL LDL": "9094",
-        "CREATININE": "9173", "CREATININA": "9173",
-        "BUN": "9134", "NITROGENO UREICO": "9134", "NITRÓGENO UREICO": "9134",
-        "UREA": "9147", "UREA EN SANGRE": "9147", "UREA UV": "9147", "UREA SANGRE": "9147",
-        "URIC ACID": "9079", "ACIDO URICO": "9079",
-        "BILIRUBIN DIRECT": "9087", "BILIRUBIN INDIRECT": "9087", "INDIRECT BILIRUBIN": "9087", "BILIRUBIN TOTAL": "9087", "BILIRRUBINA TOTAL": "9087",
-        "CHOL HDL DIRECT": "9093", "HDL": "9093",
-        "CHOL LDL DIRECT": "9094"
-    };
+<script>
+  // ---------- CONFIGURACIÓN ----------
+  const API_BASE = "/-RB-/sURBIR";
+  const LOGIN_URL = "https://api.saludplus.co/api/auth/Login";
 
-    const CURVA_PREFIX = /^(PRE|POST|1[/]?2H?|1H|2H|3H|B)$/i;
-    function normalize(s){return (s||"").toString().trim().toUpperCase();}
+  const EXAM_MAP = {
+    "GLUCOSE": "11803", "GLUCOSA": "11803",
+    "CHOLESTEROL": "9096", "COL": "9096", "COLESTEROL TOTAL": "9096",
+    "TRIGLYCERIDES": "9146", "TRIGLICERIDOS": "9146",
+    "LDL": "9094", "COLESTEROL LDL": "9094",
+    "CREATININE": "9173", "CREATININA": "9173",
+    "BUN": "9134", "NITROGENO UREICO": "9134",
+    "UREA": "9147", "UREA EN SANGRE": "9147", "UREA UV": "9147",
+    "URIC ACID": "9079", "ACIDO URICO": "9079",
+    "CHOL HDL DIRECT": "9093", "HDL": "9093",
+    "CHOL LDL DIRECT": "9094"
+  };
 
-    let _TOKEN = null;
-    let _USER = null;
-    let lastRows = [];
+  const CURVA_PREFIX = /^(PRE|POST|1[/]?2H?|1H|2H|3H|B)$/i;
+  function normalize(s) { return (s || "").toString().trim().toUpperCase(); }
 
-    function escapeHtml(s){ return String(s||'').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":"&#39;"})[c]); }
+  let _TOKEN = null, _USER = null, lastRows = [], globalGroups = [];
 
-    /* ====== Función para quitar .00 ====== */
-    function formatNumber(num) {
-      if (!num) return '';
-      const str = String(num);
-      if (str.includes('.')) {
-        const [integer, decimal] = str.split('.');
-        return decimal === '00' || decimal === '0' ? integer : str;
+  // ---------- UTILIDADES ----------
+  function escapeHtml(s) { return String(s || '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":"&#39;"})[c]); }
+  function formatNumber(num) { if (!num) return ''; const str = String(num); if (str.includes('.')) { const [integer, decimal] = str.split('.'); return decimal === '00' || decimal === '0' ? integer : str; } return str; }
+  function parseNum(val) { if (!val) return NaN; const m = String(val).match(/([<>]=?)?\s*(\d+[\.,]?\d*)/); return m ? parseFloat(m[2].replace(',', '.')) : NaN; }
+
+  function calculateBUNFromUrea(ureaValue) { if (!ureaValue || ureaValue === '-') return null; const numMatch = String(ureaValue).match(/([<>]=?)?\s*(\d+[\.,]?\d*)/); if (!numMatch) return null; const num = parseFloat(numMatch[2].replace(',', '.')); if (isNaN(num) || num === 0) return null; return (num / 2.14).toFixed(2); }
+  function calculateLDL(ct, hdl, tg) { const ctN = parseNum(ct), hdlN = parseNum(hdl), tgN = parseNum(tg); if (isNaN(ctN) || isNaN(hdlN) || isNaN(tgN) || tgN >= 400) return null; return (ctN - hdlN - (tgN / 5)).toFixed(2); }
+  function calculateHDL(ct) { const ctN = parseNum(ct); if (isNaN(ctN) || ctN === 0) return null; return (ctN * 0.25).toFixed(2); }
+
+  function addSelectedCalculations(rows, selected) {
+    let newRows = [...rows];
+    const patients = [...new Set(rows.map(r => r.paciente))];
+    patients.forEach(paciente => {
+      const urea = rows.find(r => r.paciente === paciente && r.id_examen === '9147');
+      const ct   = rows.find(r => r.paciente === paciente && r.id_examen === '9096');
+      const hdl  = rows.find(r => r.paciente === paciente && r.id_examen === '9093');
+      const ldl  = rows.find(r => r.paciente === paciente && r.id_examen === '9094');
+      const tg   = rows.find(r => r.paciente === paciente && r.id_examen === '9146');
+      const hasBUN = rows.some(r => r.paciente === paciente && r.id_examen === '9134');
+      const hasCT  = !!ct && parseNum(ct.conc) > 0;
+      const hasHDL = !!hdl && parseNum(hdl.conc) > 0;
+      const hasLDL = !!ldl && parseNum(ldl.conc) > 0;
+      const hasTG  = !!tg && parseNum(tg.conc) > 0;
+      if (selected.bun && !hasBUN && urea) { const val = calculateBUNFromUrea(urea.conc); if (val) newRows.push({paciente, tipo:'-', tecnica:'CALC', prueba:'BUN (calculado)', id_examen:'9134', conc:val, unidades:'mg/dL', fecha:urea.fecha, apiMessage:'🧮 UREA / 2.14', rowClass:'row-bun-calculated', isCalculated:true}); }
+      if (selected.hdl && !hasHDL && hasCT) { const val = calculateHDL(ct.conc); if (val) newRows.push({paciente, tipo:'-', tecnica:'CALC', prueba:'HDL (calculado)', id_examen:'9093', conc:val, unidades:'mg/dL', fecha:ct.fecha, apiMessage:'🧮 CT × 0.25', rowClass:'row-ct-calculated', isCalculated:true}); }
+      if (selected.ldl && !hasLDL && hasCT && hasHDL && hasTG) { const val = calculateLDL(ct.conc, hdl.conc, tg.conc); if (val) newRows.push({paciente, tipo:'-', tecnica:'CALC', prueba:'LDL (calculado)', id_examen:'9094', conc:val, unidades:'mg/dL', fecha:ct.fecha, apiMessage:'🧮 CT - HDL - TG/5', rowClass:'row-ldl-calculated', isCalculated:true}); }
+    });
+    return newRows.sort((a, b) => a.paciente.localeCompare(b.paciente));
+  }
+
+  // ---------- PARSING ----------
+  const dateRe = /^\d{1,2}\/\d{1,2}\/\d{4}$/;
+  const timeRe = /^\d{1,2}:\d{2}$/;
+  const numRe = /^\d+[\.,]?\d*$/;
+  const cmpNumRe = /^[<>]=?\d+[\.,]?\d*$/;
+  const dashSlashRe = /^[-\/]{2,}$/;
+  const resultWordsRe = /^(NEGATIVO|POSITIVO|REACTIVO|NO|TRAZAS|N\/A|INDETERMINADO)$/i;
+  const unitRe = /^(mg\/?d?l|mg|mmol\/l|mmol|g\/dl|g|iu\/l|iu|%|u\/l|ml|mL|ug\/mL|mg\/L)$/i;
+
+  function looksLikeResult(token, nextToken) { if (!token) return false; if (numRe.test(token) || cmpNumRe.test(token) || dashSlashRe.test(token) || resultWordsRe.test(token)) return true; if (unitRe.test(nextToken) || dateRe.test(nextToken) || timeRe.test(nextToken)) return true; return /^[\d\-\+\/]+$/.test(token); }
+
+  function parseText(text) {
+    const rows = [];
+    const lines = text.replace(/\r/g, "").split('\n');
+    for (let raw of lines) {
+      raw = raw.trim();
+      if (!raw || !/^\d{5,15}/.test(raw)) continue;
+      const parts = raw.split(/\s+/).filter(Boolean);
+      if (parts.length < 3) continue;
+      let idx = 0;
+      const paciente = parts[idx++];
+      let tipo = "-";
+      if (idx < parts.length && CURVA_PREFIX.test(parts[idx])) { tipo = parts[idx].toUpperCase(); if (tipo === "1/2") tipo = "1/2H"; idx++; }
+      let tecnica = "SER";
+      if (idx < parts.length && ["SER","PLASMA","ORINA","SUERO","HECES"].includes(normalize(parts[idx]))) { tecnica = parts[idx]; idx++; }
+      let pruebaParts = [], conc = "", unidades = "mg/dL";
+      while (idx < parts.length) {
+        const word = parts[idx], next = parts[idx+1] || "";
+        if (dateRe.test(word)) { pruebaParts.push(word); idx++; continue; }
+        if (looksLikeResult(word, next)) { conc = word.replace(',', '.').trim(); idx++; break; }
+        pruebaParts.push(word); idx++;
       }
-      return str;
-    }
-
-    function parseNum(val) {
-      if (!val) return NaN;
-      const m = String(val).match(/([<>]=?)?\s*(\d+[\.,]?\d*)/);
-      return m ? parseFloat(m[2].replace(',', '.')) : NaN;
-    }
-
-    /* ====== Cálculos ====== */
-    function calculateBUNFromUrea(ureaValue) {
-      if (!ureaValue || ureaValue === '-') return null;
-      const numMatch = String(ureaValue).match(/([<>]=?)?\s*(\d+[\.,]?\d*)/);
-      if (!numMatch) return null;
-      const num = parseFloat(numMatch[2].replace(',', '.'));
-      if (isNaN(num) || num === 0) return null;
-      return (num / 2.14).toFixed(2);
-    }
-
-    function calculateLDL(ct, hdl, tg) {
-      const ctN = parseNum(ct), hdlN = parseNum(hdl), tgN = parseNum(tg);
-      if (isNaN(ctN) || isNaN(hdlN) || isNaN(tgN) || tgN >= 400) return null;
-      return (ctN - hdlN - (tgN / 5)).toFixed(2);
-    }
-
-    function calculateHDL(ct) {
-      const ctN = parseNum(ct);
-      if (isNaN(ctN) || ctN === 0) return null;
-      return (ctN * 0.25).toFixed(2);
-    }
-
-    function addSelectedCalculations(rows, selected) {
-      let newRows = [...rows];
-      const patients = [...new Set(rows.map(r => r.paciente))];
-
-      patients.forEach(paciente => {
-        const urea = rows.find(r => r.paciente === paciente && r.id_examen === '9147');
-        const ct   = rows.find(r => r.paciente === paciente && r.id_examen === '9096');
-        const hdl  = rows.find(r => r.paciente === paciente && r.id_examen === '9093');
-        const ldl  = rows.find(r => r.paciente === paciente && r.id_examen === '9094');
-        const tg   = rows.find(r => r.paciente === paciente && r.id_examen === '9146');
-
-        const hasBUN = rows.some(r => r.paciente === paciente && r.id_examen === '9134');
-        const hasCT  = !!ct && parseNum(ct.conc) > 0;
-        const hasHDL = !!hdl && parseNum(hdl.conc) > 0;
-        const hasLDL = !!ldl && parseNum(ldl.conc) > 0;
-        const hasTG  = !!tg && parseNum(tg.conc) > 0;
-
-        if (selected.bun && !hasBUN && urea) {
-          const val = calculateBUNFromUrea(urea.conc);
-          if (val) newRows.push({paciente, tipo:'-', tecnica:'CALC', prueba:'BUN (calculado)', id_examen:'9134', conc:val, unidades:'mg/dL', fecha:urea.fecha, apiMessage:'🧮 UREA / 2.14', rowClass:'row-bun-calculated', isCalculated:true});
-        }
-        
-        if (selected.hdl && !hasHDL && hasCT) {
-          const val = calculateHDL(ct.conc);
-          if (val) newRows.push({paciente, tipo:'-', tecnica:'CALC', prueba:'HDL (calculado)', id_examen:'9093', conc:val, unidades:'mg/dL', fecha:ct.fecha, apiMessage:'🧮 CT × 0.25', rowClass:'row-ct-calculated', isCalculated:true});
-        }
-        
-        if (selected.ldl && !hasLDL && hasCT && hasHDL && hasTG) {
-          const val = calculateLDL(ct.conc, hdl.conc, tg.conc);
-          if (val) newRows.push({paciente, tipo:'-', tecnica:'CALC', prueba:'LDL (calculado)', id_examen:'9094', conc:val, unidades:'mg/dL', fecha:ct.fecha, apiMessage:'🧮 Friedewald', rowClass:'row-ldl-calculated', isCalculated:true});
-        }
-      });
-
-      return newRows.sort((a, b) => a.paciente.localeCompare(b.paciente));
-    }
-
-    /* ====== Parsing ====== */
-    const dateRe = /^\d{1,2}\/\d{1,2}\/\d{4}$/;
-    const timeRe = /^\d{1,2}:\d{2}$/;
-    const numRe = /^\d+[\.,]?\d*$/;
-    const cmpNumRe = /^[<>]=?\d+[\.,]?\d*$/;
-    const dashSlashRe = /^[-\/]{2,}$/;
-    const resultWordsRe = /^(NEGATIVO|POSITIVO|REACTIVO|NO|TRAZAS|N\/A|INDETERMINADO)$/i;
-    const unitRe = /^(mg\/?d?l|mg|mmol\/l|mmol|g\/dl|g|iu\/l|iu|%|u\/l|ml|mL|ug\/mL|mg\/L)$/i;
-
-    function looksLikeResult(token, nextToken) {
-      if (!token) return false;
-      if (numRe.test(token) || cmpNumRe.test(token) || dashSlashRe.test(token) || resultWordsRe.test(token)) return true;
-      if (unitRe.test(nextToken) || dateRe.test(nextToken) || timeRe.test(nextToken)) return true;
-      return /^[\d\-\+\/]+$/.test(token);
-    }
-
-    function processAndAddDerivedCalculations(rows) {
-      let newRows = [...rows];
-      const patientsWithUREA = new Set();
-      rows.forEach(row => { if (row.id_examen === '9147' && row.conc && row.conc !== '-') patientsWithUREA.add(row.paciente); });
-      patientsWithUREA.forEach(paciente => {
-        const hasBUN = rows.some(r => r.paciente === paciente && r.id_examen === '9134');
-        const ureaRow = rows.find(r => r.paciente === paciente && r.id_examen === '9147');
-        if (!hasBUN && ureaRow) {
-          const bunValue = calculateBUNFromUrea(ureaRow.conc);
-          if (bunValue) {
-            newRows.push({ paciente: ureaRow.paciente, tipo: '-', tecnica: ureaRow.tecnica, prueba: 'BUN (calculado)', id_examen: '9134', conc: bunValue, unidades: 'mg/dL', fecha: ureaRow.fecha, apiMessage: `🧮 UREA / 2.14`, rowClass: 'row-bun-calculated', isCalculated: true });
-          }
-        }
-      });
-      return newRows.sort((a, b) => a.paciente.localeCompare(b.paciente));
-    }
-
-    function parseText(text) {
-      const rows = [];
-      const lines = text.replace(/\r/g, "").split('\n');
-      for (let raw of lines) {
-        raw = raw.trim();
-        if (!raw || !/^\d{5,15}/.test(raw)) continue;
-        const parts = raw.split(/\s+/).filter(Boolean);
-        if (parts.length < 3) continue;
-
-        let idx = 0;
-        const paciente = parts[idx++];
-        let tipo = "-";
-        if (idx < parts.length && CURVA_PREFIX.test(parts[idx])) { 
-          tipo = parts[idx].toUpperCase(); 
-          if (tipo === "1/2") tipo = "1/2H"; 
-          idx++; 
-        }
-
-        let tecnica = "SER";
-        if (idx < parts.length && ["SER","PLASMA","ORINA","SUERO","HECES"].includes(normalize(parts[idx]))) { 
-          tecnica = parts[idx]; idx++; 
-        }
-
-        let pruebaParts = [], conc = "", unidades = "mg/dL";
-        while (idx < parts.length) {
-          const word = parts[idx], next = parts[idx+1] || "";
-          if (dateRe.test(word)) { pruebaParts.push(word); idx++; continue; }
-          if (looksLikeResult(word, next)) { conc = word.replace(',', '.').trim(); idx++; break; }
-          pruebaParts.push(word); idx++;
-        }
-        const prueba = pruebaParts.join(" ").trim();
-        if (idx < parts.length && (unitRe.test(parts[idx]) || /mg|mmol|g\/dl|iu|%|ug/i.test(parts[idx]))) { unidades = parts[idx]; idx++; }
-
-        let fecha = "";
-        if (idx < parts.length && dateRe.test(parts[idx])) { 
-          fecha = parts[idx]; 
-          if (idx+1 < parts.length && timeRe.test(parts[idx+1])) fecha += ' ' + parts[idx+1]; 
-        }
-
-        let id_examen = "";
-        const pruebaNorm = normalize(prueba);
-        if (pruebaNorm.includes("GLUCOS") || pruebaNorm.includes("GLUCOSE")) {
-          id_examen = (tipo === "PRE" || tipo === "POST") ? "9121" : (["1/2H","1H","2H","3H","B"].includes(tipo) ? "9122" : "11803");
-        } else {
-          for (const key in EXAM_MAP) {
-            if (pruebaNorm.includes(normalize(key))) { id_examen = EXAM_MAP[key]; break; }
-          }
-        }
-
-        rows.push({ paciente, tipo, tecnica, prueba, id_examen: id_examen || "", conc, unidades, fecha: fecha || "", apiMessage: '', rowClass: 'row-pending', isCalculated: false });
-      }
-      return processAndAddDerivedCalculations(rows);
-    }
-
-    /* ====== Render con formato de números ====== */
-    function render(rows){
-      const filter = normalize(document.getElementById('filterInput').value);
-      const onlyMapped = document.getElementById('mappedOnly').checked;
-      let visible = 0;
-      let html = `<table><thead><tr><th>Paciente</th><th>Tipo</th><th>Técnica</th><th>Prueba</th><th>ID</th><th>Conc.</th><th>Und.</th><th>Fecha</th><th>API</th></tr></thead><tbody>`;
+      const prueba = pruebaParts.join(" ").trim();
+      if (idx < parts.length && (unitRe.test(parts[idx]) || /mg|mmol|g\/dl|iu|%|ug/i.test(parts[idx]))) { unidades = parts[idx]; idx++; }
+      let fecha = "";
+      if (idx < parts.length && dateRe.test(parts[idx])) { fecha = parts[idx]; if (idx+1 < parts.length && timeRe.test(parts[idx+1])) fecha += ' ' + parts[idx+1]; }
       
-      for (const r of rows) {
-        if (onlyMapped && !r.id_examen) continue;
-        if (filter && !(r.paciente.includes(filter) || normalize(r.prueba).includes(filter) || (r.id_examen && r.id_examen.includes(filter)))) continue;
-        visible++;
-        
-        const concFormatted = r.isCalculated ? formatNumber(r.conc) : r.conc;
-        const idStyle = r.id_examen ? (r.isCalculated ? "background:#e6f7ff;color:#0050b3;font-weight:700" : "background:#ecfdf5;color:#166534;font-weight:700") : "color:#ef4444";
-        
-        html += `<tr class="${r.rowClass}">
-          <td><strong>${r.paciente}</strong></td>
-          <td>${r.tipo}</td>
-          <td>${r.tecnica}</td>
-          <td>${escapeHtml(r.prueba)}</td>
-          <td style="${idStyle}">${r.id_examen || '-'}</td>
-          <td style="text-align:right">${concFormatted}</td>
-          <td>${r.unidades}</td>
-          <td>${r.fecha}</td>
-          <td>${escapeHtml(r.apiMessage || '')}</td>
-        </tr>`;
-      }
-      document.getElementById('countBadge').textContent = visible + ' filas';
-      document.getElementById('resultArea').innerHTML = html + `</tbody></table>`;
-    }
-
-    /* ====== LÓGICA DE LOGIN Y API ====== */
-    const loginModal = document.getElementById('loginModal');
-    const loginBtn = document.getElementById('loginBtn');
-    const closeModalBtn = document.getElementById('closeModalBtn');
-    const loginError = document.getElementById('loginError');
-
-    function renderAuth() {
-      const authArea = document.getElementById('authArea');
-      const idUsuarioInput = document.getElementById('idUsuario');
-      
-      if (_TOKEN && _USER) {
-        authArea.innerHTML = `<span class="text-gray-600 mr-3">👋 ${_USER.nombre || _USER.usuario}</span><button id="logoutBtn" class="text-red-600 hover:text-red-800 font-medium transition">Cerrar sesión</button>`;
-        idUsuarioInput.value = _USER.id || '';
-        idUsuarioInput.disabled = false;
-        idUsuarioInput.classList.remove('opacity-70', 'cursor-not-allowed');
-        
-        document.getElementById('logoutBtn').addEventListener('click', () => {
-          _TOKEN = null; _USER = null;
-          renderAuth();
-        });
+      let id_examen = "";
+      const pruebaNorm = normalize(prueba);
+      if (pruebaNorm.includes("GLUCOS") || pruebaNorm.includes("GLUCOSE")) {
+        if (tipo === "PRE" || tipo === "POST") id_examen = "9121";
+        else if (["1/2H","1H","2H","3H","B"].includes(tipo)) id_examen = "9122";
+        else id_examen = "11803";
+      } else if (pruebaNorm.includes("BILIRRUBINA") || pruebaNorm.includes("BILIRUBIN")) {
+        if (pruebaNorm.includes("TOTAL")) id_examen = "9087";
+        else if (pruebaNorm.includes("DIRECT")) id_examen = "9086";
+        else if (pruebaNorm.includes("INDIRECT")) id_examen = "9085";
       } else {
-        authArea.innerHTML = `<button id="showLoginBtn" class="bg-salu-900 text-white py-1.5 px-4 rounded-lg hover:bg-blue-800 transition text-sm font-medium shadow-sm">Iniciar Sesión</button>`;
-        idUsuarioInput.value = '';
-        idUsuarioInput.disabled = true;
-        idUsuarioInput.classList.add('opacity-70', 'cursor-not-allowed');
-        
-        document.getElementById('showLoginBtn').addEventListener('click', () => {
-          loginError.classList.add('hidden');
-          loginModal.classList.add('active');
-        });
+        for (const key in EXAM_MAP) { if (pruebaNorm.includes(normalize(key))) { id_examen = EXAM_MAP[key]; break; } }
       }
+      rows.push({ paciente, tipo, tecnica, prueba, id_examen: id_examen || "", conc, unidades, fecha: fecha || "", apiMessage: '', rowClass: '', isCalculated: false });
     }
+    // MODIFICACIÓN: Ya no se agrega BUN automáticamente; los cálculos solo por botón.
+    return rows;
+  }
 
-    closeModalBtn.addEventListener('click', () => loginModal.classList.remove('active'));
-    
-    loginBtn.addEventListener('click', async () => {
-      loginError.classList.add('hidden');
-      loginBtn.textContent = 'Verificando...';
-      loginBtn.disabled = true;
-      
-      try {
-        const user = document.getElementById('loginUser').value;
-        const pass = document.getElementById('loginPass').value;
-        
-        const res = await fetch(LOGIN_URL, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'accept': 'application/json' },
-          body: JSON.stringify({ username: user, password: pass })
-        });
-        
-        if (!res.ok) throw new Error('Error de autenticación');
-        
-        const data = await res.json();
-        
-        if(data.isSuccessful && data.result) {
-          _TOKEN = data.result.token;
-          _USER = data.result;
-          
-          loginModal.classList.remove('active');
-          renderAuth();
-        } else {
-          throw new Error(data.errorMessage || 'Credenciales incorrectas');
-        }
-        
-      } catch (err) {
-        console.error(err);
-        loginError.textContent = err.message || 'Credenciales inválidas o error de conexión.';
-        loginError.classList.remove('hidden');
-      } finally {
-        loginBtn.textContent = 'Entrar';
-        loginBtn.disabled = false;
+  // ---------- VALIDACIÓN Y AGRUPAMIENTO (INCOMPLETOS) ----------
+  function validateAndGroupRows() {
+    globalGroups = [];
+    lastRows.forEach(r => { if(!r.apiMessage.includes('🧮')) r.apiMessage = ''; r.rowClass = r.isCalculated ? r.rowClass : ''; });
+    const patients = [...new Set(lastRows.map(r => r.paciente))];
+
+    patients.forEach(p => {
+      // Bilirrubinas
+      const dir = lastRows.find(r => r.paciente === p && r.id_examen === '9086');
+      const ind = lastRows.find(r => r.paciente === p && r.id_examen === '9085');
+      const tot = lastRows.find(r => r.paciente === p && r.id_examen === '9087');
+      if(dir || ind || tot) {
+        const missing = []; if(!dir) missing.push("Directa(9086)"); if(!ind) missing.push("Indirecta(9085)"); if(!tot) missing.push("Total(9087)");
+        const isComplete = missing.length === 0;
+        const groupRows = [dir, ind, tot].filter(Boolean);
+        const msg = isComplete ? '' : `⚠️ Falta: ${missing.join(', ')}`;
+        groupRows.forEach(r => { r.apiMessage = msg; r.rowClass = isComplete ? r.rowClass : 'row-incomplete'; });
+        globalGroups.push({ idProcedimientoObjetivo: '9087', paciente: p, isComplete, rows: groupRows, mapOrder: [dir, ind, tot] });
+      }
+
+      // Glucosa 2h (PRE/POST)
+      const pre = lastRows.find(r => r.paciente === p && r.id_examen === '9121' && r.tipo === 'PRE');
+      const post = lastRows.find(r => r.paciente === p && r.id_examen === '9121' && r.tipo === 'POST');
+      if(pre || post) {
+        const missing = []; if(!pre) missing.push("PRE"); if(!post) missing.push("POST");
+        const isComplete = missing.length === 0;
+        const groupRows = [pre, post].filter(Boolean);
+        const msg = isComplete ? '' : `⚠️ Falta: ${missing.join(', ')}`;
+        groupRows.forEach(r => { r.apiMessage = msg; r.rowClass = isComplete ? r.rowClass : 'row-incomplete'; });
+        globalGroups.push({ idProcedimientoObjetivo: '9121', paciente: p, isComplete, rows: groupRows, mapOrder: [pre, post] });
+      }
+
+      // Curva completa (2H,3H,1H,1/2H,B)
+      const h2 = lastRows.find(r => r.paciente === p && r.id_examen === '9122' && r.tipo === '2H');
+      const h3 = lastRows.find(r => r.paciente === p && r.id_examen === '9122' && r.tipo === '3H');
+      const h1 = lastRows.find(r => r.paciente === p && r.id_examen === '9122' && r.tipo === '1H');
+      const m = lastRows.find(r => r.paciente === p && r.id_examen === '9122' && r.tipo === '1/2H');
+      const b = lastRows.find(r => r.paciente === p && r.id_examen === '9122' && r.tipo === 'B');
+      if(h2 || h3 || h1 || m || b) {
+        const missing = []; if(!h2) missing.push("2H"); if(!h3) missing.push("3H"); if(!h1) missing.push("1H"); if(!m) missing.push("1/2H"); if(!b) missing.push("Basal");
+        const isComplete = missing.length === 0;
+        const groupRows = [h2, h3, h1, m, b].filter(Boolean);
+        const msg = isComplete ? '' : `⚠️ Falta: ${missing.join(', ')}`;
+        groupRows.forEach(r => { r.apiMessage = msg; r.rowClass = isComplete ? r.rowClass : 'row-incomplete'; });
+        globalGroups.push({ idProcedimientoObjetivo: '9122', paciente: p, isComplete, rows: groupRows, mapOrder: [h2, h3, h1, m, b] });
       }
     });
 
-    // Subir a API
-    document.getElementById('sendApi').addEventListener('click', async () => {
-      if (!_TOKEN) return alert('⚠️ Debes iniciar sesión primero para subir datos.');
-      
-      const idUsuario = document.getElementById('idUsuario').value;
-      if (!idUsuario) return alert('⚠️ El ID de usuario es obligatorio.');
-      
-      const rowsToSend = lastRows.filter(r => r.id_examen);
-      if (rowsToSend.length === 0) return alert('⚠️ No hay filas con ID de examen para enviar.');
-      
-      const payload = {
-        idUsuario: parseInt(idUsuario),
-        resultados: rowsToSend.map(r => ({
-          idPaciente: r.paciente,
-          idExamen: r.id_examen,
-          resultado: r.conc,
-          tipo: r.tipo,
-          fecha: r.fecha
-        }))
-      };
-      
-      try {
-        const res = await fetch(API_BASE, {
-          method: 'POST',
-          headers: { 
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${_TOKEN}`
-          },
-          body: JSON.stringify(payload)
-        });
-        
-        if (!res.ok) throw new Error(`Error ${res.status}: ${res.statusText}`);
-        
-        const data = await res.json();
-        alert('✅ Datos subidos correctamente a la API');
-        
-      } catch (err) {
-        console.error(err);
-        alert(`❌ Error al subir: ${err.message}`);
+    // Exámenes simples
+    lastRows.forEach(r => {
+      const isSpecial = ['9085','9086','9087','9121','9122'].includes(r.id_examen);
+      if(!isSpecial && r.id_examen) {
+        globalGroups.push({ idProcedimientoObjetivo: r.id_examen, paciente: r.paciente, isComplete: true, rows: [r], mapOrder: null });
       }
     });
+  }
 
-    /* ====== Eventos de Interfaz ====== */
-    document.getElementById('applyCalc').addEventListener('click', () => {
-      const selected = {
-        bun: document.getElementById('calcBUN').checked,
-        hdl: document.getElementById('calcHDL').checked,
-        ldl: document.getElementById('calcLDL').checked
-      };
-      if (!Object.values(selected).some(v => v)) return alert('Selecciona al menos un cálculo');
-      lastRows = addSelectedCalculations(lastRows, selected);
+  // ---------- RENDER TABLA Y CONTADORES ----------
+  function render(rows) {
+    const filter = normalize(document.getElementById('filterInput').value);
+    const onlyMapped = document.getElementById('mappedOnly').checked;
+    let visible = 0;
+
+    const total = rows.length;
+    const success = rows.filter(r => r.apiMessage === '✅ Enviado').length;
+    const errors = rows.filter(r => r.apiMessage && r.apiMessage.startsWith('❌')).length;
+    const calculated = rows.filter(r => r.isCalculated === true).length;
+    const incomplete = rows.filter(r => r.apiMessage && r.apiMessage.includes('⚠️ Falta')).length;
+
+    document.getElementById('totalRecords').textContent = total;
+    document.getElementById('successCount').textContent = success;
+    document.getElementById('errorCount').textContent = errors;
+    document.getElementById('calcCount').textContent = calculated;
+    document.getElementById('incompleteCount').textContent = incomplete;
+
+    let html = `<table class="min-w-full"><thead><tr><th>Paciente</th><th>Tipo</th><th>Técnica</th><th>Prueba</th><th>ID Examen</th><th>Conc.</th><th>Und.</th><th>Fecha</th><th>Estado</th></tr></thead><tbody>`;
+    for (const r of rows) {
+      if (onlyMapped && !r.id_examen) continue;
+      if (filter && !(r.paciente.includes(filter) || normalize(r.prueba).includes(filter) || (r.id_examen && r.id_examen.includes(filter)))) continue;
+      visible++;
+      const concFormatted = r.isCalculated ? formatNumber(r.conc) : r.conc;
+      const idStyle = r.id_examen ? (r.isCalculated ? "background:#e6f7ff;color:#0050b3;font-weight:700" : "background:#ecfdf5;color:#166534;font-weight:700") : "color:#ef4444";
+      const statusColor = r.apiMessage && r.apiMessage.includes('⚠️') ? '#b45309' : 'inherit';
+      html += `<tr class="${r.rowClass}">
+        <td><strong>${r.paciente}</strong></td><td>${r.tipo}</td><td>${r.tecnica}</td><td>${escapeHtml(r.prueba)}</td>
+        <td style="${idStyle}">${r.id_examen || '-'}</td><td style="text-align:right">${concFormatted}</td><td>${r.unidades}</td><td>${r.fecha}</td>
+        <td style="font-size:0.8rem; font-weight:600; color:${statusColor}">${escapeHtml(r.apiMessage || '')}</td>
+      </tr>`;
+    }
+    document.getElementById('countBadge').textContent = visible + ' filas';
+    document.getElementById('resultArea').innerHTML = html + `</tbody></table>`;
+  }
+
+  // ---------- PANEL FLOTANTE Y PROGRESO ----------
+  let currentTotal = 0, currentSuccess = 0, currentErrors = 0;
+  function updateFloatingStats(total, success, errors) {
+    currentTotal = total; currentSuccess = success; currentErrors = errors;
+    const percent = total === 0 ? 0 : ((success + errors) / total) * 100;
+    document.getElementById('statTotal').innerText = total;
+    document.getElementById('statSuccess').innerText = success;
+    document.getElementById('statErrors').innerText = errors;
+    document.getElementById('statPercent').innerText = Math.floor(percent) + '%';
+    document.getElementById('microProgress').style.width = percent + '%';
+    document.getElementById('globalProgressBar').style.width = percent + '%';
+  }
+
+  const floatingDiv = document.getElementById('floatingStats');
+  const toggleBtn = document.getElementById('toggleFloat');
+  let minimized = false;
+  toggleBtn.addEventListener('click', (e) => { e.stopPropagation(); minimized = !minimized; floatingDiv.classList.toggle('minimized', minimized); toggleBtn.innerText = minimized ? '+' : '−'; });
+  document.getElementById('statsHeader').addEventListener('click', (e) => { if (e.target !== toggleBtn) toggleBtn.click(); });
+
+  // ---------- LOGIN ----------
+  const loginModal = document.getElementById('loginModal');
+  const loginBtn = document.getElementById('loginBtn');
+  const closeModalBtn = document.getElementById('closeModalBtn');
+  const loginError = document.getElementById('loginError');
+
+  function renderAuth() {
+    const authArea = document.getElementById('authArea');
+    const idUsuarioInput = document.getElementById('idUsuario');
+    if (_TOKEN && _USER) {
+      authArea.innerHTML = `<span class="text-gray-600 mr-3">👋 ${_USER.nombre || _USER.usuario}</span><button id="logoutBtn" class="text-red-600 hover:text-red-800 font-medium transition">Cerrar sesión</button>`;
+      idUsuarioInput.value = _USER.id || '';
+      idUsuarioInput.disabled = false;
+      idUsuarioInput.classList.remove('opacity-70', 'cursor-not-allowed');
+      document.getElementById('logoutBtn')?.addEventListener('click', () => { _TOKEN = null; _USER = null; renderAuth(); updateFloatingStats(0,0,0); });
+    } else {
+      authArea.innerHTML = `<button id="showLoginBtn" class="bg-salu-900 text-white py-1.5 px-4 rounded-lg hover:bg-blue-800 transition text-sm font-medium shadow-sm">Iniciar Sesión</button>`;
+      idUsuarioInput.value = '';
+      idUsuarioInput.disabled = true;
+      idUsuarioInput.classList.add('opacity-70', 'cursor-not-allowed');
+      document.getElementById('showLoginBtn')?.addEventListener('click', () => { loginError.classList.add('hidden'); loginModal.classList.add('active'); });
+    }
+  }
+
+  closeModalBtn.addEventListener('click', () => loginModal.classList.remove('active'));
+  loginBtn.addEventListener('click', async () => {
+    loginError.classList.add('hidden'); loginBtn.textContent = 'Verificando...'; loginBtn.disabled = true;
+    try {
+      const user = document.getElementById('loginUser').value;
+      const pass = document.getElementById('loginPass').value;
+      const res = await fetch(LOGIN_URL, { method: 'POST', headers: { 'Content-Type': 'application/json', accept: 'application/json' }, body: JSON.stringify({ username: user, password: pass }) });
+      if (!res.ok) throw new Error('Error de autenticación');
+      const data = await res.json();
+      if(data.isSuccessful && data.result) { _TOKEN = data.result.token; _USER = data.result; loginModal.classList.remove('active'); renderAuth(); }
+      else throw new Error(data.errorMessage || 'Credenciales incorrectas');
+    } catch (err) { loginError.textContent = err.message || 'Credenciales inválidas o error de conexión.'; loginError.classList.remove('hidden');
+    } finally { loginBtn.textContent = 'Entrar'; loginBtn.disabled = false; }
+  });
+
+  // ---------- ENVÍO A API ----------
+  document.getElementById('sendApi').addEventListener('click', async () => {
+    if (!_TOKEN) return alert('⚠️ Debes iniciar sesión primero.');
+    const idUsuario = document.getElementById('idUsuario').value;
+    if (!idUsuario) return alert('⚠️ El ID de usuario es obligatorio.');
+    const allowIncomplete = document.getElementById('allowIncomplete').checked;
+    let groupsToSend = globalGroups.filter(g => g.isComplete);
+    if(allowIncomplete) groupsToSend = globalGroups;
+    if(groupsToSend.length === 0) return alert('No hay exámenes para enviar. Marque "Incluir Incompletos" si lo desea.');
+
+    const totalCompletos = globalGroups.filter(g => g.isComplete).length;
+    const totalIncompletos = globalGroups.filter(g => !g.isComplete).length;
+    if(!confirm(`📊 Resumen:\n✅ Completos: ${totalCompletos}\n⚠️ Incompletos: ${totalIncompletos}\n\n${allowIncomplete ? 'Se enviarán TODOS (incompletos con *)' : 'Solo se enviarán los COMPLETOS'}\n¿Continuar?`)) return;
+
+    const totalGroups = groupsToSend.length;
+    updateFloatingStats(totalGroups, 0, 0);
+    const btn = document.getElementById('sendApi');
+    btn.disabled = true;
+    btn.textContent = `Enviando (0/${totalGroups})...`;
+    let successCount = 0, errorCount = 0;
+
+    for (const group of groupsToSend) {
+      let payloadBody;
+      if (!group.mapOrder) {
+        payloadBody = { idUsuario: parseInt(idUsuario), resultado: String(group.rows[0].conc) };
+      } else {
+        let resultados = group.mapOrder.map(r => r ? String(r.conc) : '*');
+        if(group.idProcedimientoObjetivo === '9122') resultados.push('*');
+        payloadBody = { idUsuario: parseInt(idUsuario), resultadosArray: resultados };
+      }
+      const url = new URL(API_BASE, window.location.origin);
+      url.searchParams.append('token', _TOKEN);
+      url.searchParams.append('documento', group.paciente);
+      url.searchParams.append('idProcedimientoObjetivo', group.idProcedimientoObjetivo);
+      try {
+        const res = await fetch(url.toString(), { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payloadBody) });
+        const data = await res.json();
+        if (!res.ok || !data.success) throw new Error(data.message || `Error ${res.status}`);
+        successCount++;
+        group.rows.forEach(row => { row.apiMessage = '✅ Enviado'; row.rowClass = 'row-success'; });
+      } catch (err) {
+        errorCount++;
+        group.rows.forEach(row => { row.apiMessage = `❌ ${err.message.substring(0, 40)}`; row.rowClass = 'row-error'; });
+      }
+      updateFloatingStats(totalGroups, successCount, errorCount);
+      btn.textContent = `Enviando (${successCount+errorCount}/${totalGroups})...`;
       render(lastRows);
-      alert('✅ Cálculos aplicados correctamente');
-    });
+      await new Promise(r => setTimeout(r, 100));
+    }
+    btn.disabled = false;
+    btn.textContent = '🚀 Subir a API';
+    render(lastRows);
+    if(errorCount===0) alert(`✅ Éxito: ${successCount} procedimientos subidos.`);
+    else alert(`⚠️ Terminado: ${successCount} éxitos, ${errorCount} errores.`);
+  });
 
-    document.getElementById('selectAllCalc').addEventListener('change', function() {
-      const checked = this.checked;
-      ['calcBUN','calcHDL','calcLDL'].forEach(id => document.getElementById(id).checked = checked);
-    });
+  // ---------- EVENTOS UI ----------
+  document.getElementById('applyCalc').addEventListener('click', () => {
+    const selected = { bun: document.getElementById('calcBUN').checked, hdl: document.getElementById('calcHDL').checked, ldl: document.getElementById('calcLDL').checked };
+    if (!Object.values(selected).some(v => v)) return alert('Selecciona al menos un cálculo');
+    lastRows = addSelectedCalculations(lastRows, selected);
+    validateAndGroupRows();
+    render(lastRows);
+  });
+  document.getElementById('selectAllCalc').addEventListener('change', function() { ['calcBUN','calcHDL','calcLDL'].forEach(id => document.getElementById(id).checked = this.checked); });
+  document.getElementById('clearCalc').addEventListener('click', () => { lastRows = lastRows.filter(r => !r.isCalculated); validateAndGroupRows(); render(lastRows); });
+  document.getElementById('parse').addEventListener('click', () => { const txt = document.getElementById('input').value.trim(); if(!txt) return alert('Pega datos primero'); lastRows = parseText(txt); validateAndGroupRows(); render(lastRows); updateFloatingStats(0,0,0); });
+  document.getElementById('file').addEventListener('change', async e => { if(e.target.files[0]) document.getElementById('input').value = await e.target.files[0].text(); });
+  document.getElementById('clear').addEventListener('click', () => { document.getElementById('input').value = ''; lastRows = []; globalGroups = []; render(lastRows); updateFloatingStats(0,0,0); document.getElementById('resultArea').innerHTML = '<p class="text-center text-gray-400 py-10 italic">Los resultados procesados aparecerán aquí.</p>'; });
+  document.getElementById('filterInput').addEventListener('input', () => render(lastRows));
+  document.getElementById('mappedOnly').addEventListener('change', () => render(lastRows));
 
-    document.getElementById('clearCalc').addEventListener('click', () => {
-      lastRows = lastRows.filter(r => !r.isCalculated);
-      render(lastRows);
-    });
-
-    document.getElementById('parse').addEventListener('click', () => { 
-      const txt = document.getElementById('input').value.trim(); 
-      if(!txt) return alert('Pega datos primero'); 
-      lastRows = parseText(txt); 
-      render(lastRows); 
-    });
-
-    document.getElementById('file').addEventListener('change', async e => { 
-      if(e.target.files[0]) document.getElementById('input').value = await e.target.files[0].text(); 
-    });
-
-    document.getElementById('clear').addEventListener('click', () => { 
-      document.getElementById('input').value = ''; 
-      lastRows = []; 
-      document.getElementById('resultArea').innerHTML = '<p class="text-center text-gray-400 py-10 italic">Los resultados procesados aparecerán aquí.</p>'; 
-    });
-
-    document.getElementById('filterInput').addEventListener('input', () => render(lastRows));
-    document.getElementById('mappedOnly').addEventListener('change', () => render(lastRows));
-
-    // Inicializar Auth al cargar la página
-    renderAuth();
-  </script>
+  renderAuth();
+  render([]);
+</script>
 </body>
 </html>

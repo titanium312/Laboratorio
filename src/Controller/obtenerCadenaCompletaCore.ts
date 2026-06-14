@@ -177,20 +177,22 @@ export async function obtenerCadenaCompletaCore(
 /**
  * CONTROLLER EXPRESS
  * ─────────────────────────────────────────────
+ * ✅ VERSIÓN CORREGIDA - Sin error TS7030
  */
 export const obtenerCadenaCompleta: RequestHandler = async (
   req: Request,
   res: Response,
   next: NextFunction
-) => {
+): Promise<void> => { // 👈 1. AÑADIR Promise<void>
   try {
     const { documento, idProcedimientoObjetivo, token } = req.body;
 
     if (!documento || !idProcedimientoObjetivo || !token) {
-      return res.status(400).json({
+      res.status(400).json({ // 👈 2. CAMBIAR 'return res.status' por solo 'res.status'
         success: false,
         error: 'documento, idProcedimientoObjetivo y token son obligatorios',
       });
+      return; // 👈 3. AÑADIR RETURN EXPLÍCITO
     }
 
     const resultado = await obtenerCadenaCompletaCore(
@@ -199,9 +201,12 @@ export const obtenerCadenaCompleta: RequestHandler = async (
       token
     );
 
-    return res.json(resultado);
+    res.json(resultado); // 👈 4. CAMBIAR 'return res.json' por solo 'res.json'
+    return; // 👈 5. AÑADIR RETURN EXPLÍCITO
+
   } catch (err) {
     next(err);
+    return; // 👈 6. AÑADIR RETURN EXPLÍCITO (aunque next no requiera return)
   }
 };
 

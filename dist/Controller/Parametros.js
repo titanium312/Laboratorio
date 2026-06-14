@@ -11,7 +11,6 @@ const Parametrizacion = async (req, res) => {
         const idAdmision = req.body.idAdmision || req.query.idAdmision;
         const idsProcedimientos = req.body.idsProcedimientos || req.query.idsProcedimientos;
         const token = req.body.token || req.query.token;
-        /* ───── Validaciones ───── */
         if (!token || typeof token !== 'string' || token.trim() === '') {
             return res.status(400).json({
                 error: 'El token es obligatorio'
@@ -26,12 +25,10 @@ const Parametrizacion = async (req, res) => {
                 }
             });
         }
-        /* ───── Normalizar idsProcedimientos ───── */
         const ids = Array.isArray(idsProcedimientos)
             ? idsProcedimientos.join(',')
             : String(idsProcedimientos);
         const url = `${BASE_URL}/ParametrizacionesProcedimientos?idAdmision=${idAdmision}&idsProcedimientos=${ids}`;
-        /* ───── Llamada a SaludPlus ───── */
         const response = await axios_1.default.get(url, {
             headers: {
                 Accept: 'application/json, text/plain, */*',
@@ -41,7 +38,6 @@ const Parametrizacion = async (req, res) => {
             },
             timeout: 15000,
         });
-        /* ───── Validar respuesta API ───── */
         if (!response.data?.isSuccessful) {
             return res.status(400).json({
                 error: 'SaludPlus respondió con error',
@@ -62,7 +58,6 @@ const Parametrizacion = async (req, res) => {
                 error: 'No existen items de laboratorio para esta parametrización'
             });
         }
-        /* ───── Respuesta final ───── */
         return res.json({
             success: true,
             idParametrizacion,
