@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Salu Plus | Gestión de Laboratorio</title>
+  <title>Salu Plus | Gestión de Laboratorio con Cálculo de Bilirrubina Indirecta</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script>
     tailwind.config = {
@@ -23,6 +23,7 @@
     .row-bun-calculated { background-color: #e6f7ff; }
     .row-ldl-calculated { background-color: #fef9e7; }
     .row-ct-calculated { background-color: #faf5ff; }
+    .row-indirect-calculated { background-color: #ecfdf5; } /* Verde claro elegante */
     .row-success { background-color: #f0fdf4 !important; }
     .row-error { background-color: #fef2f2 !important; }
     .row-incomplete { background-color: #fffbeb !important; }
@@ -130,7 +131,6 @@
         </div>
         <hr class="border-gray-100">
 
-
     <!-- Tarjetas de resumen -->
     <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-4 mb-6">
       <div class="bg-white rounded-lg shadow p-4 border-l-4 border-salu-900"><p class="text-xs text-gray-500 uppercase">Total Registros</p><p class="text-2xl font-bold text-gray-900" id="totalRecords">0</p></div>
@@ -140,13 +140,15 @@
       <div class="bg-white rounded-lg shadow p-4 border-l-4 border-amber-500"><p class="text-xs text-gray-500 uppercase">Incompletos</p><p class="text-2xl font-bold text-amber-600" id="incompleteCount">0</p></div>
     </div>
 
-
+        <!-- Panel de Cálculos Automáticos (AHORA CON BILIRRUBINA INDIRECTA) -->
         <div class="bg-amber-50 p-6 rounded-2xl border border-amber-200">
           <div class="flex items-center justify-between mb-5"><h3 class="text-lg font-semibold text-amber-900">Cálculos Automáticos</h3><label class="flex items-center gap-2 cursor-pointer text-sm font-medium"><input type="checkbox" id="selectAllCalc" class="w-4 h-4 text-amber-600 rounded"> Seleccionar todos</label></div>
-          <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
             <label class="flex items-start gap-3 p-4 bg-white rounded-xl border border-amber-100 hover:border-amber-300 cursor-pointer transition"><input type="checkbox" id="calcBUN" class="w-5 h-5 text-amber-600 mt-0.5"><div><span class="font-medium text-gray-800">BUN</span><p class="text-xs text-gray-500 mt-1 font-mono">UREA / 2.14</p></div></label>
             <label class="flex items-start gap-3 p-4 bg-white rounded-xl border border-amber-100 hover:border-amber-300 cursor-pointer transition"><input type="checkbox" id="calcHDL" class="w-5 h-5 text-amber-600 mt-0.5"><div><span class="font-medium text-gray-800">HDL</span><p class="text-xs text-gray-500 mt-1 font-mono">CT × 0.25</p></div></label>
             <label class="flex items-start gap-3 p-4 bg-white rounded-xl border border-amber-100 hover:border-amber-300 cursor-pointer transition"><input type="checkbox" id="calcLDL" class="w-5 h-5 text-amber-600 mt-0.5"><div><span class="font-medium text-gray-800">LDL</span><p class="text-xs text-gray-500 mt-1 font-mono">CT - HDL - (TG/5)</p></div></label>
+            <!-- NUEVO: Cálculo de Bilirrubina Indirecta -->
+            <label class="flex items-start gap-3 p-4 bg-white rounded-xl border border-amber-100 hover:border-amber-300 cursor-pointer transition"><input type="checkbox" id="calcIndirect" class="w-5 h-5 text-amber-600 mt-0.5"><div><span class="font-medium text-gray-800">Bilirrubina Indirecta</span><p class="text-xs text-gray-500 mt-1 font-mono">Total - Directa</p></div></label>
           </div>
           <div class="mt-6 flex gap-4"><button id="applyCalc" class="flex-1 bg-amber-600 hover:bg-amber-700 text-white py-3 px-6 rounded-xl font-medium transition">Aplicar Cálculos Seleccionados</button><button id="clearCalc" class="px-6 py-3 text-gray-600 hover:text-red-600 font-medium transition">Limpiar cálculos</button></div>
         </div>
@@ -163,7 +165,7 @@
   </div>
 </main>
 
-<footer class="bg-white border-t border-gray-200 mt-auto"><div class="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8 flex flex-col md:flex-row justify-between items-center gap-4"><p class="text-sm text-gray-500">&copy; 2025 Salu Plus Laboratorio. Confianza que se analiza.</p></div></footer>
+<footer class="bg-white border-t border-gray-200 mt-auto"><div class="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8 flex flex-col md:flex-row justify-between items-center gap-4"><p class="text-sm text-gray-500">&copy; 2025 Salu Plus Laboratorio. Confianza que se analiza. · Cálculo de Bilirrubina Indirecta incluido</p></div></footer>
 
 <script>
   // ---------- CONFIGURACIÓN ----------
@@ -196,6 +198,15 @@
   function calculateBUNFromUrea(ureaValue) { if (!ureaValue || ureaValue === '-') return null; const numMatch = String(ureaValue).match(/([<>]=?)?\s*(\d+[\.,]?\d*)/); if (!numMatch) return null; const num = parseFloat(numMatch[2].replace(',', '.')); if (isNaN(num) || num === 0) return null; return (num / 2.14).toFixed(2); }
   function calculateLDL(ct, hdl, tg) { const ctN = parseNum(ct), hdlN = parseNum(hdl), tgN = parseNum(tg); if (isNaN(ctN) || isNaN(hdlN) || isNaN(tgN) || tgN >= 400) return null; return (ctN - hdlN - (tgN / 5)).toFixed(2); }
   function calculateHDL(ct) { const ctN = parseNum(ct); if (isNaN(ctN) || ctN === 0) return null; return (ctN * 0.25).toFixed(2); }
+  // Nuevo cálculo: Bilirrubina Indirecta = Total - Directa
+  function calculateIndirect(totalConc, directConc) {
+    const total = parseNum(totalConc);
+    const direct = parseNum(directConc);
+    if (isNaN(total) || isNaN(direct) || total === null || direct === null) return null;
+    const indirect = total - direct;
+    if (indirect < 0) return null; // Valor fisiológico no negativo
+    return indirect.toFixed(2);
+  }
 
   function addSelectedCalculations(rows, selected) {
     let newRows = [...rows];
@@ -206,14 +217,37 @@
       const hdl  = rows.find(r => r.paciente === paciente && r.id_examen === '9093');
       const ldl  = rows.find(r => r.paciente === paciente && r.id_examen === '9094');
       const tg   = rows.find(r => r.paciente === paciente && r.id_examen === '9146');
+      // Bilirrubinas
+      const totalBil = rows.find(r => r.paciente === paciente && r.id_examen === '9087');
+      const directBil = rows.find(r => r.paciente === paciente && r.id_examen === '9086');
+      const existingIndirect = rows.some(r => r.paciente === paciente && r.id_examen === '9085');
+
       const hasBUN = rows.some(r => r.paciente === paciente && r.id_examen === '9134');
       const hasCT  = !!ct && parseNum(ct.conc) > 0;
       const hasHDL = !!hdl && parseNum(hdl.conc) > 0;
       const hasLDL = !!ldl && parseNum(ldl.conc) > 0;
       const hasTG  = !!tg && parseNum(tg.conc) > 0;
+
+      // Cálculo BUN
       if (selected.bun && !hasBUN && urea) { const val = calculateBUNFromUrea(urea.conc); if (val) newRows.push({paciente, tipo:'-', tecnica:'CALC', prueba:'BUN (calculado)', id_examen:'9134', conc:val, unidades:'mg/dL', fecha:urea.fecha, apiMessage:'🧮 UREA / 2.14', rowClass:'row-bun-calculated', isCalculated:true}); }
+      // Cálculo HDL
       if (selected.hdl && !hasHDL && hasCT) { const val = calculateHDL(ct.conc); if (val) newRows.push({paciente, tipo:'-', tecnica:'CALC', prueba:'HDL (calculado)', id_examen:'9093', conc:val, unidades:'mg/dL', fecha:ct.fecha, apiMessage:'🧮 CT × 0.25', rowClass:'row-ct-calculated', isCalculated:true}); }
+      // Cálculo LDL
       if (selected.ldl && !hasLDL && hasCT && hasHDL && hasTG) { const val = calculateLDL(ct.conc, hdl.conc, tg.conc); if (val) newRows.push({paciente, tipo:'-', tecnica:'CALC', prueba:'LDL (calculado)', id_examen:'9094', conc:val, unidades:'mg/dL', fecha:ct.fecha, apiMessage:'🧮 CT - HDL - TG/5', rowClass:'row-ldl-calculated', isCalculated:true}); }
+      // NUEVO: Cálculo de Bilirrubina Indirecta (si existe Total y Directa, y no hay Indirecta preexistente)
+      if (selected.indirect && !existingIndirect && totalBil && directBil) {
+        const indirectVal = calculateIndirect(totalBil.conc, directBil.conc);
+        if (indirectVal) {
+          newRows.push({
+            paciente, tipo:'-', tecnica:'CALC', prueba:'Bilirrubina Indirecta (calculada)', id_examen:'9085',
+            conc: indirectVal, unidades: totalBil.unidades || directBil.unidades || 'mg/dL',
+            fecha: totalBil.fecha || directBil.fecha,
+            apiMessage:'🧮 Bilirrubina Total - Directa',
+            rowClass:'row-indirect-calculated',
+            isCalculated: true
+          });
+        }
+      }
     });
     return newRows.sort((a, b) => a.paciente.localeCompare(b.paciente));
   }
@@ -270,7 +304,6 @@
       }
       rows.push({ paciente, tipo, tecnica, prueba, id_examen: id_examen || "", conc, unidades, fecha: fecha || "", apiMessage: '', rowClass: '', isCalculated: false });
     }
-    // MODIFICACIÓN: Ya no se agrega BUN automáticamente; los cálculos solo por botón.
     return rows;
   }
 
@@ -281,7 +314,7 @@
     const patients = [...new Set(lastRows.map(r => r.paciente))];
 
     patients.forEach(p => {
-      // Bilirrubinas
+      // Bilirrubinas (incluye soporte para indirecta calculada)
       const dir = lastRows.find(r => r.paciente === p && r.id_examen === '9086');
       const ind = lastRows.find(r => r.paciente === p && r.id_examen === '9085');
       const tot = lastRows.find(r => r.paciente === p && r.id_examen === '9087');
@@ -306,7 +339,7 @@
         globalGroups.push({ idProcedimientoObjetivo: '9121', paciente: p, isComplete, rows: groupRows, mapOrder: [pre, post] });
       }
 
-      // Curva completa (2H,3H,1H,1/2H,B)
+      // Curva completa
       const h2 = lastRows.find(r => r.paciente === p && r.id_examen === '9122' && r.tipo === '2H');
       const h3 = lastRows.find(r => r.paciente === p && r.id_examen === '9122' && r.tipo === '3H');
       const h1 = lastRows.find(r => r.paciente === p && r.id_examen === '9122' && r.tipo === '1H');
@@ -361,10 +394,11 @@
         <td><strong>${r.paciente}</strong></td><td>${r.tipo}</td><td>${r.tecnica}</td><td>${escapeHtml(r.prueba)}</td>
         <td style="${idStyle}">${r.id_examen || '-'}</td><td style="text-align:right">${concFormatted}</td><td>${r.unidades}</td><td>${r.fecha}</td>
         <td style="font-size:0.8rem; font-weight:600; color:${statusColor}">${escapeHtml(r.apiMessage || '')}</td>
-      </tr>`;
+       </tr>`;
     }
     document.getElementById('countBadge').textContent = visible + ' filas';
     document.getElementById('resultArea').innerHTML = html + `</tbody></table>`;
+    if(rows.length===0) document.getElementById('resultArea').innerHTML = '<p class="text-center text-gray-400 py-10 italic">Los resultados procesados aparecerán aquí.</p>';
   }
 
   // ---------- PANEL FLOTANTE Y PROGRESO ----------
@@ -483,13 +517,13 @@
 
   // ---------- EVENTOS UI ----------
   document.getElementById('applyCalc').addEventListener('click', () => {
-    const selected = { bun: document.getElementById('calcBUN').checked, hdl: document.getElementById('calcHDL').checked, ldl: document.getElementById('calcLDL').checked };
+    const selected = { bun: document.getElementById('calcBUN').checked, hdl: document.getElementById('calcHDL').checked, ldl: document.getElementById('calcLDL').checked, indirect: document.getElementById('calcIndirect').checked };
     if (!Object.values(selected).some(v => v)) return alert('Selecciona al menos un cálculo');
     lastRows = addSelectedCalculations(lastRows, selected);
     validateAndGroupRows();
     render(lastRows);
   });
-  document.getElementById('selectAllCalc').addEventListener('change', function() { ['calcBUN','calcHDL','calcLDL'].forEach(id => document.getElementById(id).checked = this.checked); });
+  document.getElementById('selectAllCalc').addEventListener('change', function() { ['calcBUN','calcHDL','calcLDL','calcIndirect'].forEach(id => document.getElementById(id).checked = this.checked); });
   document.getElementById('clearCalc').addEventListener('click', () => { lastRows = lastRows.filter(r => !r.isCalculated); validateAndGroupRows(); render(lastRows); });
   document.getElementById('parse').addEventListener('click', () => { const txt = document.getElementById('input').value.trim(); if(!txt) return alert('Pega datos primero'); lastRows = parseText(txt); validateAndGroupRows(); render(lastRows); updateFloatingStats(0,0,0); });
   document.getElementById('file').addEventListener('change', async e => { if(e.target.files[0]) document.getElementById('input').value = await e.target.files[0].text(); });
