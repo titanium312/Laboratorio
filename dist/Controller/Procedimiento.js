@@ -39,7 +39,7 @@ const Procedimiento = async (req, res) => {
                 error: 'El token es obligatorio',
             });
         }
-        const url = `https://api.saludplus.co/api/resultadoLaboratorio/GetAdmisionLaboratorio?idAdmision=${idAdmisionStr}&isFactura=true`;
+        const url = `https://api.saludplus.co/api/resultadoLaboratorio/GetAdmisionLaboratorioV2?idAdmision=${idAdmisionStr}&isFactura=false`;
         console.log(`🔵 [Procedimiento] Llamando a: ${url.substring(0, 100)}...`);
         const response = await axios_1.default.get(url, {
             headers: {
@@ -50,7 +50,7 @@ const Procedimiento = async (req, res) => {
             },
             timeout: 15000,
         });
-        const facturaOrOrdens = response.data?.facturaOrOrdens;
+        const facturaOrOrdens = response.data?.result?.facturaOrOrdens;
         if (!facturaOrOrdens || !Array.isArray(facturaOrOrdens) || facturaOrOrdens.length === 0) {
             console.warn('⚠️ [Procedimiento] No se encontraron procedimientos');
             return res.status(404).json({

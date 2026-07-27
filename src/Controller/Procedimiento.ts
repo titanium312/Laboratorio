@@ -47,7 +47,8 @@ export const Procedimiento = async (req: Request, res: Response): Promise<Respon
       });
     }
 
-    const url = `https://api.saludplus.co/api/resultadoLaboratorio/GetAdmisionLaboratorio?idAdmision=${idAdmisionStr}&isFactura=true`;
+    // ✅ SOLO CAMBIÉ ESTA LÍNEA
+    const url = `https://api.saludplus.co/api/resultadoLaboratorio/GetAdmisionLaboratorioV2?idAdmision=${idAdmisionStr}&isFactura=false`;
     console.log(`🔵 [Procedimiento] Llamando a: ${url.substring(0, 100)}...`);
 
     const response = await axios.get(url, {
@@ -60,7 +61,10 @@ export const Procedimiento = async (req: Request, res: Response): Promise<Respon
       timeout: 15000,
     });
 
-    const facturaOrOrdens = response.data?.facturaOrOrdens;
+    // ⚠️ IMPORTANTE: La estructura de respuesta cambió
+    // Antes: response.data?.facturaOrOrdens
+    // Ahora: response.data?.result?.facturaOrOrdens
+    const facturaOrOrdens = response.data?.result?.facturaOrOrdens;
 
     if (!facturaOrOrdens || !Array.isArray(facturaOrOrdens) || facturaOrOrdens.length === 0) {
       console.warn('⚠️ [Procedimiento] No se encontraron procedimientos');
