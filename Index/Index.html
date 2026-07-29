@@ -3,174 +3,234 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Salu Plus | Gestión de Laboratorio con Cálculo de Bilirrubina Indirecta</title>
+  <title>Salu Plus | Gestión de Laboratorio Premium</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script>
     tailwind.config = {
       theme: {
         extend: {
-          colors: { salu: { 900: '#1e3a8a', 800: '#1e40af', 50: '#f9fafb' } }
+          colors: { salu: { 900: '#0f172a', 800: '#1e293b', 700: '#334155', 50: '#f8fafc' } },
+          boxShadow: { 'glow': '0 0 15px rgba(59, 130, 246, 0.5)' }
         }
       }
     }
   </script>
   <style>
+    body {
+      background: linear-gradient(135deg, #f8fafc 0%, #eef2f7 100%);
+      background-attachment: fixed;
+    }
     table { width: 100%; border-collapse: collapse; margin-top: 1rem; font-size: 0.875rem; }
-    th { background-color: #f3f4f6; color: #1f2937; font-weight: 600; padding: 0.75rem; text-align: left; border-bottom: 2px solid #e5e7eb; }
-    td { padding: 0.75rem; border-bottom: 1px solid #e5e7eb; color: #4b5563; }
-    tr:hover { background-color: #f9fafb; }
-    .input-transition { transition: all 0.2s ease-in-out; }
-    .row-bun-calculated { background-color: #e6f7ff; }
-    .row-ldl-calculated { background-color: #fef9e7; }
-    .row-ct-calculated { background-color: #faf5ff; }
-    .row-indirect-calculated { background-color: #ecfdf5; } /* Verde claro elegante */
-    .row-success { background-color: #f0fdf4 !important; }
-    .row-error { background-color: #fef2f2 !important; }
-    .row-incomplete { background-color: #fffbeb !important; }
+    th { 
+      background-color: #0f172a; color: #ffffff; font-weight: 600; 
+      padding: 1rem; text-align: left; position: sticky; top: 0; z-index: 10;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    td { padding: 0.75rem; border-bottom: 1px solid #e5e7eb; color: #334155; transition: background-color 0.3s ease; }
+    tr:nth-child(even) { background-color: #fbfcfd; }
+    tr:hover td { background-color: #f1f5f9; }
+    
+    .row-bun-calculated { background-color: #e0f2fe !important; }
+    .row-ldl-calculated { background-color: #fef9e7 !important; }
+    .row-ct-calculated { background-color: #faf5ff !important; }
+    .row-indirect-calculated { background-color: #ecfdf5 !important; }
+    .row-success td { background-color: #dcfce7 !important; color: #14532d; }
+    .row-error td { background-color: #fee2e2 !important; color: #7f1d1d; }
+    .row-incomplete td { background-color: #fffbeb !important; }
 
     .modal-overlay {
-      position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-      background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center;
-      z-index: 50; opacity: 0; pointer-events: none; transition: opacity 0.3s ease;
+      position: fixed; inset: 0; background: rgba(15, 23, 42, 0.8); backdrop-filter: blur(8px);
+      display: flex; align-items: center; justify-content: center; z-index: 50; 
+      opacity: 0; pointer-events: none; transition: opacity 0.3s ease;
     }
     .modal-overlay.active { opacity: 1; pointer-events: auto; }
     .modal-box {
-      background: white; padding: 2rem; border-radius: 1rem; width: 100%; max-width: 400px;
-      box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25); transform: scale(0.9); transition: transform 0.3s ease;
+      background: white; padding: 2.5rem; border-radius: 1.5rem; width: 100%; max-width: 420px;
+      box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25); transform: scale(0.9) translateY(20px); 
+      transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
     }
-    .modal-overlay.active .modal-box { transform: scale(1); }
+    .modal-overlay.active .modal-box { transform: scale(1) translateY(0); }
 
     #globalProgressBar {
-      position: fixed; top: 0; left: 0; width: 0%; height: 3px;
-      background: linear-gradient(90deg, #1e3a8a, #3b82f6, #1e3a8a);
-      z-index: 1000; transition: width 0.2s ease;
-      box-shadow: 0 0 8px rgba(59,130,246,0.6);
+      position: fixed; top: 0; left: 0; width: 0%; height: 4px;
+      background: linear-gradient(90deg, #0f172a, #3b82f6, #06b6d4);
+      z-index: 1000; transition: width 0.3s ease; box-shadow: 0 0 10px rgba(59,130,246,0.8);
     }
 
     .floating-stats {
-      position: fixed; bottom: 20px; right: 20px; width: 300px;
-      background: white; border-radius: 12px;
-      box-shadow: 0 10px 25px -5px rgba(0,0,0,0.1), 0 10px 10px -5px rgba(0,0,0,0.04);
-      z-index: 1000; transition: all 0.3s ease; border-left: 4px solid #1e3a8a; font-family: monospace;
+      position: fixed; bottom: 24px; right: 24px; width: 320px;
+      background: rgba(255,255,255,0.95); backdrop-filter: blur(12px);
+      border-radius: 16px; box-shadow: 0 15px 35px -5px rgba(0,0,0,0.2); 
+      z-index: 900; transition: all 0.3s ease; border: 1px solid rgba(255,255,255,0.5);
     }
-    .floating-stats.minimized {
-      width: auto; background: rgba(255,255,255,0.95); backdrop-filter: blur(4px);
-      border-radius: 40px; padding: 8px 16px; cursor: pointer;
+    .floating-stats.minimized { width: 60px; height: 60px; border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center; border-left: none; }
+    .floating-stats.minimized .stats-content, .floating-stats.minimized .stats-header { display: none; }
+    .floating-stats.minimized::after { content: "📊"; font-size: 24px; }
+    
+    .stats-header { padding: 14px 18px; font-weight: bold; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #f1f5f9; }
+    .stats-content { padding: 16px 18px; }
+    
+    /* TOAST NOTIFICATIONS */
+    #toastContainer {
+      position: fixed; top: 20px; right: 20px; z-index: 2000; display: flex; flex-direction: column; gap: 10px;
     }
-    .floating-stats.minimized .stats-content { display: none; }
-    .floating-stats.minimized .stats-header { margin-bottom: 0; padding: 0; }
-    .stats-header {
-      padding: 12px 16px; background: #f8fafc; border-radius: 12px 12px 0 0;
-      font-weight: bold; display: flex; justify-content: space-between; align-items: center;
-      cursor: pointer; border-bottom: 1px solid #e2e8f0;
+    .toast {
+      background: white; padding: 16px 24px; border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+      border-left: 5px solid #ccc; min-width: 280px; animation: slideIn 0.3s ease, fadeOut 0.3s ease 3.7s forwards;
+      display: flex; align-items: center; gap: 12px; font-weight: 500;
     }
-    .stats-content { padding: 12px 16px; }
-    .stat-row { display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 0.875rem; }
-    .stat-label { color: #475569; }
-    .stat-value { font-weight: 700; }
-    .progress-micro { height: 6px; background: #e2e8f0; border-radius: 3px; overflow: hidden; margin: 12px 0 8px; }
-    .progress-micro-fill { width: 0%; height: 100%; background: #1e3a8a; transition: width 0.2s; }
-    .float-toggle { font-size: 12px; color: #64748b; }
+    .toast.success { border-color: #10b981; color: #065f46; }
+    .toast.error { border-color: #ef4444; color: #991b1b; }
+    .toast.info { border-color: #3b82f6; color: #1e40af; }
+    @keyframes slideIn { from { transform: translateX(120%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+    @keyframes fadeOut { to { transform: translateX(120%); opacity: 0; } }
   </style>
 </head>
 <body class="bg-gray-50 text-gray-700 font-sans antialiased min-h-screen flex flex-col">
 
 <div id="globalProgressBar"></div>
+<div id="toastContainer"></div>
 
 <div id="floatingStats" class="floating-stats">
-  <div class="stats-header" id="statsHeader">
-    <span>📊 Envío a API</span>
-    <span class="float-toggle" id="toggleFloat">−</span>
+  <div class="stats-header">
+    <span class="text-salu-900">📊 Monitoreo de Envíos</span>
+    <span class="cursor-pointer text-gray-400 hover:text-gray-600" id="toggleFloat">−</span>
   </div>
-  <div class="stats-content" id="statsContent">
-    <div class="stat-row"><span class="stat-label">Total a enviar:</span><span class="stat-value" id="statTotal">0</span></div>
-    <div class="stat-row"><span class="stat-label">✅ Éxitos:</span><span class="stat-value text-green-600" id="statSuccess">0</span></div>
-    <div class="stat-row"><span class="stat-label">❌ Errores:</span><span class="stat-value text-red-600" id="statErrors">0</span></div>
-    <div class="progress-micro"><div class="progress-micro-fill" id="microProgress"></div></div>
-    <div class="stat-row"><span class="stat-label">Progreso:</span><span class="stat-value" id="statPercent">0%</span></div>
+  <div class="stats-content">
+    <div class="flex justify-between mb-2 text-sm"><span class="text-gray-500">Total Procedimientos:</span><span class="font-bold text-gray-800" id="statTotal">0</span></div>
+    <div class="flex justify-between mb-2 text-sm"><span class="text-green-600">✅ Éxitos:</span><span class="font-bold text-green-600" id="statSuccess">0</span></div>
+    <div class="flex justify-between mb-2 text-sm"><span class="text-red-600">❌ Errores:</span><span class="font-bold text-red-600" id="statErrors">0</span></div>
+    <div class="w-full bg-gray-200 rounded-full h-2.5 mt-3 overflow-hidden">
+      <div class="h-full bg-gradient-to-r from-salu-900 to-blue-500 transition-all duration-300" id="microProgress" style="width: 0%"></div>
+    </div>
+    <div class="text-center mt-2 text-xs font-mono text-gray-500" id="statPercent">0%</div>
   </div>
 </div>
 
 <div id="loginModal" class="modal-overlay">
   <div class="modal-box">
-    <h2 class="text-2xl font-bold text-gray-900 mb-6 text-center">Iniciar Sesión</h2>
-    <div class="space-y-4">
-      <div><label class="block text-sm font-medium text-gray-700 mb-1">Usuario</label><input id="loginUser" type="text" class="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-salu-900"></div>
-      <div><label class="block text-sm font-medium text-gray-700 mb-1">Contraseña</label><input id="loginPass" type="password" class="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-salu-900"></div>
-      <div id="loginError" class="text-red-600 text-sm hidden">Credenciales inválidas o error de conexión.</div>
-      <button id="loginBtn" class="w-full bg-salu-900 text-white py-2 px-4 rounded-lg hover:bg-blue-800 transition font-medium shadow-md">Entrar</button>
+    <h2 class="text-3xl font-bold text-salu-900 mb-2 text-center">Acceso Seguro</h2>
+    <p class="text-gray-500 text-center mb-8 text-sm">Ingrese sus credenciales de Salu Plus</p>
+    <div class="space-y-5">
+      <div><label class="block text-sm font-medium text-gray-600 mb-1">Usuario</label><input id="loginUser" type="text" value="rbarreto" class="w-full p-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-salu-900 focus:border-transparent transition"></div>
+      <div><label class="block text-sm font-medium text-gray-600 mb-1">Contraseña</label><input id="loginPass" type="password" value="1235239398" class="w-full p-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-salu-900 focus:border-transparent transition"></div>
+      <div id="loginError" class="text-red-600 text-sm hidden bg-red-50 p-3 rounded-lg">Credenciales inválidas.</div>
+      <button id="loginBtn" class="w-full bg-salu-900 text-white py-3 px-4 rounded-xl hover:bg-salu-800 transition font-medium shadow-lg hover:shadow-glow">Ingresar</button>
       <button id="closeModalBtn" class="w-full text-gray-500 py-2 px-4 hover:text-gray-800 transition text-sm">Cancelar</button>
     </div>
   </div>
 </div>
 
-<header class="bg-white shadow-sm border-b border-gray-200">
+<header class="bg-white/90 backdrop-filter backdrop-blur-md shadow-sm border-b border-gray-100 sticky top-0 z-40">
   <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
-    <div class="flex items-center gap-3"><div class="w-10 h-10 bg-salu-900 rounded-lg flex items-center justify-center text-white font-bold text-xl">S+</div><div><h1 class="text-2xl font-bold text-gray-900 tracking-tight">Salu Plus</h1><p class="text-xs text-gray-500 uppercase tracking-wide">Excelencia en Laboratorio</p></div></div>
+    <div class="flex items-center gap-3">
+      <div class="w-12 h-12 bg-gradient-to-br from-salu-900 to-blue-600 rounded-xl flex items-center justify-center text-white font-bold text-2xl shadow-lg">S+</div>
+      <div><h1 class="text-2xl font-bold text-gray-900 tracking-tight">Salu Plus</h1><p class="text-xs text-gray-500 uppercase tracking-widest">Laboratorio de Alta Precisión</p></div>
+    </div>
     <div id="authArea" class="text-sm"></div>
   </div>
 </header>
 
 <main class="flex-grow py-10 px-4 sm:px-6 lg:px-8">
   <div class="max-w-6xl mx-auto">
-    <div class="mb-8 text-center max-w-2xl mx-auto"><h2 class="text-3xl font-semibold text-gray-900 mb-3">Gestión de Análisis Clínicos</h2><p class="text-gray-600 leading-relaxed">Procesamiento de datos con los estándares de calidad, precisión y seguridad que caracterizan a Salu Plus.</p></div>
-
-
-    <div class="bg-white shadow-lg rounded-xl border border-gray-200 overflow-hidden">
-      <div class="bg-gray-50 px-6 py-4 border-b border-gray-200 flex justify-between items-center"><h3 class="text-lg font-medium text-gray-800">Importar TXT de Laboratorio</h3><span class="bg-blue-100 text-salu-900 text-xs px-2 py-1 rounded-full font-semibold" id="countBadge">0 filas</span></div>
-      <div class="p-6 space-y-6">
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div class="space-y-4">
-            <div><label class="block text-sm font-medium text-gray-700 mb-1">Cargar archivo .txt</label><input id="file" type="file" accept=".txt" class="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-salu-900 hover:file:bg-blue-100 cursor-pointer border border-gray-300 rounded-lg"></div>
-            <div><label class="block text-sm font-medium text-gray-700 mb-1">Pegar contenido manual</label><textarea id="input" rows="6" placeholder="Pegue aquí el texto crudo del laboratorio..." class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-salu-900 outline-none text-sm font-mono resize-none"></textarea></div>
-          </div>
-          <div class="flex flex-col justify-between space-y-4">
-            <div class="grid grid-cols-2 gap-3"><button id="parse" class="col-span-2 bg-salu-900 text-white py-2 px-4 rounded-lg hover:bg-blue-800 transition font-medium shadow-md flex items-center justify-center gap-2">Parsear Datos</button><button id="clear" class="border border-gray-300 text-gray-700 py-2 px-4 rounded-lg hover:bg-gray-50 transition text-sm">Limpiar</button></div>
-            <div class="bg-gray-50 p-4 rounded-lg border border-gray-200 space-y-3"><label class="block text-xs font-semibold text-gray-500 uppercase">Filtros de Visualización</label><input id="filterInput" placeholder="Buscar por paciente, prueba o ID..." class="w-full p-2 border border-gray-300 rounded focus:ring-1 focus:ring-salu-900 outline-none text-sm"><div class="flex items-center"><input id="mappedOnly" type="checkbox" class="h-4 w-4 text-salu-900 border-gray-300 rounded"><label for="mappedOnly" class="ml-2 block text-sm text-gray-700">Solo con ID asignado</label></div></div>
-          </div>
-        </div>
-        <hr class="border-gray-100">
-
-    <!-- Tarjetas de resumen -->
-    <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-4 mb-6">
-      <div class="bg-white rounded-lg shadow p-4 border-l-4 border-salu-900"><p class="text-xs text-gray-500 uppercase">Total Registros</p><p class="text-2xl font-bold text-gray-900" id="totalRecords">0</p></div>
-      <div class="bg-white rounded-lg shadow p-4 border-l-4 border-green-500"><p class="text-xs text-gray-500 uppercase">Enviados OK</p><p class="text-2xl font-bold text-green-600" id="successCount">0</p></div>
-      <div class="bg-white rounded-lg shadow p-4 border-l-4 border-red-500"><p class="text-xs text-gray-500 uppercase">Con Errores</p><p class="text-2xl font-bold text-red-600" id="errorCount">0</p></div>
-      <div class="bg-white rounded-lg shadow p-4 border-l-4 border-purple-500"><p class="text-xs text-gray-500 uppercase">Calculados</p><p class="text-2xl font-bold text-purple-700" id="calcCount">0</p></div>
-      <div class="bg-white rounded-lg shadow p-4 border-l-4 border-amber-500"><p class="text-xs text-gray-500 uppercase">Incompletos</p><p class="text-2xl font-bold text-amber-600" id="incompleteCount">0</p></div>
+    <div class="mb-10 text-center max-w-2xl mx-auto">
+      <h2 class="text-4xl font-extrabold text-salu-900 mb-3 tracking-tight">Gestión de Análisis Clínicos</h2>
+      <p class="text-gray-500 leading-relaxed">Procesamiento de datos inteligente con cálculos automáticos, validación estructural e integración API en tiempo real.</p>
     </div>
 
-        <!-- Panel de Cálculos Automáticos (AHORA CON BILIRRUBINA INDIRECTA) -->
-        <div class="bg-amber-50 p-6 rounded-2xl border border-amber-200">
-          <div class="flex items-center justify-between mb-5"><h3 class="text-lg font-semibold text-amber-900">Cálculos Automáticos</h3><label class="flex items-center gap-2 cursor-pointer text-sm font-medium"><input type="checkbox" id="selectAllCalc" class="w-4 h-4 text-amber-600 rounded"> Seleccionar todos</label></div>
-          <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
-            <label class="flex items-start gap-3 p-4 bg-white rounded-xl border border-amber-100 hover:border-amber-300 cursor-pointer transition"><input type="checkbox" id="calcBUN" class="w-5 h-5 text-amber-600 mt-0.5"><div><span class="font-medium text-gray-800">BUN</span><p class="text-xs text-gray-500 mt-1 font-mono">UREA / 2.14</p></div></label>
-            <label class="flex items-start gap-3 p-4 bg-white rounded-xl border border-amber-100 hover:border-amber-300 cursor-pointer transition"><input type="checkbox" id="calcHDL" class="w-5 h-5 text-amber-600 mt-0.5"><div><span class="font-medium text-gray-800">HDL</span><p class="text-xs text-gray-500 mt-1 font-mono">CT × 0.25</p></div></label>
-            <label class="flex items-start gap-3 p-4 bg-white rounded-xl border border-amber-100 hover:border-amber-300 cursor-pointer transition"><input type="checkbox" id="calcLDL" class="w-5 h-5 text-amber-600 mt-0.5"><div><span class="font-medium text-gray-800">LDL</span><p class="text-xs text-gray-500 mt-1 font-mono">CT - HDL - (TG/5)</p></div></label>
-            <!-- NUEVO: Cálculo de Bilirrubina Indirecta -->
-            <label class="flex items-start gap-3 p-4 bg-white rounded-xl border border-amber-100 hover:border-amber-300 cursor-pointer transition"><input type="checkbox" id="calcIndirect" class="w-5 h-5 text-amber-600 mt-0.5"><div><span class="font-medium text-gray-800">Bilirrubina Indirecta</span><p class="text-xs text-gray-500 mt-1 font-mono">Total - Directa</p></div></label>
+    <div class="bg-white shadow-xl rounded-2xl border border-gray-100 overflow-hidden mb-8">
+      <div class="bg-salu-900 px-6 py-5 flex justify-between items-center">
+        <h3 class="text-xl font-semibold text-white">Importación de Datos</h3>
+        <span class="bg-blue-500 text-white text-xs px-3 py-1 rounded-full font-semibold shadow" id="countBadge">0 filas</span>
+      </div>
+      <div class="p-8 space-y-6">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+          <div class="space-y-5">
+            <div>
+              <label class="block text-sm font-bold text-gray-700 mb-2">1. Cargar archivo .txt</label>
+              <input id="file" type="file" accept=".txt" class="block w-full text-sm text-gray-500 file:mr-4 file:py-3 file:px-5 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-salu-900 file:text-white hover:file:bg-salu-800 cursor-pointer border border-gray-200 rounded-xl transition">
+            </div>
+            <div>
+              <label class="block text-sm font-bold text-gray-700 mb-2">2. O pegar contenido manual</label>
+              <textarea id="input" rows="5" placeholder="Pegue aquí el texto crudo del laboratorio..." class="w-full p-4 border border-gray-200 rounded-xl focus:ring-2 focus:ring-salu-900 outline-none text-sm font-mono resize-none bg-gray-50 focus:bg-white transition"></textarea>
+            </div>
           </div>
-          <div class="mt-6 flex gap-4"><button id="applyCalc" class="flex-1 bg-amber-600 hover:bg-amber-700 text-white py-3 px-6 rounded-xl font-medium transition">Aplicar Cálculos Seleccionados</button><button id="clearCalc" class="px-6 py-3 text-gray-600 hover:text-red-600 font-medium transition">Limpiar cálculos</button></div>
+          <div class="flex flex-col justify-between space-y-5">
+            <div class="grid grid-cols-2 gap-3">
+              <button id="parse" class="col-span-2 bg-gradient-to-r from-salu-900 to-blue-700 text-white py-3 px-4 rounded-xl hover:shadow-lg transition font-medium flex items-center justify-center gap-2">⚙️ Parsear Datos</button>
+              <button id="clear" class="border border-gray-300 text-gray-700 py-2.5 px-4 rounded-xl hover:bg-gray-50 transition font-medium">Limpiar Todo</button>
+            </div>
+            <div class="bg-gray-50 p-5 rounded-xl border border-gray-200 space-y-4">
+              <label class="block text-xs font-bold text-gray-500 uppercase tracking-wider">Filtros de Visualización</label>
+              <input id="filterInput" placeholder="Buscar paciente, prueba o ID..." class="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-1 focus:ring-salu-900 outline-none text-sm">
+              <div class="flex items-center">
+                <input id="mappedOnly" type="checkbox" class="h-5 w-5 text-salu-900 border-gray-300 rounded focus:ring-salu-900">
+                <label for="mappedOnly" class="ml-3 block text-sm text-gray-700 font-medium">Mostrar solo exámenes con ID asignado</label>
+              </div>
+            </div>
+          </div>
         </div>
-
-        <div class="flex flex-col sm:flex-row items-center gap-4 bg-blue-50 p-4 rounded-lg border border-blue-100">
-          <div class="flex-grow w-full"><label class="block text-xs font-bold text-salu-900 mb-1">ID DE USUARIO (API)</label><input id="idUsuario" type="number" placeholder="Inicie sesión para cargar" disabled class="w-full bg-white border border-blue-200 text-gray-600 text-sm rounded p-2 opacity-70 cursor-not-allowed"></div>
-          <div class="flex items-center gap-2 bg-white p-2 border border-blue-200 rounded-lg h-10"><input type="checkbox" id="allowIncomplete" class="w-4 h-4 text-amber-500 focus:ring-amber-500 border-gray-300 rounded"><label for="allowIncomplete" class="text-xs font-bold text-amber-700 whitespace-nowrap">Incluir Incompletos (*)</label></div>
-          <button id="sendApi" class="bg-white border border-blue-300 text-salu-900 font-medium py-2 px-6 rounded-lg hover:bg-blue-100 transition shadow-sm whitespace-nowrap w-full sm:w-auto">🚀 Subir a API</button>
+        
+        <!-- Tarjetas de resumen -->
+        <div class="grid grid-cols-2 md:grid-cols-5 gap-4 pt-4">
+          <div class="bg-white rounded-xl shadow-sm p-4 border-t-4 border-salu-900"><p class="text-xs text-gray-500 uppercase font-bold">Total</p><p class="text-2xl font-bold text-gray-900 mt-1" id="totalRecords">0</p></div>
+          <div class="bg-white rounded-xl shadow-sm p-4 border-t-4 border-green-500"><p class="text-xs text-gray-500 uppercase font-bold">Enviados</p><p class="text-2xl font-bold text-green-600 mt-1" id="successCount">0</p></div>
+          <div class="bg-white rounded-xl shadow-sm p-4 border-t-4 border-red-500"><p class="text-xs text-gray-500 uppercase font-bold">Errores</p><p class="text-2xl font-bold text-red-600 mt-1" id="errorCount">0</p></div>
+          <div class="bg-white rounded-xl shadow-sm p-4 border-t-4 border-purple-500"><p class="text-xs text-gray-500 uppercase font-bold">Calculados</p><p class="text-2xl font-bold text-purple-700 mt-1" id="calcCount">0</p></div>
+          <div class="bg-white rounded-xl shadow-sm p-4 border-t-4 border-amber-500"><p class="text-xs text-gray-500 uppercase font-bold">Incompletos</p><p class="text-2xl font-bold text-amber-600 mt-1" id="incompleteCount">0</p></div>
         </div>
       </div>
     </div>
 
-    <div id="resultArea" class="mt-8 bg-white shadow-lg rounded-xl border border-gray-200 overflow-x-auto min-h-[100px] p-1"><p class="text-center text-gray-400 py-10 italic">Los resultados procesados aparecerán aquí.</p></div>
+    <!-- Panel de Cálculos -->
+    <div class="bg-gradient-to-br from-amber-50 to-orange-50 p-8 rounded-2xl border border-amber-100 shadow-md mb-8">
+      <div class="flex items-center justify-between mb-6">
+        <div><h3 class="text-xl font-bold text-amber-900">Motor de Cálculos Automáticos</h3><p class="text-sm text-amber-700">Genera parámetros derivados faltantes basados en fórmulas estándar.</p></div>
+        <label class="flex items-center gap-2 cursor-pointer text-sm font-medium bg-white px-3 py-2 rounded-lg shadow-sm border border-amber-200"><input type="checkbox" id="selectAllCalc" class="w-4 h-4 text-amber-600 rounded"> Seleccionar todos</label>
+      </div>
+      <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
+        <label class="flex items-start gap-3 p-4 bg-white rounded-xl border border-amber-100 hover:border-amber-400 cursor-pointer transition shadow-sm"><input type="checkbox" id="calcBUN" class="w-5 h-5 text-amber-600 mt-0.5"><div><span class="font-bold text-gray-800">BUN</span><p class="text-xs text-gray-500 mt-1 font-mono bg-gray-100 px-2 py-1 rounded">UREA / 2.14</p></div></label>
+        <label class="flex items-start gap-3 p-4 bg-white rounded-xl border border-amber-100 hover:border-amber-400 cursor-pointer transition shadow-sm"><input type="checkbox" id="calcHDL" class="w-5 h-5 text-amber-600 mt-0.5"><div><span class="font-bold text-gray-800">HDL</span><p class="text-xs text-gray-500 mt-1 font-mono bg-gray-100 px-2 py-1 rounded">CT × 0.25</p></div></label>
+        <label class="flex items-start gap-3 p-4 bg-white rounded-xl border border-amber-100 hover:border-amber-400 cursor-pointer transition shadow-sm"><input type="checkbox" id="calcLDL" class="w-5 h-5 text-amber-600 mt-0.5"><div><span class="font-bold text-gray-800">LDL</span><p class="text-xs text-gray-500 mt-1 font-mono bg-gray-100 px-2 py-1 rounded">CT - HDL - (TG/5)</p></div></label>
+        <label class="flex items-start gap-3 p-4 bg-white rounded-xl border border-amber-100 hover:border-amber-400 cursor-pointer transition shadow-sm"><input type="checkbox" id="calcIndirect" class="w-5 h-5 text-amber-600 mt-0.5"><div><span class="font-bold text-gray-800">Bil. Indirecta</span><p class="text-xs text-gray-500 mt-1 font-mono bg-gray-100 px-2 py-1 rounded">Total - Directa</p></div></label>
+      </div>
+      <div class="mt-6 flex gap-4">
+        <button id="applyCalc" class="flex-1 bg-amber-600 hover:bg-amber-700 text-white py-3 px-6 rounded-xl font-bold transition shadow-md">Aplicar Cálculos</button>
+        <button id="clearCalc" class="px-6 py-3 text-red-500 hover:text-red-700 font-bold transition hover:bg-red-50 rounded-xl">Deshacer Cálculos</button>
+      </div>
+    </div>
+
+    <!-- Envío a API -->
+    <div class="flex flex-col lg:flex-row items-center gap-4 bg-salu-900 p-5 rounded-2xl mb-8 shadow-xl">
+      <div class="flex-grow w-full">
+        <label class="block text-xs font-bold text-blue-300 mb-1 uppercase tracking-wider">ID de Usuario (API)</label>
+        <input id="idUsuario" type="number" placeholder="Inicie sesión para cargar" disabled class="w-full bg-salu-800 border border-salu-700 text-white text-sm rounded-lg p-2.5 opacity-70 cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-blue-500">
+      </div>
+      <div class="flex items-center gap-2 bg-salu-800 p-3 border border-salu-700 rounded-lg h-12">
+        <input type="checkbox" id="allowIncomplete" class="w-4 h-4 text-amber-500 focus:ring-amber-500 border-gray-600 rounded bg-salu-900">
+        <label for="allowIncomplete" class="text-xs font-bold text-amber-400 whitespace-nowrap">Incluir Incompletos (*)</label>
+      </div>
+      <button id="sendApi" class="bg-gradient-to-r from-green-500 to-emerald-600 text-white font-bold py-3 px-8 rounded-xl hover:shadow-lg transition w-full lg:w-auto whitespace-nowrap">🚀 Subir a API</button>
+    </div>
+
+    <!-- Resultados -->
+    <div id="resultArea" class="mt-8 bg-white shadow-xl rounded-2xl border border-gray-100 overflow-x-auto min-h-[300px] max-h-[600px] overflow-y-auto">
+      <p class="text-center text-gray-400 py-20 italic">Los resultados procesados aparecerán aquí.</p>
+    </div>
   </div>
 </main>
 
-<footer class="bg-white border-t border-gray-200 mt-auto"><div class="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8 flex flex-col md:flex-row justify-between items-center gap-4"><p class="text-sm text-gray-500">&copy; 2025 Salu Plus Laboratorio. Confianza que se analiza. · Cálculo de Bilirrubina Indirecta incluido</p></div></footer>
+<footer class="bg-salu-900 mt-auto">
+  <div class="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8 flex flex-col md:flex-row justify-between items-center gap-4">
+    <p class="text-sm text-gray-400">&copy; 2025 Salu Plus Laboratorio. Confianza que se analiza.</p>
+  </div>
+</footer>
 
 <script>
   // ---------- CONFIGURACIÓN ----------
-  const API_BASE = "/-RB-/sURBIR";
-  const LOGIN_URL = "https://api.saludplus.co/api/auth/Login";
+  // Usar el proxy local en lugar de la API directa
+  const API_BASE = "/-RB-/automata";
+  const LOGIN_URL = "/-RB-/login";
 
   const EXAM_MAP = {
     "GLUCOSE": "11803", "GLUCOSA": "11803",
@@ -190,6 +250,16 @@
 
   let _TOKEN = null, _USER = null, lastRows = [], globalGroups = [];
 
+  // ---------- SISTEMA DE NOTIFICACIONES (TOASTS) ----------
+  function showToast(message, type = 'info') {
+    const container = document.getElementById('toastContainer');
+    const toast = document.createElement('div');
+    toast.className = `toast ${type}`;
+    toast.innerHTML = `<span>${message}</span>`;
+    container.appendChild(toast);
+    setTimeout(() => toast.remove(), 4000);
+  }
+
   // ---------- UTILIDADES ----------
   function escapeHtml(s) { return String(s || '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":"&#39;"})[c]); }
   function formatNumber(num) { if (!num) return ''; const str = String(num); if (str.includes('.')) { const [integer, decimal] = str.split('.'); return decimal === '00' || decimal === '0' ? integer : str; } return str; }
@@ -198,13 +268,12 @@
   function calculateBUNFromUrea(ureaValue) { if (!ureaValue || ureaValue === '-') return null; const numMatch = String(ureaValue).match(/([<>]=?)?\s*(\d+[\.,]?\d*)/); if (!numMatch) return null; const num = parseFloat(numMatch[2].replace(',', '.')); if (isNaN(num) || num === 0) return null; return (num / 2.14).toFixed(2); }
   function calculateLDL(ct, hdl, tg) { const ctN = parseNum(ct), hdlN = parseNum(hdl), tgN = parseNum(tg); if (isNaN(ctN) || isNaN(hdlN) || isNaN(tgN) || tgN >= 400) return null; return (ctN - hdlN - (tgN / 5)).toFixed(2); }
   function calculateHDL(ct) { const ctN = parseNum(ct); if (isNaN(ctN) || ctN === 0) return null; return (ctN * 0.25).toFixed(2); }
-  // Nuevo cálculo: Bilirrubina Indirecta = Total - Directa
   function calculateIndirect(totalConc, directConc) {
     const total = parseNum(totalConc);
     const direct = parseNum(directConc);
-    if (isNaN(total) || isNaN(direct) || total === null || direct === null) return null;
+    if (isNaN(total) || isNaN(direct)) return null;
     const indirect = total - direct;
-    if (indirect < 0) return null; // Valor fisiológico no negativo
+    if (indirect < 0) return null; 
     return indirect.toFixed(2);
   }
 
@@ -217,7 +286,6 @@
       const hdl  = rows.find(r => r.paciente === paciente && r.id_examen === '9093');
       const ldl  = rows.find(r => r.paciente === paciente && r.id_examen === '9094');
       const tg   = rows.find(r => r.paciente === paciente && r.id_examen === '9146');
-      // Bilirrubinas
       const totalBil = rows.find(r => r.paciente === paciente && r.id_examen === '9087');
       const directBil = rows.find(r => r.paciente === paciente && r.id_examen === '9086');
       const existingIndirect = rows.some(r => r.paciente === paciente && r.id_examen === '9085');
@@ -228,24 +296,13 @@
       const hasLDL = !!ldl && parseNum(ldl.conc) > 0;
       const hasTG  = !!tg && parseNum(tg.conc) > 0;
 
-      // Cálculo BUN
       if (selected.bun && !hasBUN && urea) { const val = calculateBUNFromUrea(urea.conc); if (val) newRows.push({paciente, tipo:'-', tecnica:'CALC', prueba:'BUN (calculado)', id_examen:'9134', conc:val, unidades:'mg/dL', fecha:urea.fecha, apiMessage:'🧮 UREA / 2.14', rowClass:'row-bun-calculated', isCalculated:true}); }
-      // Cálculo HDL
       if (selected.hdl && !hasHDL && hasCT) { const val = calculateHDL(ct.conc); if (val) newRows.push({paciente, tipo:'-', tecnica:'CALC', prueba:'HDL (calculado)', id_examen:'9093', conc:val, unidades:'mg/dL', fecha:ct.fecha, apiMessage:'🧮 CT × 0.25', rowClass:'row-ct-calculated', isCalculated:true}); }
-      // Cálculo LDL
       if (selected.ldl && !hasLDL && hasCT && hasHDL && hasTG) { const val = calculateLDL(ct.conc, hdl.conc, tg.conc); if (val) newRows.push({paciente, tipo:'-', tecnica:'CALC', prueba:'LDL (calculado)', id_examen:'9094', conc:val, unidades:'mg/dL', fecha:ct.fecha, apiMessage:'🧮 CT - HDL - TG/5', rowClass:'row-ldl-calculated', isCalculated:true}); }
-      // NUEVO: Cálculo de Bilirrubina Indirecta (si existe Total y Directa, y no hay Indirecta preexistente)
       if (selected.indirect && !existingIndirect && totalBil && directBil) {
         const indirectVal = calculateIndirect(totalBil.conc, directBil.conc);
         if (indirectVal) {
-          newRows.push({
-            paciente, tipo:'-', tecnica:'CALC', prueba:'Bilirrubina Indirecta (calculada)', id_examen:'9085',
-            conc: indirectVal, unidades: totalBil.unidades || directBil.unidades || 'mg/dL',
-            fecha: totalBil.fecha || directBil.fecha,
-            apiMessage:'🧮 Bilirrubina Total - Directa',
-            rowClass:'row-indirect-calculated',
-            isCalculated: true
-          });
+          newRows.push({paciente, tipo:'-', tecnica:'CALC', prueba:'Bilirrubina Indirecta (calculada)', id_examen:'9085', conc: indirectVal, unidades: totalBil.unidades || 'mg/dL', fecha: totalBil.fecha || directBil.fecha, apiMessage:'🧮 Bilirrubina Total - Directa', rowClass:'row-indirect-calculated', isCalculated: true});
         }
       }
     });
@@ -296,38 +353,71 @@
         else if (["1/2H","1H","2H","3H","B"].includes(tipo)) id_examen = "9122";
         else id_examen = "11803";
       } else if (pruebaNorm.includes("BILIRRUBINA") || pruebaNorm.includes("BILIRUBIN")) {
-        if (pruebaNorm.includes("TOTAL")) id_examen = "9087";
-        else if (pruebaNorm.includes("DIRECT")) id_examen = "9086";
-        else if (pruebaNorm.includes("INDIRECT")) id_examen = "9085";
+        // CORREGIDO: Verificar INDIRECT primero
+        if (pruebaNorm.includes("INDIRECT")) {
+          id_examen = "9085";
+        } else if (pruebaNorm.includes("DIRECT")) {
+          id_examen = "9086";
+        } else if (pruebaNorm.includes("TOTAL")) {
+          id_examen = "9087";
+        }
       } else {
-        for (const key in EXAM_MAP) { if (pruebaNorm.includes(normalize(key))) { id_examen = EXAM_MAP[key]; break; } }
+        for (const key in EXAM_MAP) { 
+          if (pruebaNorm.includes(normalize(key))) { 
+            id_examen = EXAM_MAP[key]; 
+            break; 
+          } 
+        }
       }
       rows.push({ paciente, tipo, tecnica, prueba, id_examen: id_examen || "", conc, unidades, fecha: fecha || "", apiMessage: '', rowClass: '', isCalculated: false });
     }
     return rows;
   }
 
-  // ---------- VALIDACIÓN Y AGRUPAMIENTO (INCOMPLETOS) ----------
+  // ---------- VALIDACIÓN Y AGRUPAMIENTO CORREGIDO ----------
   function validateAndGroupRows() {
     globalGroups = [];
-    lastRows.forEach(r => { if(!r.apiMessage.includes('🧮')) r.apiMessage = ''; r.rowClass = r.isCalculated ? r.rowClass : ''; });
+    lastRows.forEach(r => { 
+      if(!r.apiMessage.includes('🧮')) r.apiMessage = ''; 
+      r.rowClass = r.isCalculated ? r.rowClass : ''; 
+    });
     const patients = [...new Set(lastRows.map(r => r.paciente))];
 
     patients.forEach(p => {
-      // Bilirrubinas (incluye soporte para indirecta calculada)
+      // BILIRRUBINAS - CORREGIDO
       const dir = lastRows.find(r => r.paciente === p && r.id_examen === '9086');
       const ind = lastRows.find(r => r.paciente === p && r.id_examen === '9085');
       const tot = lastRows.find(r => r.paciente === p && r.id_examen === '9087');
-      if(dir || ind || tot) {
-        const missing = []; if(!dir) missing.push("Directa(9086)"); if(!ind) missing.push("Indirecta(9085)"); if(!tot) missing.push("Total(9087)");
+      
+      // Verificar si existe ALGUNA bilirrubina
+      const hasAnyBilirubin = dir || ind || tot;
+      
+      if (hasAnyBilirubin) {
+        const missing = [];
+        if(!dir) missing.push("Directa(9086)");
+        if(!ind) missing.push("Indirecta(9085)");
+        if(!tot) missing.push("Total(9087)");
+        
         const isComplete = missing.length === 0;
         const groupRows = [dir, ind, tot].filter(Boolean);
         const msg = isComplete ? '' : `⚠️ Falta: ${missing.join(', ')}`;
-        groupRows.forEach(r => { r.apiMessage = msg; r.rowClass = isComplete ? r.rowClass : 'row-incomplete'; });
-        globalGroups.push({ idProcedimientoObjetivo: '9087', paciente: p, isComplete, rows: groupRows, mapOrder: [dir, ind, tot] });
+        
+        // SIEMPRE agrupar todas las bilirrubinas que existan
+        groupRows.forEach(r => { 
+          r.apiMessage = msg; 
+          r.rowClass = isComplete ? r.rowClass : 'row-incomplete'; 
+        });
+        
+        globalGroups.push({ 
+          idProcedimientoObjetivo: '9087', 
+          paciente: p, 
+          isComplete, 
+          rows: groupRows,
+          isBilirubinGroup: true
+        });
       }
 
-      // Glucosa 2h (PRE/POST)
+      // Glucosa Pre/Post
       const pre = lastRows.find(r => r.paciente === p && r.id_examen === '9121' && r.tipo === 'PRE');
       const post = lastRows.find(r => r.paciente === p && r.id_examen === '9121' && r.tipo === 'POST');
       if(pre || post) {
@@ -336,10 +426,10 @@
         const groupRows = [pre, post].filter(Boolean);
         const msg = isComplete ? '' : `⚠️ Falta: ${missing.join(', ')}`;
         groupRows.forEach(r => { r.apiMessage = msg; r.rowClass = isComplete ? r.rowClass : 'row-incomplete'; });
-        globalGroups.push({ idProcedimientoObjetivo: '9121', paciente: p, isComplete, rows: groupRows, mapOrder: [pre, post] });
+        globalGroups.push({ idProcedimientoObjetivo: '9121', paciente: p, isComplete, rows: groupRows });
       }
 
-      // Curva completa
+      // Curva
       const h2 = lastRows.find(r => r.paciente === p && r.id_examen === '9122' && r.tipo === '2H');
       const h3 = lastRows.find(r => r.paciente === p && r.id_examen === '9122' && r.tipo === '3H');
       const h1 = lastRows.find(r => r.paciente === p && r.id_examen === '9122' && r.tipo === '1H');
@@ -351,20 +441,33 @@
         const groupRows = [h2, h3, h1, m, b].filter(Boolean);
         const msg = isComplete ? '' : `⚠️ Falta: ${missing.join(', ')}`;
         groupRows.forEach(r => { r.apiMessage = msg; r.rowClass = isComplete ? r.rowClass : 'row-incomplete'; });
-        globalGroups.push({ idProcedimientoObjetivo: '9122', paciente: p, isComplete, rows: groupRows, mapOrder: [h2, h3, h1, m, b] });
+        globalGroups.push({ idProcedimientoObjetivo: '9122', paciente: p, isComplete, rows: groupRows });
       }
     });
 
-    // Exámenes simples
+    // Exámenes simples (excluyendo bilirrubinas que ya fueron procesadas)
     lastRows.forEach(r => {
-      const isSpecial = ['9085','9086','9087','9121','9122'].includes(r.id_examen);
+      const isBilirubin = ['9085','9086','9087'].includes(r.id_examen);
+      const isSpecial = ['9121','9122'].includes(r.id_examen);
+      
+      // Si es una bilirrubina, ya fue procesada en el grupo
+      if (isBilirubin) return;
+      
+      // Si no es especial y tiene ID, agregar como examen simple
       if(!isSpecial && r.id_examen) {
-        globalGroups.push({ idProcedimientoObjetivo: r.id_examen, paciente: r.paciente, isComplete: true, rows: [r], mapOrder: null });
+        globalGroups.push({ 
+          idProcedimientoObjetivo: r.id_examen, 
+          paciente: r.paciente, 
+          isComplete: true, 
+          rows: [r] 
+        });
       }
     });
+    
+    console.log('📊 Grupos generados:', globalGroups);
   }
 
-  // ---------- RENDER TABLA Y CONTADORES ----------
+  // ---------- RENDER TABLA ----------
   function render(rows) {
     const filter = normalize(document.getElementById('filterInput').value);
     const onlyMapped = document.getElementById('mappedOnly').checked;
@@ -382,29 +485,27 @@
     document.getElementById('calcCount').textContent = calculated;
     document.getElementById('incompleteCount').textContent = incomplete;
 
-    let html = `<table class="min-w-full"><thead><tr><th>Paciente</th><th>Tipo</th><th>Técnica</th><th>Prueba</th><th>ID Examen</th><th>Conc.</th><th>Und.</th><th>Fecha</th><th>Estado</th></tr></thead><tbody>`;
+    let html = `<table class="min-w-full"><thead><tr><th>Paciente</th><th>Tipo</th><th>Técnica</th><th>Prueba</th><th>ID Examen</th><th>Conc.</th><th>Und.</th><th>Fecha</th><th>Estado API</th></tr></thead><tbody>`;
     for (const r of rows) {
       if (onlyMapped && !r.id_examen) continue;
       if (filter && !(r.paciente.includes(filter) || normalize(r.prueba).includes(filter) || (r.id_examen && r.id_examen.includes(filter)))) continue;
       visible++;
       const concFormatted = r.isCalculated ? formatNumber(r.conc) : r.conc;
-      const idStyle = r.id_examen ? (r.isCalculated ? "background:#e6f7ff;color:#0050b3;font-weight:700" : "background:#ecfdf5;color:#166534;font-weight:700") : "color:#ef4444";
+      const idStyle = r.id_examen ? (r.isCalculated ? "background:#e0f2fe;color:#0369a1;font-weight:700" : "background:#dcfce7;color:#166534;font-weight:700") : "color:#ef4444; font-weight: bold;";
       const statusColor = r.apiMessage && r.apiMessage.includes('⚠️') ? '#b45309' : 'inherit';
       html += `<tr class="${r.rowClass}">
         <td><strong>${r.paciente}</strong></td><td>${r.tipo}</td><td>${r.tecnica}</td><td>${escapeHtml(r.prueba)}</td>
-        <td style="${idStyle}">${r.id_examen || '-'}</td><td style="text-align:right">${concFormatted}</td><td>${r.unidades}</td><td>${r.fecha}</td>
-        <td style="font-size:0.8rem; font-weight:600; color:${statusColor}">${escapeHtml(r.apiMessage || '')}</td>
+        <td style="${idStyle}">${r.id_examen || 'FALTA ID'}</td><td style="text-align:right; font-weight: 600;">${concFormatted}</td><td>${r.unidades}</td><td>${r.fecha}</td>
+        <td style="font-size:0.8rem; font-weight:600; color:${statusColor}">${escapeHtml(r.apiMessage || '-')}</td>
        </tr>`;
     }
     document.getElementById('countBadge').textContent = visible + ' filas';
     document.getElementById('resultArea').innerHTML = html + `</tbody></table>`;
-    if(rows.length===0) document.getElementById('resultArea').innerHTML = '<p class="text-center text-gray-400 py-10 italic">Los resultados procesados aparecerán aquí.</p>';
+    if(rows.length===0) document.getElementById('resultArea').innerHTML = '<p class="text-center text-gray-400 py-20 italic">Los resultados procesados aparecerán aquí.</p>';
   }
 
-  // ---------- PANEL FLOTANTE Y PROGRESO ----------
-  let currentTotal = 0, currentSuccess = 0, currentErrors = 0;
+  // ---------- PANEL FLOTANTE ----------
   function updateFloatingStats(total, success, errors) {
-    currentTotal = total; currentSuccess = success; currentErrors = errors;
     const percent = total === 0 ? 0 : ((success + errors) / total) * 100;
     document.getElementById('statTotal').innerText = total;
     document.getElementById('statSuccess').innerText = success;
@@ -417,10 +518,10 @@
   const floatingDiv = document.getElementById('floatingStats');
   const toggleBtn = document.getElementById('toggleFloat');
   let minimized = false;
-  toggleBtn.addEventListener('click', (e) => { e.stopPropagation(); minimized = !minimized; floatingDiv.classList.toggle('minimized', minimized); toggleBtn.innerText = minimized ? '+' : '−'; });
-  document.getElementById('statsHeader').addEventListener('click', (e) => { if (e.target !== toggleBtn) toggleBtn.click(); });
+  toggleBtn.addEventListener('click', (e) => { e.stopPropagation(); minimized = !minimized; floatingDiv.classList.toggle('minimized', minimized); });
+  floatingDiv.addEventListener('click', () => { if (minimized) toggleBtn.click(); });
 
-  // ---------- LOGIN ----------
+  // ---------- AUTENTICACIÓN ----------
   const loginModal = document.getElementById('loginModal');
   const loginBtn = document.getElementById('loginBtn');
   const closeModalBtn = document.getElementById('closeModalBtn');
@@ -430,13 +531,13 @@
     const authArea = document.getElementById('authArea');
     const idUsuarioInput = document.getElementById('idUsuario');
     if (_TOKEN && _USER) {
-      authArea.innerHTML = `<span class="text-gray-600 mr-3">👋 ${_USER.nombre || _USER.usuario}</span><button id="logoutBtn" class="text-red-600 hover:text-red-800 font-medium transition">Cerrar sesión</button>`;
+      authArea.innerHTML = `<span class="text-gray-600 mr-3 hidden sm:inline">👋 ${_USER.nombre || _USER.usuario}</span><button id="logoutBtn" class="bg-red-50 text-red-600 py-2 px-4 rounded-lg hover:bg-red-100 transition font-medium text-sm">Cerrar sesión</button>`;
       idUsuarioInput.value = _USER.id || '';
       idUsuarioInput.disabled = false;
       idUsuarioInput.classList.remove('opacity-70', 'cursor-not-allowed');
-      document.getElementById('logoutBtn')?.addEventListener('click', () => { _TOKEN = null; _USER = null; renderAuth(); updateFloatingStats(0,0,0); });
+      document.getElementById('logoutBtn')?.addEventListener('click', () => { _TOKEN = null; _USER = null; renderAuth(); updateFloatingStats(0,0,0); showToast('Sesión cerrada', 'info'); });
     } else {
-      authArea.innerHTML = `<button id="showLoginBtn" class="bg-salu-900 text-white py-1.5 px-4 rounded-lg hover:bg-blue-800 transition text-sm font-medium shadow-sm">Iniciar Sesión</button>`;
+      authArea.innerHTML = `<button id="showLoginBtn" class="bg-salu-900 text-white py-2 px-5 rounded-lg hover:bg-salu-800 transition text-sm font-medium shadow-md">Iniciar Sesión</button>`;
       idUsuarioInput.value = '';
       idUsuarioInput.disabled = true;
       idUsuarioInput.classList.add('opacity-70', 'cursor-not-allowed');
@@ -445,33 +546,73 @@
   }
 
   closeModalBtn.addEventListener('click', () => loginModal.classList.remove('active'));
+  
   loginBtn.addEventListener('click', async () => {
-    loginError.classList.add('hidden'); loginBtn.textContent = 'Verificando...'; loginBtn.disabled = true;
+    loginError.classList.add('hidden'); 
+    loginBtn.textContent = 'Verificando...'; 
+    loginBtn.disabled = true;
     try {
       const user = document.getElementById('loginUser').value;
       const pass = document.getElementById('loginPass').value;
-      const res = await fetch(LOGIN_URL, { method: 'POST', headers: { 'Content-Type': 'application/json', accept: 'application/json' }, body: JSON.stringify({ username: user, password: pass }) });
-      if (!res.ok) throw new Error('Error de autenticación');
+      
+      console.log('🔐 Intentando login con:', user);
+      
+      const res = await fetch(LOGIN_URL, { 
+        method: 'POST', 
+        headers: { 
+          'Content-Type': 'application/json', 
+          'accept': 'application/json' 
+        }, 
+        body: JSON.stringify({ username: user, password: pass }) 
+      });
+      
+      console.log('📡 Respuesta status:', res.status);
+      
+      if (!res.ok) {
+        const errorText = await res.text();
+        console.error('❌ Error response:', errorText);
+        throw new Error(`Error ${res.status}: ${errorText}`);
+      }
+      
       const data = await res.json();
-      if(data.isSuccessful && data.result) { _TOKEN = data.result.token; _USER = data.result; loginModal.classList.remove('active'); renderAuth(); }
-      else throw new Error(data.errorMessage || 'Credenciales incorrectas');
-    } catch (err) { loginError.textContent = err.message || 'Credenciales inválidas o error de conexión.'; loginError.classList.remove('hidden');
-    } finally { loginBtn.textContent = 'Entrar'; loginBtn.disabled = false; }
+      console.log('✅ Datos recibidos:', data);
+      
+      if(data.isSuccessful && data.result) { 
+        _TOKEN = data.result.token; 
+        _USER = data.result; 
+        loginModal.classList.remove('active'); 
+        renderAuth(); 
+        showToast(`Bienvenido, ${_USER.usuario}`, 'success');
+      } else {
+        throw new Error(data.errorMessage || data.message || 'Credenciales incorrectas');
+      }
+    } catch (err) { 
+      console.error('❌ Error en login:', err);
+      loginError.textContent = err.message || 'Credenciales inválidas o error de conexión.'; 
+      loginError.classList.remove('hidden'); 
+      showToast('Error de inicio de sesión: ' + err.message, 'error');
+    } finally { 
+      loginBtn.textContent = 'Ingresar'; 
+      loginBtn.disabled = false; 
+    }
   });
 
-  // ---------- ENVÍO A API ----------
+  // ---------- ENVÍO A API CORREGIDO ----------
   document.getElementById('sendApi').addEventListener('click', async () => {
-    if (!_TOKEN) return alert('⚠️ Debes iniciar sesión primero.');
+    if (!_TOKEN) return showToast('Debes iniciar sesión primero', 'error');
     const idUsuario = document.getElementById('idUsuario').value;
-    if (!idUsuario) return alert('⚠️ El ID de usuario es obligatorio.');
+    if (!idUsuario) return showToast('El ID de usuario es obligatorio', 'error');
+    
     const allowIncomplete = document.getElementById('allowIncomplete').checked;
     let groupsToSend = globalGroups.filter(g => g.isComplete);
     if(allowIncomplete) groupsToSend = globalGroups;
-    if(groupsToSend.length === 0) return alert('No hay exámenes para enviar. Marque "Incluir Incompletos" si lo desea.');
+    if(groupsToSend.length === 0) return showToast('No hay exámenes para enviar', 'info');
 
-    const totalCompletos = globalGroups.filter(g => g.isComplete).length;
-    const totalIncompletos = globalGroups.filter(g => !g.isComplete).length;
-    if(!confirm(`📊 Resumen:\n✅ Completos: ${totalCompletos}\n⚠️ Incompletos: ${totalIncompletos}\n\n${allowIncomplete ? 'Se enviarán TODOS (incompletos con *)' : 'Solo se enviarán los COMPLETOS'}\n¿Continuar?`)) return;
+    // Mostrar resumen detallado
+    const completos = globalGroups.filter(g => g.isComplete).length;
+    const incompletos = globalGroups.filter(g => !g.isComplete).length;
+    
+    if(!confirm(`📊 Resumen de envío:\n✅ Completos: ${completos}\n⚠️ Incompletos: ${incompletos}\n📦 Total a enviar: ${groupsToSend.length}\n\n${allowIncomplete ? '⚠️ Se enviarán TODOS los grupos (incluyendo incompletos)' : '✅ Solo se enviarán los grupos COMPLETOS'}\n¿Continuar?`)) return;
 
     const totalGroups = groupsToSend.length;
     updateFloatingStats(totalGroups, 0, 0);
@@ -481,58 +622,116 @@
     let successCount = 0, errorCount = 0;
 
     for (const group of groupsToSend) {
-      let payloadBody;
-      if (!group.mapOrder) {
-        payloadBody = { idUsuario: parseInt(idUsuario), resultado: String(group.rows[0].conc) };
+      let payloadBody = {
+        numero: group.paciente,
+        idsProcedimientos: String(group.idProcedimientoObjetivo),
+        idUsuario: parseInt(idUsuario),
+        resultados: []
+      };
+
+      if (!group.rows || group.rows.length === 0) {
+        payloadBody.resultados = ["*"]; 
       } else {
-        let resultados = group.mapOrder.map(r => r ? String(r.conc) : '*');
-        if(group.idProcedimientoObjetivo === '9122') resultados.push('*');
-        payloadBody = { idUsuario: parseInt(idUsuario), resultadosArray: resultados };
+        switch(group.idProcedimientoObjetivo) {
+          case '9087': // BILIRRUBINAS - CORREGIDO
+            const totalBil = group.rows.find(r => r.id_examen === '9087');
+            const directBil = group.rows.find(r => r.id_examen === '9086');
+            const indirectBil = group.rows.find(r => r.id_examen === '9085');
+            
+            payloadBody.resultados = [
+              totalBil?.conc || '*',
+              directBil?.conc || '*',
+              indirectBil?.conc || '*'
+            ];
+            console.log(`📤 Bilirrubinas para ${group.paciente}:`, payloadBody.resultados);
+            break;
+          case '9121': // Glucosa Pre/Post
+            payloadBody.resultados = [
+              group.rows.find(r => r.tipo === 'PRE')?.conc || '*',
+              group.rows.find(r => r.tipo === 'POST')?.conc || '*'
+            ];
+            break;
+          case '9122': // Curva
+            payloadBody.resultados = [
+              group.rows.find(r => r.tipo === '2H')?.conc || '*',
+              group.rows.find(r => r.tipo === '3H')?.conc || '*',
+              group.rows.find(r => r.tipo === '1H')?.conc || '*',
+              group.rows.find(r => r.tipo === '1/2H')?.conc || '*',
+              '*', 
+              group.rows.find(r => r.tipo === 'B')?.conc || '*'
+            ];
+            break;
+          default: 
+            payloadBody.resultados = [String(group.rows[0].conc)];
+            break;
+        }
       }
-      const url = new URL(API_BASE, window.location.origin);
-      url.searchParams.append('token', _TOKEN);
-      url.searchParams.append('documento', group.paciente);
-      url.searchParams.append('idProcedimientoObjetivo', group.idProcedimientoObjetivo);
+      
       try {
-        const res = await fetch(url.toString(), { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payloadBody) });
+        console.log(`📤 Enviando ${group.idProcedimientoObjetivo} para ${group.paciente}:`, payloadBody);
+        
+        const url = new URL(API_BASE, window.location.origin);
+        const res = await fetch(url.toString(), { 
+          method: 'POST', 
+          headers: { 
+            'Content-Type': 'application/json', 
+            'Authorization': `Bearer ${_TOKEN}` 
+          }, 
+          body: JSON.stringify(payloadBody) 
+        });
+        
         const data = await res.json();
-        if (!res.ok || !data.success) throw new Error(data.message || `Error ${res.status}`);
+        console.log('📥 Respuesta API:', data);
+        
+        if (!res.ok || !data.success) throw new Error(data.message || data.mensaje || `Error HTTP ${res.status}`);
+        
         successCount++;
         group.rows.forEach(row => { row.apiMessage = '✅ Enviado'; row.rowClass = 'row-success'; });
       } catch (err) {
         errorCount++;
-        group.rows.forEach(row => { row.apiMessage = `❌ ${err.message.substring(0, 40)}`; row.rowClass = 'row-error'; });
+        group.rows.forEach(row => { row.apiMessage = `❌ ${err.message.substring(0, 30)}`; row.rowClass = 'row-error'; });
+        console.error('❌ Error enviando:', err);
       }
+      
       updateFloatingStats(totalGroups, successCount, errorCount);
       btn.textContent = `Enviando (${successCount+errorCount}/${totalGroups})...`;
       render(lastRows);
-      await new Promise(r => setTimeout(r, 100));
+      await new Promise(r => setTimeout(r, 150));
     }
+    
     btn.disabled = false;
     btn.textContent = '🚀 Subir a API';
     render(lastRows);
-    if(errorCount===0) alert(`✅ Éxito: ${successCount} procedimientos subidos.`);
-    else alert(`⚠️ Terminado: ${successCount} éxitos, ${errorCount} errores.`);
+    
+    if(errorCount===0) showToast(`✅ Éxito total: ${successCount} procedimientos subidos correctamente`, 'success');
+    else showToast(`⚠️ Proceso terminado: ${successCount} éxitos, ${errorCount} errores`, 'info');
   });
 
   // ---------- EVENTOS UI ----------
   document.getElementById('applyCalc').addEventListener('click', () => {
     const selected = { bun: document.getElementById('calcBUN').checked, hdl: document.getElementById('calcHDL').checked, ldl: document.getElementById('calcLDL').checked, indirect: document.getElementById('calcIndirect').checked };
-    if (!Object.values(selected).some(v => v)) return alert('Selecciona al menos un cálculo');
+    if (!Object.values(selected).some(v => v)) return showToast('Selecciona al menos un cálculo', 'error');
     lastRows = addSelectedCalculations(lastRows, selected);
     validateAndGroupRows();
     render(lastRows);
+    showToast('Cálculos aplicados correctamente', 'success');
   });
+  
   document.getElementById('selectAllCalc').addEventListener('change', function() { ['calcBUN','calcHDL','calcLDL','calcIndirect'].forEach(id => document.getElementById(id).checked = this.checked); });
-  document.getElementById('clearCalc').addEventListener('click', () => { lastRows = lastRows.filter(r => !r.isCalculated); validateAndGroupRows(); render(lastRows); });
-  document.getElementById('parse').addEventListener('click', () => { const txt = document.getElementById('input').value.trim(); if(!txt) return alert('Pega datos primero'); lastRows = parseText(txt); validateAndGroupRows(); render(lastRows); updateFloatingStats(0,0,0); });
+  document.getElementById('clearCalc').addEventListener('click', () => { lastRows = lastRows.filter(r => !r.isCalculated); validateAndGroupRows(); render(lastRows); showToast('Cálculos eliminados', 'info'); });
+  document.getElementById('parse').addEventListener('click', () => { const txt = document.getElementById('input').value.trim(); if(!txt) return showToast('Pega datos primero', 'error'); lastRows = parseText(txt); validateAndGroupRows(); render(lastRows); updateFloatingStats(0,0,0); });
   document.getElementById('file').addEventListener('change', async e => { if(e.target.files[0]) document.getElementById('input').value = await e.target.files[0].text(); });
-  document.getElementById('clear').addEventListener('click', () => { document.getElementById('input').value = ''; lastRows = []; globalGroups = []; render(lastRows); updateFloatingStats(0,0,0); document.getElementById('resultArea').innerHTML = '<p class="text-center text-gray-400 py-10 italic">Los resultados procesados aparecerán aquí.</p>'; });
+  document.getElementById('clear').addEventListener('click', () => { document.getElementById('input').value = ''; lastRows = []; globalGroups = []; render(lastRows); updateFloatingStats(0,0,0); });
   document.getElementById('filterInput').addEventListener('input', () => render(lastRows));
   document.getElementById('mappedOnly').addEventListener('change', () => render(lastRows));
 
+  // Inicializar
   renderAuth();
   render([]);
+  
+  console.log('🚀 Aplicación iniciada');
+  console.log('📡 API Base:', API_BASE);
+  console.log('🔐 Login URL:', LOGIN_URL);
 </script>
 </body>
 </html>
