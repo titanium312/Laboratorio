@@ -7,78 +7,42 @@
   <script src="https://cdn.tailwindcss.com"></script>
   <script>
     tailwind.config = {
-      theme: {
-        extend: {
-          colors: { salu: { 900: '#0f172a', 800: '#1e293b', 700: '#334155', 50: '#f8fafc' } },
-          boxShadow: { 'glow': '0 0 15px rgba(59, 130, 246, 0.5)' }
-        }
-      }
+      theme: { extend: {
+        colors: { salu: { 900: '#0f172a', 800: '#1e293b', 700: '#334155', 50: '#f8fafc' } },
+        boxShadow: { 'glow': '0 0 15px rgba(59, 130, 246, 0.5)' }
+      }}
     }
   </script>
   <style>
-    body {
-      background: linear-gradient(135deg, #f8fafc 0%, #eef2f7 100%);
-      background-attachment: fixed;
-    }
+    body { background: linear-gradient(135deg, #f8fafc 0%, #eef2f7 100%); background-attachment: fixed; }
     table { width: 100%; border-collapse: collapse; margin-top: 1rem; font-size: 0.875rem; }
-    th { 
-      background-color: #0f172a; color: #ffffff; font-weight: 600; 
-      padding: 1rem; text-align: left; position: sticky; top: 0; z-index: 10;
-      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-    }
+    th { background-color: #0f172a; color: #ffffff; font-weight: 600; padding: 1rem; text-align: left; position: sticky; top: 0; z-index: 10; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
     td { padding: 0.75rem; border-bottom: 1px solid #e5e7eb; color: #334155; transition: background-color 0.3s ease; }
     tr:nth-child(even) { background-color: #fbfcfd; }
     tr:hover td { background-color: #f1f5f9; }
-    
     .row-bun-calculated { background-color: #e0f2fe !important; }
     .row-ldl-calculated { background-color: #fef9e7 !important; }
     .row-ct-calculated { background-color: #faf5ff !important; }
+    .row-hdl-calculated { background-color: #fdf2f8 !important; }
     .row-indirect-calculated { background-color: #ecfdf5 !important; }
     .row-success td { background-color: #dcfce7 !important; color: #14532d; }
     .row-error td { background-color: #fee2e2 !important; color: #7f1d1d; }
     .row-incomplete td { background-color: #fffbeb !important; }
-
-    .modal-overlay {
-      position: fixed; inset: 0; background: rgba(15, 23, 42, 0.8); backdrop-filter: blur(8px);
-      display: flex; align-items: center; justify-content: center; z-index: 50; 
-      opacity: 0; pointer-events: none; transition: opacity 0.3s ease;
-    }
+    .row-already-sent td { background-color: #dbeafe !important; color: #1e40af; }
+    .row-already-sent td strong { color: #1e3a8a; }
+    .modal-overlay { position: fixed; inset: 0; background: rgba(15, 23, 42, 0.8); backdrop-filter: blur(8px); display: flex; align-items: center; justify-content: center; z-index: 50; opacity: 0; pointer-events: none; transition: opacity 0.3s ease; }
     .modal-overlay.active { opacity: 1; pointer-events: auto; }
-    .modal-box {
-      background: white; padding: 2.5rem; border-radius: 1.5rem; width: 100%; max-width: 420px;
-      box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25); transform: scale(0.9) translateY(20px); 
-      transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
-    }
+    .modal-box { background: white; padding: 2.5rem; border-radius: 1.5rem; width: 100%; max-width: 420px; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25); transform: scale(0.9) translateY(20px); transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1); }
     .modal-overlay.active .modal-box { transform: scale(1) translateY(0); }
-
-    #globalProgressBar {
-      position: fixed; top: 0; left: 0; width: 0%; height: 4px;
-      background: linear-gradient(90deg, #0f172a, #3b82f6, #06b6d4);
-      z-index: 1000; transition: width 0.3s ease; box-shadow: 0 0 10px rgba(59,130,246,0.8);
-    }
-
-    .floating-stats {
-      position: fixed; bottom: 24px; right: 24px; width: 320px;
-      background: rgba(255,255,255,0.95); backdrop-filter: blur(12px);
-      border-radius: 16px; box-shadow: 0 15px 35px -5px rgba(0,0,0,0.2); 
-      z-index: 900; transition: all 0.3s ease; border: 1px solid rgba(255,255,255,0.5);
-    }
+    #globalProgressBar { position: fixed; top: 0; left: 0; width: 0%; height: 4px; background: linear-gradient(90deg, #0f172a, #3b82f6, #06b6d4); z-index: 1000; transition: width 0.3s ease; box-shadow: 0 0 10px rgba(59,130,246,0.8); }
+    .floating-stats { position: fixed; bottom: 24px; right: 24px; width: 320px; background: rgba(255,255,255,0.95); backdrop-filter: blur(12px); border-radius: 16px; box-shadow: 0 15px 35px -5px rgba(0,0,0,0.2); z-index: 900; transition: all 0.3s ease; border: 1px solid rgba(255,255,255,0.5); }
     .floating-stats.minimized { width: 60px; height: 60px; border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center; border-left: none; }
     .floating-stats.minimized .stats-content, .floating-stats.minimized .stats-header { display: none; }
     .floating-stats.minimized::after { content: "📊"; font-size: 24px; }
-    
     .stats-header { padding: 14px 18px; font-weight: bold; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #f1f5f9; }
     .stats-content { padding: 16px 18px; }
-    
-    /* TOAST NOTIFICATIONS */
-    #toastContainer {
-      position: fixed; top: 20px; right: 20px; z-index: 2000; display: flex; flex-direction: column; gap: 10px;
-    }
-    .toast {
-      background: white; padding: 16px 24px; border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.1);
-      border-left: 5px solid #ccc; min-width: 280px; animation: slideIn 0.3s ease, fadeOut 0.3s ease 3.7s forwards;
-      display: flex; align-items: center; gap: 12px; font-weight: 500;
-    }
+    #toastContainer { position: fixed; top: 20px; right: 20px; z-index: 2000; display: flex; flex-direction: column; gap: 10px; }
+    .toast { background: white; padding: 16px 24px; border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); border-left: 5px solid #ccc; min-width: 280px; animation: slideIn 0.3s ease, fadeOut 0.3s ease 3.7s forwards; display: flex; align-items: center; gap: 12px; font-weight: 500; }
     .toast.success { border-color: #10b981; color: #065f46; }
     .toast.error { border-color: #ef4444; color: #991b1b; }
     .toast.info { border-color: #3b82f6; color: #1e40af; }
@@ -112,8 +76,8 @@
     <h2 class="text-3xl font-bold text-salu-900 mb-2 text-center">Acceso Seguro</h2>
     <p class="text-gray-500 text-center mb-8 text-sm">Ingrese sus credenciales de Salu Plus</p>
     <div class="space-y-5">
-      <div><label class="block text-sm font-medium text-gray-600 mb-1">Usuario</label><input id="loginUser" type="text" value="rbarreto" class="w-full p-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-salu-900 focus:border-transparent transition"></div>
-      <div><label class="block text-sm font-medium text-gray-600 mb-1">Contraseña</label><input id="loginPass" type="password" value="1235239398" class="w-full p-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-salu-900 focus:border-transparent transition"></div>
+      <div><label class="block text-sm font-medium text-gray-600 mb-1">Usuario</label><input id="loginUser" type="text" value="rbarreto" autocomplete="username" class="w-full p-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-salu-900 focus:border-transparent transition"></div>
+      <div><label class="block text-sm font-medium text-gray-600 mb-1">Contraseña</label><input id="loginPass" type="password" value="1235239398" autocomplete="current-password" class="w-full p-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-salu-900 focus:border-transparent transition"></div>
       <div id="loginError" class="text-red-600 text-sm hidden bg-red-50 p-3 rounded-lg">Credenciales inválidas.</div>
       <button id="loginBtn" class="w-full bg-salu-900 text-white py-3 px-4 rounded-xl hover:bg-salu-800 transition font-medium shadow-lg hover:shadow-glow">Ingresar</button>
       <button id="closeModalBtn" class="w-full text-gray-500 py-2 px-4 hover:text-gray-800 transition text-sm">Cancelar</button>
@@ -171,7 +135,6 @@
           </div>
         </div>
         
-        <!-- Tarjetas de resumen -->
         <div class="grid grid-cols-2 md:grid-cols-5 gap-4 pt-4">
           <div class="bg-white rounded-xl shadow-sm p-4 border-t-4 border-salu-900"><p class="text-xs text-gray-500 uppercase font-bold">Total</p><p class="text-2xl font-bold text-gray-900 mt-1" id="totalRecords">0</p></div>
           <div class="bg-white rounded-xl shadow-sm p-4 border-t-4 border-green-500"><p class="text-xs text-gray-500 uppercase font-bold">Enviados</p><p class="text-2xl font-bold text-green-600 mt-1" id="successCount">0</p></div>
@@ -182,7 +145,6 @@
       </div>
     </div>
 
-    <!-- Panel de Cálculos -->
     <div class="bg-gradient-to-br from-amber-50 to-orange-50 p-8 rounded-2xl border border-amber-100 shadow-md mb-8">
       <div class="flex items-center justify-between mb-6">
         <div><h3 class="text-xl font-bold text-amber-900">Motor de Cálculos Automáticos</h3><p class="text-sm text-amber-700">Genera parámetros derivados faltantes basados en fórmulas estándar.</p></div>
@@ -200,7 +162,6 @@
       </div>
     </div>
 
-    <!-- Envío a API -->
     <div class="flex flex-col lg:flex-row items-center gap-4 bg-salu-900 p-5 rounded-2xl mb-8 shadow-xl">
       <div class="flex-grow w-full">
         <label class="block text-xs font-bold text-blue-300 mb-1 uppercase tracking-wider">ID de Usuario (API)</label>
@@ -213,7 +174,6 @@
       <button id="sendApi" class="bg-gradient-to-r from-green-500 to-emerald-600 text-white font-bold py-3 px-8 rounded-xl hover:shadow-lg transition w-full lg:w-auto whitespace-nowrap">🚀 Subir a API</button>
     </div>
 
-    <!-- Resultados -->
     <div id="resultArea" class="mt-8 bg-white shadow-xl rounded-2xl border border-gray-100 overflow-x-auto min-h-[300px] max-h-[600px] overflow-y-auto">
       <p class="text-center text-gray-400 py-20 italic">Los resultados procesados aparecerán aquí.</p>
     </div>
@@ -228,9 +188,11 @@
 
 <script>
   // ---------- CONFIGURACIÓN ----------
-  // Usar el proxy local en lugar de la API directa
   const API_BASE = "/-RB-/automata";
   const LOGIN_URL = "/-RB-/login";
+  const REGISTRY_GET_URL  = "/-rb-/Basededato:obtener";
+  const REGISTRY_SAVE_URL = "/-rb-/Basededato:subir";
+  const REGISTRY_EDIT_URL = "/-rb-/Basededato:editar";   // ← NUEVO: actualizar registros existentes
 
   const EXAM_MAP = {
     "GLUCOSE": "11803", "GLUCOSA": "11803",
@@ -245,183 +207,304 @@
     "CHOL LDL DIRECT": "9094"
   };
 
-  const CURVA_PREFIX = /^(PRE|POST|1[/]?2H?|1H|2H|3H|B)$/i;
-  function normalize(s) { return (s || "").toString().trim().toUpperCase(); }
+  // ---------- NORMALIZACIÓN (sin acentos, sin espacios dobles) ----------
+  function normalize(s) {
+    return (s == null ? "" : String(s))
+      .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+      .trim().toUpperCase().replace(/\s+/g, " ");
+  }
 
-  let _TOKEN = null, _USER = null, lastRows = [], globalGroups = [];
+  // Mapa normalizado + claves ordenadas por longitud DESC
+  // (evita que "COL", "LDL", "HDL" o "BUN" capturen antes que claves más específicas)
+  const EXAM_MAP_NORM = {};
+  Object.keys(EXAM_MAP).forEach(k => { EXAM_MAP_NORM[normalize(k)] = EXAM_MAP[k]; });
+  const EXAM_KEYS_SORTED = Object.keys(EXAM_MAP_NORM).sort((a, b) => b.length - a.length);
 
-  // ---------- SISTEMA DE NOTIFICACIONES (TOASTS) ----------
+  // Curva: PRE / POST / 1/2H / 1H / 2H / 3H / B  (regex endurecido)
+  const CURVA_PREFIX = /^(PRE|POST|1\/2H?|1H|2H|3H|B)$/i;
+
+  let _TOKEN = null, _USER = null, lastRows = [], globalGroups = [], _SENDING = false;
+
+  // ---------- UTILIDADES ----------
   function showToast(message, type = 'info') {
     const container = document.getElementById('toastContainer');
     const toast = document.createElement('div');
     toast.className = `toast ${type}`;
-    toast.innerHTML = `<span>${message}</span>`;
+    toast.innerHTML = `<span>${escapeHtml(message)}</span>`;
     container.appendChild(toast);
     setTimeout(() => toast.remove(), 4000);
   }
 
-  // ---------- UTILIDADES ----------
-  function escapeHtml(s) { return String(s || '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":"&#39;"})[c]); }
-  function formatNumber(num) { if (!num) return ''; const str = String(num); if (str.includes('.')) { const [integer, decimal] = str.split('.'); return decimal === '00' || decimal === '0' ? integer : str; } return str; }
-  function parseNum(val) { if (!val) return NaN; const m = String(val).match(/([<>]=?)?\s*(\d+[\.,]?\d*)/); return m ? parseFloat(m[2].replace(',', '.')) : NaN; }
-
-  function calculateBUNFromUrea(ureaValue) { if (!ureaValue || ureaValue === '-') return null; const numMatch = String(ureaValue).match(/([<>]=?)?\s*(\d+[\.,]?\d*)/); if (!numMatch) return null; const num = parseFloat(numMatch[2].replace(',', '.')); if (isNaN(num) || num === 0) return null; return (num / 2.14).toFixed(2); }
-  function calculateLDL(ct, hdl, tg) { const ctN = parseNum(ct), hdlN = parseNum(hdl), tgN = parseNum(tg); if (isNaN(ctN) || isNaN(hdlN) || isNaN(tgN) || tgN >= 400) return null; return (ctN - hdlN - (tgN / 5)).toFixed(2); }
-  function calculateHDL(ct) { const ctN = parseNum(ct); if (isNaN(ctN) || ctN === 0) return null; return (ctN * 0.25).toFixed(2); }
-  function calculateIndirect(totalConc, directConc) {
-    const total = parseNum(totalConc);
-    const direct = parseNum(directConc);
-    if (isNaN(total) || isNaN(direct)) return null;
-    const indirect = total - direct;
-    if (indirect < 0) return null; 
-    return indirect.toFixed(2);
+  function escapeHtml(s) {
+    return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":"&#39;"})[c]);
   }
 
+  function formatNumber(num) {
+    if (num === 0) return '0';
+    if (!num) return '';
+    const str = String(num);
+    if (str.includes('.')) {
+      const [i, d] = str.split('.');
+      return (d === '00' || d === '0') ? i : str;
+    }
+    return str;
+  }
+
+  function parseNum(val) {
+    if (val == null || val === '') return NaN;
+    const m = String(val).match(/([<>]=?)?\s*(-?\d+[\.,]?\d*)/);
+    return m ? parseFloat(m[2].replace(',', '.')) : NaN;
+  }
+
+  // ---------- FÓRMULAS ----------
+  function calculateBUNFromUrea(ureaValue) {
+    const n = parseNum(ureaValue);
+    if (isNaN(n) || n === 0) return null;
+    return (n / 2.14).toFixed(2);
+  }
+  function calculateLDL(ct, hdl, tg) {
+    const c = parseNum(ct), h = parseNum(hdl), t = parseNum(tg);
+    if (isNaN(c) || isNaN(h) || isNaN(t) || t >= 400) return null;
+    const v = c - h - (t / 5);
+    if (v <= 0) return null;
+    return v.toFixed(2);
+  }
+  function calculateHDL(ct) {
+    const c = parseNum(ct);
+    if (isNaN(c) || c === 0) return null;
+    return (c * 0.25).toFixed(2);
+  }
+  function calculateIndirect(totalConc, directConc) {
+    const t = parseNum(totalConc), d = parseNum(directConc);
+    if (isNaN(t) || isNaN(d)) return null;
+    const i = t - d;
+    if (i < 0) return null;
+    return i.toFixed(2);
+  }
+
+  // ---------- CÁLCULOS AUTOMÁTICOS ----------
+  // CORREGIDO: se trabaja sobre el array incremental para que LDL
+  // pueda usar el HDL recién calculado en la misma pasada.
   function addSelectedCalculations(rows, selected) {
-    let newRows = [...rows];
+    const newRows = [...rows];
+    const findRow = (paciente, id) => newRows.find(r => r.paciente === paciente && r.id_examen === id);
+    const hasValue = (paciente, id) => { const r = findRow(paciente, id); return !!r && !isNaN(parseNum(r.conc)); };
     const patients = [...new Set(rows.map(r => r.paciente))];
+
     patients.forEach(paciente => {
-      const urea = rows.find(r => r.paciente === paciente && r.id_examen === '9147');
-      const ct   = rows.find(r => r.paciente === paciente && r.id_examen === '9096');
-      const hdl  = rows.find(r => r.paciente === paciente && r.id_examen === '9093');
-      const ldl  = rows.find(r => r.paciente === paciente && r.id_examen === '9094');
-      const tg   = rows.find(r => r.paciente === paciente && r.id_examen === '9146');
-      const totalBil = rows.find(r => r.paciente === paciente && r.id_examen === '9087');
-      const directBil = rows.find(r => r.paciente === paciente && r.id_examen === '9086');
-      const existingIndirect = rows.some(r => r.paciente === paciente && r.id_examen === '9085');
-
-      const hasBUN = rows.some(r => r.paciente === paciente && r.id_examen === '9134');
-      const hasCT  = !!ct && parseNum(ct.conc) > 0;
-      const hasHDL = !!hdl && parseNum(hdl.conc) > 0;
-      const hasLDL = !!ldl && parseNum(ldl.conc) > 0;
-      const hasTG  = !!tg && parseNum(tg.conc) > 0;
-
-      if (selected.bun && !hasBUN && urea) { const val = calculateBUNFromUrea(urea.conc); if (val) newRows.push({paciente, tipo:'-', tecnica:'CALC', prueba:'BUN (calculado)', id_examen:'9134', conc:val, unidades:'mg/dL', fecha:urea.fecha, apiMessage:'🧮 UREA / 2.14', rowClass:'row-bun-calculated', isCalculated:true}); }
-      if (selected.hdl && !hasHDL && hasCT) { const val = calculateHDL(ct.conc); if (val) newRows.push({paciente, tipo:'-', tecnica:'CALC', prueba:'HDL (calculado)', id_examen:'9093', conc:val, unidades:'mg/dL', fecha:ct.fecha, apiMessage:'🧮 CT × 0.25', rowClass:'row-ct-calculated', isCalculated:true}); }
-      if (selected.ldl && !hasLDL && hasCT && hasHDL && hasTG) { const val = calculateLDL(ct.conc, hdl.conc, tg.conc); if (val) newRows.push({paciente, tipo:'-', tecnica:'CALC', prueba:'LDL (calculado)', id_examen:'9094', conc:val, unidades:'mg/dL', fecha:ct.fecha, apiMessage:'🧮 CT - HDL - TG/5', rowClass:'row-ldl-calculated', isCalculated:true}); }
-      if (selected.indirect && !existingIndirect && totalBil && directBil) {
-        const indirectVal = calculateIndirect(totalBil.conc, directBil.conc);
-        if (indirectVal) {
-          newRows.push({paciente, tipo:'-', tecnica:'CALC', prueba:'Bilirrubina Indirecta (calculada)', id_examen:'9085', conc: indirectVal, unidades: totalBil.unidades || 'mg/dL', fecha: totalBil.fecha || directBil.fecha, apiMessage:'🧮 Bilirrubina Total - Directa', rowClass:'row-indirect-calculated', isCalculated: true});
+      // 1) BUN desde UREA
+      if (selected.bun && !hasValue(paciente, '9134')) {
+        const urea = findRow(paciente, '9147');
+        if (urea) {
+          const val = calculateBUNFromUrea(urea.conc);
+          if (val) newRows.push({
+            paciente, tipo: '-', tecnica: 'CALC', prueba: 'BUN (calculado)', id_examen: '9134',
+            conc: val, unidades: 'mg/dL', fecha: urea.fecha, apiMessage: '🧮 UREA / 2.14',
+            rowClass: 'row-bun-calculated', isCalculated: true
+          });
+        }
+      }
+      // 2) HDL desde CT
+      if (selected.hdl && !hasValue(paciente, '9093')) {
+        const ct = findRow(paciente, '9096');
+        if (ct && parseNum(ct.conc) > 0) {
+          const val = calculateHDL(ct.conc);
+          if (val) newRows.push({
+            paciente, tipo: '-', tecnica: 'CALC', prueba: 'HDL (calculado)', id_examen: '9093',
+            conc: val, unidades: 'mg/dL', fecha: ct.fecha, apiMessage: '🧮 CT × 0.25',
+            rowClass: 'row-hdl-calculated', isCalculated: true
+          });
+        }
+      }
+      // 3) LDL (usa HDL existente o el recién calculado)
+      if (selected.ldl && !hasValue(paciente, '9094')) {
+        const ct = findRow(paciente, '9096');
+        const hdl = findRow(paciente, '9093');
+        const tg = findRow(paciente, '9146');
+        if (ct && hdl && tg) {
+          const val = calculateLDL(ct.conc, hdl.conc, tg.conc);
+          if (val) newRows.push({
+            paciente, tipo: '-', tecnica: 'CALC', prueba: 'LDL (calculado)', id_examen: '9094',
+            conc: val, unidades: 'mg/dL', fecha: ct.fecha, apiMessage: '🧮 CT - HDL - TG/5',
+            rowClass: 'row-ldl-calculated', isCalculated: true
+          });
+        }
+      }
+      // 4) Bilirrubina indirecta
+      if (selected.indirect && !hasValue(paciente, '9085')) {
+        const tot = findRow(paciente, '9087');
+        const dir = findRow(paciente, '9086');
+        if (tot && dir) {
+          const val = calculateIndirect(tot.conc, dir.conc);
+          if (val) newRows.push({
+            paciente, tipo: '-', tecnica: 'CALC', prueba: 'Bilirrubina Indirecta (calculada)', id_examen: '9085',
+            conc: val, unidades: tot.unidades || 'mg/dL', fecha: tot.fecha || dir.fecha,
+            apiMessage: '🧮 Bilirrubina Total - Directa', rowClass: 'row-indirect-calculated', isCalculated: true
+          });
         }
       }
     });
-    return newRows.sort((a, b) => a.paciente.localeCompare(b.paciente));
+
+    return newRows.sort((a, b) => String(a.paciente).localeCompare(String(b.paciente)));
   }
 
-  // ---------- PARSING ----------
+  // ---------- PARSEO ----------
   const dateRe = /^\d{1,2}\/\d{1,2}\/\d{4}$/;
   const timeRe = /^\d{1,2}:\d{2}$/;
   const numRe = /^\d+[\.,]?\d*$/;
   const cmpNumRe = /^[<>]=?\d+[\.,]?\d*$/;
   const dashSlashRe = /^[-\/]{2,}$/;
   const resultWordsRe = /^(NEGATIVO|POSITIVO|REACTIVO|NO|TRAZAS|N\/A|INDETERMINADO)$/i;
-  const unitRe = /^(mg\/?d?l|mg|mmol\/l|mmol|g\/dl|g|iu\/l|iu|%|u\/l|ml|mL|ug\/mL|mg\/L)$/i;
+  const unitRe = /^(mg\/?d?l|mg|mmol\/l|mmol|g\/dl|g|iu\/l|iu|%|u\/l|ml|ug\/ml|mg\/l)$/i;
 
-  function looksLikeResult(token, nextToken) { if (!token) return false; if (numRe.test(token) || cmpNumRe.test(token) || dashSlashRe.test(token) || resultWordsRe.test(token)) return true; if (unitRe.test(nextToken) || dateRe.test(nextToken) || timeRe.test(nextToken)) return true; return /^[\d\-\+\/]+$/.test(token); }
+  function looksLikeResult(token, nextToken) {
+    if (!token) return false;
+    if (numRe.test(token) || cmpNumRe.test(token) || dashSlashRe.test(token) || resultWordsRe.test(token)) return true;
+    if (unitRe.test(nextToken || '') || dateRe.test(nextToken || '') || timeRe.test(nextToken || '')) return true;
+    return /^[\d\-\+\/]+$/.test(token);
+  }
 
   function parseText(text) {
     const rows = [];
-    const lines = text.replace(/\r/g, "").split('\n');
+    const lines = String(text || '').replace(/\r/g, "").split('\n');
+
     for (let raw of lines) {
       raw = raw.trim();
-      if (!raw || !/^\d{5,15}/.test(raw)) continue;
+      if (!raw || !/^\d{5,15}\b/.test(raw)) continue;   // CORREGIDO: \b evita cortes en IDs largos
+
       const parts = raw.split(/\s+/).filter(Boolean);
       if (parts.length < 3) continue;
+
       let idx = 0;
       const paciente = parts[idx++];
+
       let tipo = "-";
-      if (idx < parts.length && CURVA_PREFIX.test(parts[idx])) { tipo = parts[idx].toUpperCase(); if (tipo === "1/2") tipo = "1/2H"; idx++; }
-      let tecnica = "SER";
-      if (idx < parts.length && ["SER","PLASMA","ORINA","SUERO","HECES"].includes(normalize(parts[idx]))) { tecnica = parts[idx]; idx++; }
-      let pruebaParts = [], conc = "", unidades = "mg/dL";
-      while (idx < parts.length) {
-        const word = parts[idx], next = parts[idx+1] || "";
-        if (dateRe.test(word)) { pruebaParts.push(word); idx++; continue; }
-        if (looksLikeResult(word, next)) { conc = word.replace(',', '.').trim(); idx++; break; }
-        pruebaParts.push(word); idx++;
+      if (idx < parts.length && CURVA_PREFIX.test(parts[idx])) {
+        tipo = parts[idx].toUpperCase();
+        if (tipo === "1/2") tipo = "1/2H";
+        idx++;
       }
+
+      let tecnica = "SER";
+      if (idx < parts.length && ["SER","PLASMA","ORINA","SUERO","HECES"].includes(normalize(parts[idx]))) {
+        tecnica = parts[idx];
+        idx++;
+      }
+
+      const pruebaParts = [];
+      let conc = "";
+      let unidades = "mg/dL";
+      let fechaEnLoop = "";                             // CORREGIDO: fecha detectada antes del resultado
+
+      while (idx < parts.length) {
+        const word = parts[idx];
+        const next = parts[idx + 1] || "";
+
+        if (dateRe.test(word)) {
+          if (!fechaEnLoop) fechaEnLoop = word;
+          idx++;
+          continue;
+        }
+        if (looksLikeResult(word, next)) {
+          conc = word.replace(',', '.').trim();
+          idx++;
+          break;
+        }
+        pruebaParts.push(word);
+        idx++;
+      }
+
       const prueba = pruebaParts.join(" ").trim();
-      if (idx < parts.length && (unitRe.test(parts[idx]) || /mg|mmol|g\/dl|iu|%|ug/i.test(parts[idx]))) { unidades = parts[idx]; idx++; }
-      let fecha = "";
-      if (idx < parts.length && dateRe.test(parts[idx])) { fecha = parts[idx]; if (idx+1 < parts.length && timeRe.test(parts[idx+1])) fecha += ' ' + parts[idx+1]; }
-      
+
+      // Unidades
+      if (idx < parts.length && (unitRe.test(parts[idx]) || /mg|mmol|g\/dl|iu|%|ug/i.test(parts[idx]))) {
+        unidades = parts[idx];
+        idx++;
+      }
+
+      // Fecha (y hora)
+      let fecha = fechaEnLoop;
+      if (idx < parts.length && dateRe.test(parts[idx])) {
+        fecha = parts[idx];
+        if (idx + 1 < parts.length && timeRe.test(parts[idx + 1])) {
+          fecha += ' ' + parts[idx + 1];
+          idx += 2;
+        } else {
+          idx++;
+        }
+      } else if (fecha && idx < parts.length && timeRe.test(parts[idx])) {
+        fecha += ' ' + parts[idx];
+        idx++;
+      }
+
+      // Mapeo de ID de examen
       let id_examen = "";
       const pruebaNorm = normalize(prueba);
+
       if (pruebaNorm.includes("GLUCOS") || pruebaNorm.includes("GLUCOSE")) {
         if (tipo === "PRE" || tipo === "POST") id_examen = "9121";
         else if (["1/2H","1H","2H","3H","B"].includes(tipo)) id_examen = "9122";
         else id_examen = "11803";
       } else if (pruebaNorm.includes("BILIRRUBINA") || pruebaNorm.includes("BILIRUBIN")) {
-        // CORREGIDO: Verificar INDIRECT primero
-        if (pruebaNorm.includes("INDIRECT")) {
-          id_examen = "9085";
-        } else if (pruebaNorm.includes("DIRECT")) {
-          id_examen = "9086";
-        } else if (pruebaNorm.includes("TOTAL")) {
-          id_examen = "9087";
-        }
+        if (pruebaNorm.includes("INDIRECT")) id_examen = "9085";
+        else if (pruebaNorm.includes("DIRECT")) id_examen = "9086";
+        else if (pruebaNorm.includes("TOTAL")) id_examen = "9087";
       } else {
-        for (const key in EXAM_MAP) { 
-          if (pruebaNorm.includes(normalize(key))) { 
-            id_examen = EXAM_MAP[key]; 
-            break; 
-          } 
+        for (const key of EXAM_KEYS_SORTED) {
+          if (pruebaNorm.includes(key)) { id_examen = EXAM_MAP_NORM[key]; break; }
         }
       }
-      rows.push({ paciente, tipo, tecnica, prueba, id_examen: id_examen || "", conc, unidades, fecha: fecha || "", apiMessage: '', rowClass: '', isCalculated: false });
+
+      rows.push({
+        paciente, tipo, tecnica, prueba,
+        id_examen: id_examen || "",
+        conc, unidades,
+        fecha: fecha || "",
+        apiMessage: '', rowClass: '', isCalculated: false
+      });
     }
     return rows;
   }
 
-  // ---------- VALIDACIÓN Y AGRUPAMIENTO CORREGIDO ----------
+  // ---------- VALIDACIÓN / AGRUPACIÓN ----------
   function validateAndGroupRows() {
     globalGroups = [];
-    lastRows.forEach(r => { 
-      if(!r.apiMessage.includes('🧮')) r.apiMessage = ''; 
-      r.rowClass = r.isCalculated ? r.rowClass : ''; 
+
+    lastRows.forEach(r => {
+      r.apiMessage = String(r.apiMessage || '');
+      if (!r.apiMessage.includes('🧮') && !r.apiMessage.startsWith('✅') && !r.apiMessage.startsWith('❌') && !r.apiMessage.includes('⚠️') && !r.apiMessage.includes('YA ENVIADO')) {
+        r.apiMessage = '';
+      }
+      r.rowClass = r.isCalculated ? r.rowClass : '';
     });
+
     const patients = [...new Set(lastRows.map(r => r.paciente))];
 
     patients.forEach(p => {
-      // BILIRRUBINAS - CORREGIDO
+      // --- Grupo Bilirrubinas ---
       const dir = lastRows.find(r => r.paciente === p && r.id_examen === '9086');
       const ind = lastRows.find(r => r.paciente === p && r.id_examen === '9085');
       const tot = lastRows.find(r => r.paciente === p && r.id_examen === '9087');
-      
-      // Verificar si existe ALGUNA bilirrubina
-      const hasAnyBilirubin = dir || ind || tot;
-      
-      if (hasAnyBilirubin) {
+
+      if (dir || ind || tot) {
         const missing = [];
-        if(!dir) missing.push("Directa(9086)");
-        if(!ind) missing.push("Indirecta(9085)");
-        if(!tot) missing.push("Total(9087)");
-        
+        if (!dir) missing.push("Directa(9086)");
+        if (!ind) missing.push("Indirecta(9085)");
+        if (!tot) missing.push("Total(9087)");
         const isComplete = missing.length === 0;
         const groupRows = [dir, ind, tot].filter(Boolean);
         const msg = isComplete ? '' : `⚠️ Falta: ${missing.join(', ')}`;
-        
-        // SIEMPRE agrupar todas las bilirrubinas que existan
-        groupRows.forEach(r => { 
-          r.apiMessage = msg; 
-          r.rowClass = isComplete ? r.rowClass : 'row-incomplete'; 
-        });
-        
-        globalGroups.push({ 
-          idProcedimientoObjetivo: '9087', 
-          paciente: p, 
-          isComplete, 
-          rows: groupRows,
-          isBilirubinGroup: true
-        });
+        groupRows.forEach(r => { r.apiMessage = msg; r.rowClass = isComplete ? r.rowClass : 'row-incomplete'; });
+        globalGroups.push({ idProcedimientoObjetivo: '9087', paciente: p, isComplete, rows: groupRows, isBilirubinGroup: true });
       }
 
-      // Glucosa Pre/Post
-      const pre = lastRows.find(r => r.paciente === p && r.id_examen === '9121' && r.tipo === 'PRE');
+      // --- Grupo Glucosa PRE/POST ---
+      const pre  = lastRows.find(r => r.paciente === p && r.id_examen === '9121' && r.tipo === 'PRE');
       const post = lastRows.find(r => r.paciente === p && r.id_examen === '9121' && r.tipo === 'POST');
-      if(pre || post) {
-        const missing = []; if(!pre) missing.push("PRE"); if(!post) missing.push("POST");
+      if (pre || post) {
+        const missing = [];
+        if (!pre) missing.push("PRE");
+        if (!post) missing.push("POST");
         const isComplete = missing.length === 0;
         const groupRows = [pre, post].filter(Boolean);
         const msg = isComplete ? '' : `⚠️ Falta: ${missing.join(', ')}`;
@@ -429,14 +512,19 @@
         globalGroups.push({ idProcedimientoObjetivo: '9121', paciente: p, isComplete, rows: groupRows });
       }
 
-      // Curva
+      // --- Grupo Curva de tolerancia ---
       const h2 = lastRows.find(r => r.paciente === p && r.id_examen === '9122' && r.tipo === '2H');
       const h3 = lastRows.find(r => r.paciente === p && r.id_examen === '9122' && r.tipo === '3H');
       const h1 = lastRows.find(r => r.paciente === p && r.id_examen === '9122' && r.tipo === '1H');
-      const m = lastRows.find(r => r.paciente === p && r.id_examen === '9122' && r.tipo === '1/2H');
-      const b = lastRows.find(r => r.paciente === p && r.id_examen === '9122' && r.tipo === 'B');
-      if(h2 || h3 || h1 || m || b) {
-        const missing = []; if(!h2) missing.push("2H"); if(!h3) missing.push("3H"); if(!h1) missing.push("1H"); if(!m) missing.push("1/2H"); if(!b) missing.push("Basal");
+      const m  = lastRows.find(r => r.paciente === p && r.id_examen === '9122' && r.tipo === '1/2H');
+      const b  = lastRows.find(r => r.paciente === p && r.id_examen === '9122' && r.tipo === 'B');
+      if (h2 || h3 || h1 || m || b) {
+        const missing = [];
+        if (!m)  missing.push("1/2H");
+        if (!h1) missing.push("1H");
+        if (!h2) missing.push("2H");
+        if (!h3) missing.push("3H");
+        if (!b)  missing.push("Basal");
         const isComplete = missing.length === 0;
         const groupRows = [h2, h3, h1, m, b].filter(Boolean);
         const msg = isComplete ? '' : `⚠️ Falta: ${missing.join(', ')}`;
@@ -445,39 +533,31 @@
       }
     });
 
-    // Exámenes simples (excluyendo bilirrubinas que ya fueron procesadas)
+    // --- Grupos individuales ---
     lastRows.forEach(r => {
       const isBilirubin = ['9085','9086','9087'].includes(r.id_examen);
       const isSpecial = ['9121','9122'].includes(r.id_examen);
-      
-      // Si es una bilirrubina, ya fue procesada en el grupo
-      if (isBilirubin) return;
-      
-      // Si no es especial y tiene ID, agregar como examen simple
-      if(!isSpecial && r.id_examen) {
-        globalGroups.push({ 
-          idProcedimientoObjetivo: r.id_examen, 
-          paciente: r.paciente, 
-          isComplete: true, 
-          rows: [r] 
-        });
+      if (isBilirubin || isSpecial) return;
+      if (r.id_examen) {
+        globalGroups.push({ idProcedimientoObjetivo: r.id_examen, paciente: r.paciente, isComplete: true, rows: [r] });
       }
     });
-    
-    console.log('📊 Grupos generados:', globalGroups);
   }
 
-  // ---------- RENDER TABLA ----------
+  // ---------- RENDER ----------
   function render(rows) {
     const filter = normalize(document.getElementById('filterInput').value);
     const onlyMapped = document.getElementById('mappedOnly').checked;
     let visible = 0;
 
     const total = rows.length;
-    const success = rows.filter(r => r.apiMessage === '✅ Enviado').length;
-    const errors = rows.filter(r => r.apiMessage && r.apiMessage.startsWith('❌')).length;
+    const success = rows.filter(r => {
+      const m = String(r.apiMessage || '');
+      return m === '✅ Enviado' || m.includes('YA ENVIADO');
+    }).length;
+    const errors = rows.filter(r => String(r.apiMessage || '').startsWith('❌')).length;
     const calculated = rows.filter(r => r.isCalculated === true).length;
-    const incomplete = rows.filter(r => r.apiMessage && r.apiMessage.includes('⚠️ Falta')).length;
+    const incomplete = rows.filter(r => String(r.apiMessage || '').includes('⚠️ Falta')).length;
 
     document.getElementById('totalRecords').textContent = total;
     document.getElementById('successCount').textContent = success;
@@ -485,28 +565,54 @@
     document.getElementById('calcCount').textContent = calculated;
     document.getElementById('incompleteCount').textContent = incomplete;
 
+    if (rows.length === 0) {
+      document.getElementById('countBadge').textContent = '0 filas';
+      document.getElementById('resultArea').innerHTML = '<p class="text-center text-gray-400 py-20 italic">Los resultados procesados aparecerán aquí.</p>';
+      return;
+    }
+
     let html = `<table class="min-w-full"><thead><tr><th>Paciente</th><th>Tipo</th><th>Técnica</th><th>Prueba</th><th>ID Examen</th><th>Conc.</th><th>Und.</th><th>Fecha</th><th>Estado API</th></tr></thead><tbody>`;
+
     for (const r of rows) {
+      const msg = String(r.apiMessage || '');
       if (onlyMapped && !r.id_examen) continue;
-      if (filter && !(r.paciente.includes(filter) || normalize(r.prueba).includes(filter) || (r.id_examen && r.id_examen.includes(filter)))) continue;
+      if (filter && !(
+        String(r.paciente || '').includes(filter) ||
+        normalize(r.prueba).includes(filter) ||
+        (r.id_examen && String(r.id_examen).includes(filter))
+      )) continue;
+
       visible++;
       const concFormatted = r.isCalculated ? formatNumber(r.conc) : r.conc;
-      const idStyle = r.id_examen ? (r.isCalculated ? "background:#e0f2fe;color:#0369a1;font-weight:700" : "background:#dcfce7;color:#166534;font-weight:700") : "color:#ef4444; font-weight: bold;";
-      const statusColor = r.apiMessage && r.apiMessage.includes('⚠️') ? '#b45309' : 'inherit';
-      html += `<tr class="${r.rowClass}">
-        <td><strong>${r.paciente}</strong></td><td>${r.tipo}</td><td>${r.tecnica}</td><td>${escapeHtml(r.prueba)}</td>
-        <td style="${idStyle}">${r.id_examen || 'FALTA ID'}</td><td style="text-align:right; font-weight: 600;">${concFormatted}</td><td>${r.unidades}</td><td>${r.fecha}</td>
-        <td style="font-size:0.8rem; font-weight:600; color:${statusColor}">${escapeHtml(r.apiMessage || '-')}</td>
+      const idStyle = r.id_examen
+        ? (r.isCalculated ? "background:#e0f2fe;color:#0369a1;font-weight:700" : "background:#dcfce7;color:#166534;font-weight:700")
+        : "color:#ef4444; font-weight: bold;";
+      const statusColor =
+        msg.includes('⚠️') ? '#b45309' :
+        msg.includes('YA ENVIADO') ? '#1e40af' :
+        msg.startsWith('❌') ? '#991b1b' :
+        msg.startsWith('✅') ? '#065f46' :
+        'inherit';
+
+      html += `<tr class="${escapeHtml(r.rowClass || '')}">
+        <td><strong>${escapeHtml(r.paciente)}</strong></td>
+        <td>${escapeHtml(r.tipo)}</td>
+        <td>${escapeHtml(r.tecnica)}</td>
+        <td>${escapeHtml(r.prueba)}</td>
+        <td style="${idStyle}">${escapeHtml(r.id_examen || 'FALTA ID')}</td>
+        <td style="text-align:right; font-weight: 600;">${escapeHtml(concFormatted)}</td>
+        <td>${escapeHtml(r.unidades)}</td>
+        <td>${escapeHtml(r.fecha)}</td>
+        <td style="font-size:0.8rem; font-weight:600; color:${statusColor}">${escapeHtml(msg || '-')}</td>
        </tr>`;
     }
+
     document.getElementById('countBadge').textContent = visible + ' filas';
     document.getElementById('resultArea').innerHTML = html + `</tbody></table>`;
-    if(rows.length===0) document.getElementById('resultArea').innerHTML = '<p class="text-center text-gray-400 py-20 italic">Los resultados procesados aparecerán aquí.</p>';
   }
 
-  // ---------- PANEL FLOTANTE ----------
   function updateFloatingStats(total, success, errors) {
-    const percent = total === 0 ? 0 : ((success + errors) / total) * 100;
+    const percent = total === 0 ? 0 : Math.min(100, ((success + errors) / total) * 100);
     document.getElementById('statTotal').innerText = total;
     document.getElementById('statSuccess').innerText = success;
     document.getElementById('statErrors').innerText = errors;
@@ -521,6 +627,140 @@
   toggleBtn.addEventListener('click', (e) => { e.stopPropagation(); minimized = !minimized; floatingDiv.classList.toggle('minimized', minimized); });
   floatingDiv.addEventListener('click', () => { if (minimized) toggleBtn.click(); });
 
+  // ============================================================
+  //  REGISTRO — consulta, creación y EDICIÓN de registros
+  // ============================================================
+  async function checkRegistry(paciente, idExamen) {
+    try {
+      const res = await fetch(REGISTRY_GET_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ paciente: String(paciente), idExamen: String(idExamen) })
+      });
+      if (!res.ok) return [];
+      const data = await res.json();
+      return Array.isArray(data.data) ? data.data : [];
+    } catch (e) {
+      console.warn('⚠️ Error consultando registro:', e);
+      return [];
+    }
+  }
+
+  // Devuelve TODOS los registros que correspondan al grupo (sin filtrar por estado)
+  function findMatchingRecords(registryRecords, group) {
+    if (!Array.isArray(registryRecords) || registryRecords.length === 0) return [];
+    const targetId = String(group.idProcedimientoObjetivo);
+    const examIds = group.rows.map(r => String(r.id_examen || '')).filter(Boolean);
+
+    return registryRecords.filter(rec => {
+      const pruebaStr  = String(rec.prueba   || '');
+      const idExamStr  = String(rec.idExamen || '');
+      if (examIds.some(eid => pruebaStr === eid || pruebaStr.startsWith(eid))) return true;
+      if (idExamStr === targetId || examIds.includes(idExamStr)) return true;
+      return false;
+    });
+  }
+
+  function isSuccessState(estado) {
+    const e = String(estado || '').toLowerCase().trim();
+    return e === 'exito' || e === 'éxito' || e === 'success' || e === 'ok';
+  }
+
+  function formatRegDate(isoStr) {
+    try {
+      const d = new Date(isoStr);
+      if (isNaN(d.getTime())) return isoStr || '';
+      const p = n => String(n).padStart(2, '0');
+      return `${p(d.getDate())}/${p(d.getMonth()+1)}/${d.getFullYear()} ${p(d.getHours())}:${p(d.getMinutes())}`;
+    } catch { return isoStr || ''; }
+  }
+
+  function toIsoDate(fechaStr) {
+    if (!fechaStr) return new Date().toISOString();
+    const m = String(fechaStr).match(/(\d{1,2})\/(\d{1,2})\/(\d{4})(?:\s+(\d{1,2}):(\d{2}))?/);
+    if (!m) return new Date().toISOString();
+    const [, d, mo, y, h, mi] = m;
+    const dt = new Date(parseInt(y), parseInt(mo) - 1, parseInt(d), parseInt(h || 0), parseInt(mi || 0));
+    return isNaN(dt.getTime()) ? new Date().toISOString() : dt.toISOString();
+  }
+
+  function buildRegistryRecords(group, estado) {
+    return group.rows.map(row => ({
+      paciente:  String(row.paciente),
+      tipo:      String(row.tecnica || row.tipo || 'SER'),
+      tecnica:   String(row.prueba || ''),
+      prueba:    String(row.id_examen || group.idProcedimientoObjetivo),
+      idExamen:  String(group.idProcedimientoObjetivo),
+      conc:      String(row.conc || ''),
+      und:       String(row.unidades || 'mg/dL'),
+      fecha:     toIsoDate(row.fecha),
+      estadoApi: estado
+    }));
+  }
+
+  async function saveToRegistry(records) {
+    if (!records || records.length === 0) return null;
+    try {
+      const res = await fetch(REGISTRY_SAVE_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(records)
+      });
+      const data = await res.json().catch(() => ({}));
+      console.log('💾 Registro guardado:', data);
+      return data;
+    } catch (e) { console.error('❌ Error guardando en registro:', e); return null; }
+  }
+
+  // CORREGIDO: edita un registro existente (evita duplicados al reintentar)
+  async function editRegistryRecord(id, updates) {
+    if (id == null) return null;
+    const body = { id, ...updates };
+    try {
+      let res = await fetch(REGISTRY_EDIT_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body)
+      });
+      if (!res.ok) {
+        // Fallback mínimo (por si el endpoint sólo acepta id + estadoApi)
+        res = await fetch(REGISTRY_EDIT_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ id, estadoApi: updates.estadoApi })
+        });
+      }
+      const data = await res.json().catch(() => ({}));
+      console.log('✏️ Registro editado:', id, data);
+      return data;
+    } catch (e) {
+      console.warn('⚠️ Error editando registro', id, e);
+      return null;
+    }
+  }
+
+  // Actualiza los registros existentes y crea los que falten
+  async function persistRegistry(group, estado, existingRecords) {
+    const records = buildRegistryRecords(group, estado);
+    const usedIds = new Set();
+    const toCreate = [];
+
+    for (const rec of records) {
+      const match = (existingRecords || []).find(e =>
+        e && e.id != null && !usedIds.has(e.id) &&
+        String(e.paciente) === String(rec.paciente) &&
+        String(e.prueba)   === String(rec.prueba)
+      );
+      if (match) {
+        usedIds.add(match.id);
+        await editRegistryRecord(match.id, rec);
+      } else {
+        toCreate.push(rec);
+      }
+    }
+    if (toCreate.length) await saveToRegistry(toCreate);
+  }
+
   // ---------- AUTENTICACIÓN ----------
   const loginModal = document.getElementById('loginModal');
   const loginBtn = document.getElementById('loginBtn');
@@ -530,208 +770,300 @@
   function renderAuth() {
     const authArea = document.getElementById('authArea');
     const idUsuarioInput = document.getElementById('idUsuario');
+
     if (_TOKEN && _USER) {
-      authArea.innerHTML = `<span class="text-gray-600 mr-3 hidden sm:inline">👋 ${_USER.nombre || _USER.usuario}</span><button id="logoutBtn" class="bg-red-50 text-red-600 py-2 px-4 rounded-lg hover:bg-red-100 transition font-medium text-sm">Cerrar sesión</button>`;
+      authArea.innerHTML = `<span class="text-gray-600 mr-3 hidden sm:inline">👋 ${escapeHtml(_USER.nombre || _USER.usuario || '')}</span><button id="logoutBtn" class="bg-red-50 text-red-600 py-2 px-4 rounded-lg hover:bg-red-100 transition font-medium text-sm">Cerrar sesión</button>`;
       idUsuarioInput.value = _USER.id || '';
       idUsuarioInput.disabled = false;
       idUsuarioInput.classList.remove('opacity-70', 'cursor-not-allowed');
-      document.getElementById('logoutBtn')?.addEventListener('click', () => { _TOKEN = null; _USER = null; renderAuth(); updateFloatingStats(0,0,0); showToast('Sesión cerrada', 'info'); });
+
+      document.getElementById('logoutBtn')?.addEventListener('click', () => {
+        _TOKEN = null; _USER = null; renderAuth(); updateFloatingStats(0, 0, 0);
+        showToast('Sesión cerrada', 'info');
+      });
     } else {
       authArea.innerHTML = `<button id="showLoginBtn" class="bg-salu-900 text-white py-2 px-5 rounded-lg hover:bg-salu-800 transition text-sm font-medium shadow-md">Iniciar Sesión</button>`;
       idUsuarioInput.value = '';
       idUsuarioInput.disabled = true;
       idUsuarioInput.classList.add('opacity-70', 'cursor-not-allowed');
-      document.getElementById('showLoginBtn')?.addEventListener('click', () => { loginError.classList.add('hidden'); loginModal.classList.add('active'); });
+      document.getElementById('showLoginBtn')?.addEventListener('click', () => {
+        loginError.classList.add('hidden');
+        loginModal.classList.add('active');
+        setTimeout(() => document.getElementById('loginUser')?.focus(), 150);
+      });
     }
   }
 
   closeModalBtn.addEventListener('click', () => loginModal.classList.remove('active'));
-  
-  loginBtn.addEventListener('click', async () => {
-    loginError.classList.add('hidden'); 
-    loginBtn.textContent = 'Verificando...'; 
+  loginModal.addEventListener('click', (e) => { if (e.target === loginModal) loginModal.classList.remove('active'); });
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && loginModal.classList.contains('active')) loginModal.classList.remove('active');
+  });
+
+  async function doLogin() {
+    loginError.classList.add('hidden');
+    loginBtn.textContent = 'Verificando...';
     loginBtn.disabled = true;
     try {
-      const user = document.getElementById('loginUser').value;
+      const user = document.getElementById('loginUser').value.trim();
       const pass = document.getElementById('loginPass').value;
-      
-      console.log('🔐 Intentando login con:', user);
-      
-      const res = await fetch(LOGIN_URL, { 
-        method: 'POST', 
-        headers: { 
-          'Content-Type': 'application/json', 
-          'accept': 'application/json' 
-        }, 
-        body: JSON.stringify({ username: user, password: pass }) 
+      if (!user || !pass) throw new Error('Usuario y contraseña son obligatorios');
+
+      const res = await fetch(LOGIN_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'accept': 'application/json' },
+        body: JSON.stringify({ username: user, password: pass })
       });
-      
-      console.log('📡 Respuesta status:', res.status);
-      
-      if (!res.ok) {
-        const errorText = await res.text();
-        console.error('❌ Error response:', errorText);
-        throw new Error(`Error ${res.status}: ${errorText}`);
-      }
-      
+      if (!res.ok) { const errorText = await res.text(); throw new Error(`Error ${res.status}: ${errorText}`); }
       const data = await res.json();
-      console.log('✅ Datos recibidos:', data);
-      
-      if(data.isSuccessful && data.result) { 
-        _TOKEN = data.result.token; 
-        _USER = data.result; 
-        loginModal.classList.remove('active'); 
-        renderAuth(); 
-        showToast(`Bienvenido, ${_USER.usuario}`, 'success');
+
+      if (data.isSuccessful && data.result) {
+        _TOKEN = data.result.token;
+        _USER = data.result;
+        loginModal.classList.remove('active');
+        renderAuth();
+        showToast(`Bienvenido, ${_USER.usuario || user}`, 'success');
       } else {
         throw new Error(data.errorMessage || data.message || 'Credenciales incorrectas');
       }
-    } catch (err) { 
-      console.error('❌ Error en login:', err);
-      loginError.textContent = err.message || 'Credenciales inválidas o error de conexión.'; 
-      loginError.classList.remove('hidden'); 
+    } catch (err) {
+      loginError.textContent = err.message || 'Credenciales inválidas o error de conexión.';
+      loginError.classList.remove('hidden');
       showToast('Error de inicio de sesión: ' + err.message, 'error');
-    } finally { 
-      loginBtn.textContent = 'Ingresar'; 
-      loginBtn.disabled = false; 
+    } finally {
+      loginBtn.textContent = 'Ingresar';
+      loginBtn.disabled = false;
     }
-  });
+  }
 
-  // ---------- ENVÍO A API CORREGIDO ----------
+  loginBtn.addEventListener('click', doLogin);
+  document.getElementById('loginPass').addEventListener('keydown', e => { if (e.key === 'Enter') doLogin(); });
+  document.getElementById('loginUser').addEventListener('keydown', e => { if (e.key === 'Enter') document.getElementById('loginPass').focus(); });
+
+  // ---------- ENVÍO A API ----------
   document.getElementById('sendApi').addEventListener('click', async () => {
+    if (_SENDING) return;
     if (!_TOKEN) return showToast('Debes iniciar sesión primero', 'error');
+
     const idUsuario = document.getElementById('idUsuario').value;
     if (!idUsuario) return showToast('El ID de usuario es obligatorio', 'error');
-    
+    if (globalGroups.length === 0) return showToast('Primero parsea los datos', 'error');
+
     const allowIncomplete = document.getElementById('allowIncomplete').checked;
     let groupsToSend = globalGroups.filter(g => g.isComplete);
-    if(allowIncomplete) groupsToSend = globalGroups;
-    if(groupsToSend.length === 0) return showToast('No hay exámenes para enviar', 'info');
+    if (allowIncomplete) groupsToSend = globalGroups.slice();
+    if (groupsToSend.length === 0) return showToast('No hay exámenes completos para enviar', 'info');
 
-    // Mostrar resumen detallado
     const completos = globalGroups.filter(g => g.isComplete).length;
     const incompletos = globalGroups.filter(g => !g.isComplete).length;
-    
-    if(!confirm(`📊 Resumen de envío:\n✅ Completos: ${completos}\n⚠️ Incompletos: ${incompletos}\n📦 Total a enviar: ${groupsToSend.length}\n\n${allowIncomplete ? '⚠️ Se enviarán TODOS los grupos (incluyendo incompletos)' : '✅ Solo se enviarán los grupos COMPLETOS'}\n¿Continuar?`)) return;
 
+    if (!confirm(`📊 Resumen de envío:\n✅ Completos: ${completos}\n⚠️ Incompletos: ${incompletos}\n📦 Total a enviar: ${groupsToSend.length}\n\n${allowIncomplete ? '⚠️ Se enviarán TODOS los grupos (incluyendo incompletos)' : '✅ Solo se enviarán los grupos COMPLETOS'}\n¿Continuar?`)) return;
+
+    _SENDING = true;
     const totalGroups = groupsToSend.length;
     updateFloatingStats(totalGroups, 0, 0);
+
     const btn = document.getElementById('sendApi');
     btn.disabled = true;
     btn.textContent = `Enviando (0/${totalGroups})...`;
-    let successCount = 0, errorCount = 0;
+
+    let successCount = 0, errorCount = 0, skippedCount = 0;
 
     for (const group of groupsToSend) {
-      let payloadBody = {
+      // ---- PASO 1: verificar registro ----
+      let existingRecords = [];
+      try {
+        const recs = await checkRegistry(group.paciente, group.idProcedimientoObjetivo);
+        existingRecords = findMatchingRecords(recs, group);
+      } catch (e) { console.warn('Error verificando registro:', e); }
+
+      const alreadySent = existingRecords.find(r => isSuccessState(r.estadoApi));
+      const pendingRecords = existingRecords.filter(r => !isSuccessState(r.estadoApi));
+
+      if (alreadySent) {
+        const fechaEnvio = formatRegDate(alreadySent.fecha);
+        const mensaje = `✅ YA ENVIADO el ${fechaEnvio}`;
+        group.rows.forEach(row => { row.apiMessage = mensaje; row.rowClass = 'row-already-sent'; });
+        successCount++; skippedCount++;
+        updateFloatingStats(totalGroups, successCount, errorCount);
+        render(lastRows);
+        await new Promise(r => setTimeout(r, 60));
+        continue;
+      }
+
+      // ---- PASO 2: construir payload ----
+      const payloadBody = {
         numero: group.paciente,
         idsProcedimientos: String(group.idProcedimientoObjetivo),
-        idUsuario: parseInt(idUsuario),
+        idUsuario: parseInt(idUsuario, 10),
         resultados: []
       };
 
       if (!group.rows || group.rows.length === 0) {
-        payloadBody.resultados = ["*"]; 
+        payloadBody.resultados = ["*"];
       } else {
-        switch(group.idProcedimientoObjetivo) {
-          case '9087': // BILIRRUBINAS - CORREGIDO
-            const totalBil = group.rows.find(r => r.id_examen === '9087');
-            const directBil = group.rows.find(r => r.id_examen === '9086');
+        switch (group.idProcedimientoObjetivo) {
+          case '9087': {
+            const totalBil    = group.rows.find(r => r.id_examen === '9087');
+            const directBil   = group.rows.find(r => r.id_examen === '9086');
             const indirectBil = group.rows.find(r => r.id_examen === '9085');
-            
             payloadBody.resultados = [
-              totalBil?.conc || '*',
-              directBil?.conc || '*',
+              totalBil?.conc    || '*',
+              directBil?.conc   || '*',
               indirectBil?.conc || '*'
             ];
-            console.log(`📤 Bilirrubinas para ${group.paciente}:`, payloadBody.resultados);
             break;
-          case '9121': // Glucosa Pre/Post
+          }
+          case '9121':
             payloadBody.resultados = [
-              group.rows.find(r => r.tipo === 'PRE')?.conc || '*',
+              group.rows.find(r => r.tipo === 'PRE')?.conc  || '*',
               group.rows.find(r => r.tipo === 'POST')?.conc || '*'
             ];
             break;
-          case '9122': // Curva
+          case '9122':
             payloadBody.resultados = [
-              group.rows.find(r => r.tipo === '2H')?.conc || '*',
-              group.rows.find(r => r.tipo === '3H')?.conc || '*',
-              group.rows.find(r => r.tipo === '1H')?.conc || '*',
+              group.rows.find(r => r.tipo === '2H')?.conc   || '*',
+              group.rows.find(r => r.tipo === '3H')?.conc   || '*',
+              group.rows.find(r => r.tipo === '1H')?.conc   || '*',
               group.rows.find(r => r.tipo === '1/2H')?.conc || '*',
-              '*', 
-              group.rows.find(r => r.tipo === 'B')?.conc || '*'
+              '*',
+              group.rows.find(r => r.tipo === 'B')?.conc    || '*'
             ];
             break;
-          default: 
-            payloadBody.resultados = [String(group.rows[0].conc)];
+          default:
+            // CORREGIDO: conc vacío → "*" en lugar de cadena vacía
+            payloadBody.resultados = [String(group.rows[0].conc || '*')];
             break;
         }
       }
-      
+
+      // ---- PASO 3: enviar ----
+      let envioExitoso = false;
       try {
-        console.log(`📤 Enviando ${group.idProcedimientoObjetivo} para ${group.paciente}:`, payloadBody);
-        
         const url = new URL(API_BASE, window.location.origin);
-        const res = await fetch(url.toString(), { 
-          method: 'POST', 
-          headers: { 
-            'Content-Type': 'application/json', 
-            'Authorization': `Bearer ${_TOKEN}` 
-          }, 
-          body: JSON.stringify(payloadBody) 
+        const res = await fetch(url.toString(), {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${_TOKEN}` },
+          body: JSON.stringify(payloadBody)
         });
-        
-        const data = await res.json();
-        console.log('📥 Respuesta API:', data);
-        
+        const data = await res.json().catch(() => ({}));
         if (!res.ok || !data.success) throw new Error(data.message || data.mensaje || `Error HTTP ${res.status}`);
-        
+
+        envioExitoso = true;
         successCount++;
         group.rows.forEach(row => { row.apiMessage = '✅ Enviado'; row.rowClass = 'row-success'; });
       } catch (err) {
         errorCount++;
-        group.rows.forEach(row => { row.apiMessage = `❌ ${err.message.substring(0, 30)}`; row.rowClass = 'row-error'; });
-        console.error('❌ Error enviando:', err);
+        const errorMsg = err.message || 'Error desconocido';
+        group.rows.forEach(row => {
+          row.apiMessage = `❌ ${errorMsg.substring(0, 30)} — Puedes reintentar`;
+          row.rowClass = 'row-error';
+        });
       }
-      
+
+      // ---- PASO 4: persistir en registro ----
+      // Éxito → "exito" | Error → "no exito" (NO bloquea reintentos)
+      // CORREGIDO: si ya existía un registro previo ("no exito"), se EDITA
+      // en lugar de crear uno nuevo (evita duplicados huérfanos).
+      try {
+        await persistRegistry(group, envioExitoso ? 'exito' : 'no exito', pendingRecords);
+      } catch (e) { console.warn('⚠️ No se pudo persistir en registro:', e); }
+
       updateFloatingStats(totalGroups, successCount, errorCount);
-      btn.textContent = `Enviando (${successCount+errorCount}/${totalGroups})...`;
+      btn.textContent = `Enviando (${successCount + errorCount}/${totalGroups})...`;
       render(lastRows);
-      await new Promise(r => setTimeout(r, 150));
+      await new Promise(r => setTimeout(r, 120));
     }
-    
+
+    _SENDING = false;
     btn.disabled = false;
     btn.textContent = '🚀 Subir a API';
     render(lastRows);
-    
-    if(errorCount===0) showToast(`✅ Éxito total: ${successCount} procedimientos subidos correctamente`, 'success');
-    else showToast(`⚠️ Proceso terminado: ${successCount} éxitos, ${errorCount} errores`, 'info');
+
+    if (errorCount === 0) {
+      showToast(`✅ Éxito: ${successCount} procedimientos (${skippedCount} ya enviados antes)`, 'success');
+    } else {
+      showToast(`⚠️ ${successCount} éxitos, ${errorCount} errores (puedes reintentar)`, 'info');
+    }
   });
 
   // ---------- EVENTOS UI ----------
   document.getElementById('applyCalc').addEventListener('click', () => {
-    const selected = { bun: document.getElementById('calcBUN').checked, hdl: document.getElementById('calcHDL').checked, ldl: document.getElementById('calcLDL').checked, indirect: document.getElementById('calcIndirect').checked };
+    if (lastRows.length === 0) return showToast('Primero parsea los datos', 'error');
+    const selected = {
+      bun:      document.getElementById('calcBUN').checked,
+      hdl:      document.getElementById('calcHDL').checked,
+      ldl:      document.getElementById('calcLDL').checked,
+      indirect: document.getElementById('calcIndirect').checked
+    };
     if (!Object.values(selected).some(v => v)) return showToast('Selecciona al menos un cálculo', 'error');
+
+    const before = lastRows.length;
     lastRows = addSelectedCalculations(lastRows, selected);
+    const added = lastRows.length - before;
+
     validateAndGroupRows();
     render(lastRows);
-    showToast('Cálculos aplicados correctamente', 'success');
+    showToast(added > 0 ? `${added} parámetro(s) calculado(s)` : 'No se pudo calcular nada nuevo', added > 0 ? 'success' : 'info');
   });
-  
-  document.getElementById('selectAllCalc').addEventListener('change', function() { ['calcBUN','calcHDL','calcLDL','calcIndirect'].forEach(id => document.getElementById(id).checked = this.checked); });
-  document.getElementById('clearCalc').addEventListener('click', () => { lastRows = lastRows.filter(r => !r.isCalculated); validateAndGroupRows(); render(lastRows); showToast('Cálculos eliminados', 'info'); });
-  document.getElementById('parse').addEventListener('click', () => { const txt = document.getElementById('input').value.trim(); if(!txt) return showToast('Pega datos primero', 'error'); lastRows = parseText(txt); validateAndGroupRows(); render(lastRows); updateFloatingStats(0,0,0); });
-  document.getElementById('file').addEventListener('change', async e => { if(e.target.files[0]) document.getElementById('input').value = await e.target.files[0].text(); });
-  document.getElementById('clear').addEventListener('click', () => { document.getElementById('input').value = ''; lastRows = []; globalGroups = []; render(lastRows); updateFloatingStats(0,0,0); });
+
+  document.getElementById('selectAllCalc').addEventListener('change', function () {
+    ['calcBUN','calcHDL','calcLDL','calcIndirect'].forEach(id => document.getElementById(id).checked = this.checked);
+  });
+
+  document.getElementById('clearCalc').addEventListener('click', () => {
+    const before = lastRows.length;
+    lastRows = lastRows.filter(r => !r.isCalculated);
+    validateAndGroupRows();
+    render(lastRows);
+    showToast(before === lastRows.length ? 'No había cálculos que eliminar' : 'Cálculos eliminados', 'info');
+  });
+
+  document.getElementById('parse').addEventListener('click', () => {
+    const txt = document.getElementById('input').value.trim();
+    if (!txt) return showToast('Pega datos primero', 'error');
+    lastRows = parseText(txt);
+    if (lastRows.length === 0) {
+      showToast('No se reconoció ninguna fila válida', 'error');
+      render([]);
+      return;
+    }
+    validateAndGroupRows();
+    render(lastRows);
+    updateFloatingStats(0, 0, 0);
+    showToast(`${lastRows.length} filas parseadas`, 'success');
+  });
+
+  document.getElementById('file').addEventListener('change', async e => {
+    const f = e.target.files && e.target.files[0];
+    if (!f) return;
+    try {
+      document.getElementById('input').value = await f.text();
+      showToast(`Archivo "${f.name}" cargado. Pulsa Parsear Datos.`, 'info');
+    } catch (err) {
+      showToast('No se pudo leer el archivo', 'error');
+    }
+  });
+
+  document.getElementById('clear').addEventListener('click', () => {
+    document.getElementById('input').value = '';
+    document.getElementById('file').value = '';
+    document.getElementById('filterInput').value = '';
+    document.getElementById('mappedOnly').checked = false;
+    lastRows = [];
+    globalGroups = [];
+    render(lastRows);
+    updateFloatingStats(0, 0, 0);
+    showToast('Todo limpiado', 'info');
+  });
+
   document.getElementById('filterInput').addEventListener('input', () => render(lastRows));
   document.getElementById('mappedOnly').addEventListener('change', () => render(lastRows));
 
-  // Inicializar
+  // ---------- INICIALIZACIÓN ----------
   renderAuth();
   render([]);
-  
-  console.log('🚀 Aplicación iniciada');
-  console.log('📡 API Base:', API_BASE);
-  console.log('🔐 Login URL:', LOGIN_URL);
+  updateFloatingStats(0, 0, 0);
 </script>
 </body>
 </html>
