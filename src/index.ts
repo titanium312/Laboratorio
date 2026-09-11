@@ -5,44 +5,42 @@ import RouterCitas from './Router/RouterCitas';
 
 const app = express();
 
-// ✅ HABILITAR JSON
 app.use(express.json());
 
-// ✅ CORS CORRECTO
 app.use((req, res, next) => {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
-  
+
   if (req.method === 'OPTIONS') {
     res.status(200).end();
     return;
   }
-  
   next();
 });
 
-// 📡 LOGGER
 app.use((req, res, next) => {
   console.log(`📡 [${req.method}] ${req.url}`);
   next();
 });
 
-// ✅ RUTAS ESTÁTICAS
-app.get('/', (req, res) => {
-  res.sendFile(path.join(__dirname, '../Index/Index.html'));
+// ✅ Servir estáticos (favicon.ico, Index.html, Citas/IndexCitas.html, etc.)
+app.use(express.static(path.join(__dirname, '..', 'public')));
+
+// ✅ Ruta raíz explícita (Index.html tiene mayúscula, express.static no lo sirve por defecto)
+app.get('/', (_req, res) => {
+  res.sendFile(path.join(__dirname, '..', 'public', 'Index.html'));
 });
 
-app.get('/Citas', (req, res) => {
-  res.sendFile(path.join(__dirname, '../Index/Citas/IndexCitas.html'));
+app.get('/Citas', (_req, res) => {
+  res.sendFile(path.join(__dirname, '..', 'public', 'Citas', 'IndexCitas.html'));
 });
 
-// ✅ TUS ROUTERS
 app.use('/-RB-', Router);
 app.use('/CitasRB', RouterCitas);
 
-// ✅ 404
-app.use((req, res) => {
+// ✅ 404 SIEMPRE al final
+app.use((_req, res) => {
   res.status(404).json({ error: 'Ruta no encontrada' });
 });
 
