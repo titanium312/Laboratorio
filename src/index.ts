@@ -25,15 +25,15 @@ app.use((req, res, next) => {
 });
 
 // ✅ Servir estáticos (favicon.ico, Index.html, Citas/IndexCitas.html, etc.)
-app.use(express.static(path.join(__dirname, '..', 'public')));
+app.use(express.static(path.join(process.cwd(), 'public')));
 
 // ✅ Ruta raíz explícita (Index.html tiene mayúscula, express.static no lo sirve por defecto)
 app.get('/', (_req, res) => {
-  res.sendFile(path.join(__dirname, '..', 'public', 'Index.html'));
+  res.sendFile(path.join(process.cwd(), 'public', 'Index.html'));
 });
 
 app.get('/Citas', (_req, res) => {
-  res.sendFile(path.join(__dirname, '..', 'public', 'Citas', 'IndexCitas.html'));
+  res.sendFile(path.join(process.cwd(), 'public', 'Citas', 'IndexCitas.html'));
 });
 
 app.use('/-RB-', Router);
