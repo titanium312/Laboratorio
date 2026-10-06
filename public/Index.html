@@ -191,10 +191,9 @@
   // ---------- CONFIGURACIÓN ----------
   const API_BASE = "/-RB-/automata";
   const LOGIN_URL = "/-RB-/login";
-  const REGISTRY_GET_URL  = "/-rb-/Basededato:obtener";
-  const REGISTRY_SAVE_URL = "/-rb-/Basededato:subir";
-  const REGISTRY_EDIT_URL = "/-rb-/Basededato:editar";   // ← NUEVO: actualizar registros existentes
+  const REGISTRY_URL = "/-rb-/Basededato"; // ← NUEVO: consulta por numeroAdmision + idProcedimientos
 
+  // ---------- EXAM_MAP ----------
   const EXAM_MAP = {
     "GLUCOSE": "11803", "GLUCOSA": "11803",
     "CHOLESTEROL": "9096", "COL": "9096", "COLESTEROL TOTAL": "9096",
@@ -208,20 +207,17 @@
     "CHOL LDL DIRECT": "9094"
   };
 
-  // ---------- NORMALIZACIÓN (sin acentos, sin espacios dobles) ----------
+  // ---------- NORMALIZACIÓN ----------
   function normalize(s) {
     return (s == null ? "" : String(s))
       .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
       .trim().toUpperCase().replace(/\s+/g, " ");
   }
 
-  // Mapa normalizado + claves ordenadas por longitud DESC
-  // (evita que "COL", "LDL", "HDL" o "BUN" capturen antes que claves más específicas)
   const EXAM_MAP_NORM = {};
   Object.keys(EXAM_MAP).forEach(k => { EXAM_MAP_NORM[normalize(k)] = EXAM_MAP[k]; });
   const EXAM_KEYS_SORTED = Object.keys(EXAM_MAP_NORM).sort((a, b) => b.length - a.length);
 
-  // Curva: PRE / POST / 1/2H / 1H / 2H / 3H / B  (regex endurecido)
   const CURVA_PREFIX = /^(PRE|POST|1\/2H?|1H|2H|3H|B)$/i;
 
   let _TOKEN = null, _USER = null, lastRows = [], globalGroups = [], _SENDING = false;
@@ -284,8 +280,6 @@
   }
 
   // ---------- CÁLCULOS AUTOMÁTICOS ----------
-  // CORREGIDO: se trabaja sobre el array incremental para que LDL
-  // pueda usar el HDL recién calculado en la misma pasada.
   function addSelectedCalculations(rows, selected) {
     const newRows = [...rows];
     const findRow = (paciente, id) => newRows.find(r => r.paciente === paciente && r.id_examen === id);
@@ -293,7 +287,6 @@
     const patients = [...new Set(rows.map(r => r.paciente))];
 
     patients.forEach(paciente => {
-      // 1) BUN desde UREA
       if (selected.bun && !hasValue(paciente, '9134')) {
         const urea = findRow(paciente, '9147');
         if (urea) {
@@ -305,7 +298,6 @@
           });
         }
       }
-      // 2) HDL desde CT
       if (selected.hdl && !hasValue(paciente, '9093')) {
         const ct = findRow(paciente, '9096');
         if (ct && parseNum(ct.conc) > 0) {
@@ -317,7 +309,6 @@
           });
         }
       }
-      // 3) LDL (usa HDL existente o el recién calculado)
       if (selected.ldl && !hasValue(paciente, '9094')) {
         const ct = findRow(paciente, '9096');
         const hdl = findRow(paciente, '9093');
@@ -331,7 +322,6 @@
           });
         }
       }
-      // 4) Bilirrubina indirecta
       if (selected.indirect && !hasValue(paciente, '9085')) {
         const tot = findRow(paciente, '9087');
         const dir = findRow(paciente, '9086');
@@ -371,7 +361,7 @@
 
     for (let raw of lines) {
       raw = raw.trim();
-      if (!raw || !/^\d{5,15}\b/.test(raw)) continue;   // CORREGIDO: \b evita cortes en IDs largos
+      if (!raw || !/^\d{5,15}\b/.test(raw)) continue;
 
       const parts = raw.split(/\s+/).filter(Boolean);
       if (parts.length < 3) continue;
@@ -395,7 +385,7 @@
       const pruebaParts = [];
       let conc = "";
       let unidades = "mg/dL";
-      let fechaEnLoop = "";                             // CORREGIDO: fecha detectada antes del resultado
+      let fechaEnLoop = "";
 
       while (idx < parts.length) {
         const word = parts[idx];
@@ -417,13 +407,11 @@
 
       const prueba = pruebaParts.join(" ").trim();
 
-      // Unidades
       if (idx < parts.length && (unitRe.test(parts[idx]) || /mg|mmol|g\/dl|iu|%|ug/i.test(parts[idx]))) {
         unidades = parts[idx];
         idx++;
       }
 
-      // Fecha (y hora)
       let fecha = fechaEnLoop;
       if (idx < parts.length && dateRe.test(parts[idx])) {
         fecha = parts[idx];
@@ -438,7 +426,6 @@
         idx++;
       }
 
-      // Mapeo de ID de examen
       let id_examen = "";
       const pruebaNorm = normalize(prueba);
 
@@ -482,7 +469,6 @@
     const patients = [...new Set(lastRows.map(r => r.paciente))];
 
     patients.forEach(p => {
-      // --- Grupo Bilirrubinas ---
       const dir = lastRows.find(r => r.paciente === p && r.id_examen === '9086');
       const ind = lastRows.find(r => r.paciente === p && r.id_examen === '9085');
       const tot = lastRows.find(r => r.paciente === p && r.id_examen === '9087');
@@ -499,7 +485,6 @@
         globalGroups.push({ idProcedimientoObjetivo: '9087', paciente: p, isComplete, rows: groupRows, isBilirubinGroup: true });
       }
 
-      // --- Grupo Glucosa PRE/POST ---
       const pre  = lastRows.find(r => r.paciente === p && r.id_examen === '9121' && r.tipo === 'PRE');
       const post = lastRows.find(r => r.paciente === p && r.id_examen === '9121' && r.tipo === 'POST');
       if (pre || post) {
@@ -513,7 +498,6 @@
         globalGroups.push({ idProcedimientoObjetivo: '9121', paciente: p, isComplete, rows: groupRows });
       }
 
-      // --- Grupo Curva de tolerancia ---
       const h2 = lastRows.find(r => r.paciente === p && r.id_examen === '9122' && r.tipo === '2H');
       const h3 = lastRows.find(r => r.paciente === p && r.id_examen === '9122' && r.tipo === '3H');
       const h1 = lastRows.find(r => r.paciente === p && r.id_examen === '9122' && r.tipo === '1H');
@@ -534,7 +518,6 @@
       }
     });
 
-    // --- Grupos individuales ---
     lastRows.forEach(r => {
       const isBilirubin = ['9085','9086','9087'].includes(r.id_examen);
       const isSpecial = ['9121','9122'].includes(r.id_examen);
@@ -629,137 +612,39 @@
   floatingDiv.addEventListener('click', () => { if (minimized) toggleBtn.click(); });
 
   // ============================================================
-  //  REGISTRO — consulta, creación y EDICIÓN de registros
+  //  CONSULTA: ¿ya existe el resultado en SaludPlus?
+  //  Llama a POST /-rb-/Basededato con { numeroAdmision, idProcedimientos }
+  //  Devuelve un array de resultados existentes.
   // ============================================================
-  async function checkRegistry(paciente, idExamen) {
+  async function checkExistingResults(numeroAdmision, idsProcedimientos) {
     try {
-      const res = await fetch(REGISTRY_GET_URL, {
+      const ids = Array.isArray(idsProcedimientos)
+        ? idsProcedimientos.join(',')
+        : String(idsProcedimientos);
+
+      const res = await fetch(REGISTRY_URL, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ paciente: String(paciente), idExamen: String(idExamen) })
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${_TOKEN}`
+        },
+        body: JSON.stringify({
+          numeroAdmision: String(numeroAdmision),
+          idProcedimientos: ids
+        })
       });
-      if (!res.ok) return [];
+
+      if (!res.ok) {
+        console.warn(`⚠️ Basededato HTTP ${res.status}`);
+        return [];
+      }
+
       const data = await res.json();
-      return Array.isArray(data.data) ? data.data : [];
+      return Array.isArray(data.resultados) ? data.resultados : [];
     } catch (e) {
-      console.warn('⚠️ Error consultando registro:', e);
+      console.warn('⚠️ Error consultando Basededato:', e);
       return [];
     }
-  }
-
-  // Devuelve TODOS los registros que correspondan al grupo (sin filtrar por estado)
-  function findMatchingRecords(registryRecords, group) {
-    if (!Array.isArray(registryRecords) || registryRecords.length === 0) return [];
-    const targetId = String(group.idProcedimientoObjetivo);
-    const examIds = group.rows.map(r => String(r.id_examen || '')).filter(Boolean);
-
-    return registryRecords.filter(rec => {
-      const pruebaStr  = String(rec.prueba   || '');
-      const idExamStr  = String(rec.idExamen || '');
-      if (examIds.some(eid => pruebaStr === eid || pruebaStr.startsWith(eid))) return true;
-      if (idExamStr === targetId || examIds.includes(idExamStr)) return true;
-      return false;
-    });
-  }
-
-  function isSuccessState(estado) {
-    const e = String(estado || '').toLowerCase().trim();
-    return e === 'exito' || e === 'éxito' || e === 'success' || e === 'ok';
-  }
-
-  function formatRegDate(isoStr) {
-    try {
-      const d = new Date(isoStr);
-      if (isNaN(d.getTime())) return isoStr || '';
-      const p = n => String(n).padStart(2, '0');
-      return `${p(d.getDate())}/${p(d.getMonth()+1)}/${d.getFullYear()} ${p(d.getHours())}:${p(d.getMinutes())}`;
-    } catch { return isoStr || ''; }
-  }
-
-  function toIsoDate(fechaStr) {
-    if (!fechaStr) return new Date().toISOString();
-    const m = String(fechaStr).match(/(\d{1,2})\/(\d{1,2})\/(\d{4})(?:\s+(\d{1,2}):(\d{2}))?/);
-    if (!m) return new Date().toISOString();
-    const [, d, mo, y, h, mi] = m;
-    const dt = new Date(parseInt(y), parseInt(mo) - 1, parseInt(d), parseInt(h || 0), parseInt(mi || 0));
-    return isNaN(dt.getTime()) ? new Date().toISOString() : dt.toISOString();
-  }
-
-  function buildRegistryRecords(group, estado) {
-    return group.rows.map(row => ({
-      paciente:  String(row.paciente),
-      tipo:      String(row.tecnica || row.tipo || 'SER'),
-      tecnica:   String(row.prueba || ''),
-      prueba:    String(row.id_examen || group.idProcedimientoObjetivo),
-      idExamen:  String(group.idProcedimientoObjetivo),
-      conc:      String(row.conc || ''),
-      und:       String(row.unidades || 'mg/dL'),
-      fecha:     toIsoDate(row.fecha),
-      estadoApi: estado
-    }));
-  }
-
-  async function saveToRegistry(records) {
-    if (!records || records.length === 0) return null;
-    try {
-      const res = await fetch(REGISTRY_SAVE_URL, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(records)
-      });
-      const data = await res.json().catch(() => ({}));
-      console.log('💾 Registro guardado:', data);
-      return data;
-    } catch (e) { console.error('❌ Error guardando en registro:', e); return null; }
-  }
-
-  // CORREGIDO: edita un registro existente (evita duplicados al reintentar)
-  async function editRegistryRecord(id, updates) {
-    if (id == null) return null;
-    const body = { id, ...updates };
-    try {
-      let res = await fetch(REGISTRY_EDIT_URL, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body)
-      });
-      if (!res.ok) {
-        // Fallback mínimo (por si el endpoint sólo acepta id + estadoApi)
-        res = await fetch(REGISTRY_EDIT_URL, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ id, estadoApi: updates.estadoApi })
-        });
-      }
-      const data = await res.json().catch(() => ({}));
-      console.log('✏️ Registro editado:', id, data);
-      return data;
-    } catch (e) {
-      console.warn('⚠️ Error editando registro', id, e);
-      return null;
-    }
-  }
-
-  // Actualiza los registros existentes y crea los que falten
-  async function persistRegistry(group, estado, existingRecords) {
-    const records = buildRegistryRecords(group, estado);
-    const usedIds = new Set();
-    const toCreate = [];
-
-    for (const rec of records) {
-      const match = (existingRecords || []).find(e =>
-        e && e.id != null && !usedIds.has(e.id) &&
-        String(e.paciente) === String(rec.paciente) &&
-        String(e.prueba)   === String(rec.prueba)
-      );
-      if (match) {
-        usedIds.add(match.id);
-        await editRegistryRecord(match.id, rec);
-      } else {
-        toCreate.push(rec);
-      }
-    }
-    if (toCreate.length) await saveToRegistry(toCreate);
   }
 
   // ---------- AUTENTICACIÓN ----------
@@ -871,21 +756,32 @@
     let successCount = 0, errorCount = 0, skippedCount = 0;
 
     for (const group of groupsToSend) {
-      // ---- PASO 1: verificar registro ----
-      let existingRecords = [];
+      // ---- PASO 1: verificar si ya existe en SaludPlus ----
+      let existingResults = [];
       try {
-        const recs = await checkRegistry(group.paciente, group.idProcedimientoObjetivo);
-        existingRecords = findMatchingRecords(recs, group);
-      } catch (e) { console.warn('Error verificando registro:', e); }
+        const idsGrupo = group.rows
+          .map(r => String(r.id_examen || ''))
+          .filter(Boolean);
+        if (!idsGrupo.includes(String(group.idProcedimientoObjetivo))) {
+          idsGrupo.push(String(group.idProcedimientoObjetivo));
+        }
+        existingResults = await checkExistingResults(group.paciente, idsGrupo);
+      } catch (e) {
+        console.warn('Error verificando resultados existentes:', e);
+      }
 
-      const alreadySent = existingRecords.find(r => isSuccessState(r.estadoApi));
-      const pendingRecords = existingRecords.filter(r => !isSuccessState(r.estadoApi));
+      const yaExiste = existingResults.some(
+        r => String(r.idProcedimiento) === String(group.idProcedimientoObjetivo)
+      );
 
-      if (alreadySent) {
-        const fechaEnvio = formatRegDate(alreadySent.fecha);
-        const mensaje = `✅ YA ENVIADO el ${fechaEnvio}`;
-        group.rows.forEach(row => { row.apiMessage = mensaje; row.rowClass = 'row-already-sent'; });
-        successCount++; skippedCount++;
+      if (yaExiste) {
+        const mensaje = `✅ YA ENVIADO (existe en SaludPlus)`;
+        group.rows.forEach(row => {
+          row.apiMessage = mensaje;
+          row.rowClass = 'row-already-sent';
+        });
+        successCount++;
+        skippedCount++;
         updateFloatingStats(totalGroups, successCount, errorCount);
         render(lastRows);
         await new Promise(r => setTimeout(r, 60));
@@ -932,27 +828,34 @@
             ];
             break;
           default:
-            // CORREGIDO: conc vacío → "*" en lugar de cadena vacía
             payloadBody.resultados = [String(group.rows[0].conc || '*')];
             break;
         }
       }
 
-      // ---- PASO 3: enviar ----
+      // ---- PASO 3: enviar a la API de SaludPlus ----
       let envioExitoso = false;
       try {
         const url = new URL(API_BASE, window.location.origin);
         const res = await fetch(url.toString(), {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${_TOKEN}` },
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${_TOKEN}`
+          },
           body: JSON.stringify(payloadBody)
         });
         const data = await res.json().catch(() => ({}));
-        if (!res.ok || !data.success) throw new Error(data.message || data.mensaje || `Error HTTP ${res.status}`);
+        if (!res.ok || !data.success) {
+          throw new Error(data.message || data.mensaje || `Error HTTP ${res.status}`);
+        }
 
         envioExitoso = true;
         successCount++;
-        group.rows.forEach(row => { row.apiMessage = '✅ Enviado'; row.rowClass = 'row-success'; });
+        group.rows.forEach(row => {
+          row.apiMessage = '✅ Enviado';
+          row.rowClass = 'row-success';
+        });
       } catch (err) {
         errorCount++;
         const errorMsg = err.message || 'Error desconocido';
@@ -961,14 +864,6 @@
           row.rowClass = 'row-error';
         });
       }
-
-      // ---- PASO 4: persistir en registro ----
-      // Éxito → "exito" | Error → "no exito" (NO bloquea reintentos)
-      // CORREGIDO: si ya existía un registro previo ("no exito"), se EDITA
-      // en lugar de crear uno nuevo (evita duplicados huérfanos).
-      try {
-        await persistRegistry(group, envioExitoso ? 'exito' : 'no exito', pendingRecords);
-      } catch (e) { console.warn('⚠️ No se pudo persistir en registro:', e); }
 
       updateFloatingStats(totalGroups, successCount, errorCount);
       btn.textContent = `Enviando (${successCount + errorCount}/${totalGroups})...`;

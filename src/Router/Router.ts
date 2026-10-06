@@ -3,7 +3,7 @@ import { guardarResultado } from '../Controller/inte/guardado';
 import { buscarAdmision } from '../Controller/IDS/BuscarAdmision';
 import { fetchParametrizaciones } from '../Controller/IDS/parametro';
 import { automata } from '../Controller/Filtrado';
-import { Basededato } from '../Database/BaseDatos';
+import { obtenerIdResultadoPorNumero } from '../Database/BaseDatos';
 
 
 import { login } from '../loguin/Lguin';
@@ -17,7 +17,7 @@ router.post('/automata', automata);
 
 
 // Acepta cualquier petición (GET, POST, PUT, DELETE) hacia /Basededato o /Basededato:*
-router.all("/Basededato*", Basededato);
+router.all("/Basededato", obtenerIdResultadoPorNumero);
 
 
 
