@@ -1,120 +1,127 @@
 import { Request, Response } from 'express';
 import axios from 'axios';
 
-const API_BASE_URL = process.env.API_BASE_URL || 'https://api.saludplus.co';
+const BALANCE = 'https://balance.saludplus.co';
+const API = 'https://api.saludplus.co';
+const HARDCODED_C = 'wcFkBNOeMUO3EbN8I4nUXw==';
 
 export const login = async (req: Request, res: Response): Promise<void> => {
   try {
     const { username, password } = req.body;
-    
     if (!username || !password) {
-      res.status(400).json({ 
-        error: 'Usuario y contraseña son requeridos' 
-      });
-      return; // <-- AÑADIR RETURN
+      res.status(400).json({ error: 'Usuario y contraseña son requeridos' });
+      return;
     }
 
-    console.log(`🔐 Intentando login para: ${username}`);
+    console.log(`🔐 Login: ${username}`);
 
-    const response = await axios.post(
-      `${API_BASE_URL}/api/auth/Login`,
+    // ═══ PASO 1: Login contra api.saludplus.co ═══
+    const loginResp = await axios.post(
+      `${API}/api/Auth/login`,
       { username, password },
       {
         headers: {
           'Content-Type': 'application/json',
-          'Accept': 'application/json'
+          'X-SPlus-App': '1',
+          'Origin': 'https://app.saludplus.co',
+          'Referer': 'https://app.saludplus.co/'
         },
-        timeout: 10000
+        timeout: 15000,
+        validateStatus: (s) => s < 500
       }
     );
 
-    console.log(`✅ Login exitoso para: ${username}`);
-    
-    // Devolver la respuesta exacta de la API
-    res.json(response.data);
-    return; // <-- AÑADIR RETURN (opcional pero buena práctica)
-    
-  } catch (error: any) {
-    console.error('❌ Error en login:', error.message);
-    
-    if (error.response) {
-      // La API respondió con un error
-      res.status(error.response.status).json({
-        error: error.response.data?.errorMessage || error.response.data?.message || 'Error en autenticación',
-        details: error.response.data
-      });
-    } else if (error.request) {
-      // No hubo respuesta de la API
-      res.status(503).json({
-        error: 'El servicio de autenticación no está disponible',
-        details: error.message
-      });
-    } else {
-      // Error interno
-      res.status(500).json({
-        error: 'Error interno del servidor',
-        details: error.message
-      });
-    }
-    return; // <-- AÑADIR RETURN
-  }
-};
-
-export const enviarResultados = async (req: Request, res: Response): Promise<void> => {
-  try {
-    const authHeader = req.headers.authorization;
-    
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      res.status(401).json({
-        success: false,
-        message: 'Token de autenticación requerido'
-      });
-      return; // <-- AÑADIR RETURN
+    const userData = loginResp.data?.result;
+    if (!userData?.id) {
+      res.status(401).json({ error: 'Credenciales inválidas', detalle: loginResp.data });
+      return;
     }
 
-    const token = authHeader.substring(7);
-    const payload = req.body;
+    const apiCookies = ((loginResp.headers['set-cookie'] as string[]) || [])
+      .map((c) => c.split(';')[0])
+      .join('; ');
 
-    console.log(`📤 Enviando resultados para paciente: ${payload.numero}`);
+    console.log(`✅ api.saludplus.co: usuario=${userData.id}`);
 
-    const response = await axios.post(
-      `${API_BASE_URL}/-rb-/automata`,
-      payload,
-      {
+    // ═══ PASO 2: Obtener JWT con token-traspaso ═══
+    let apiToken = '';
+    let expiresIn = 0;
+    try {
+      const tokenResp = await axios.post(
+        `${API}/api/auth/token-traspaso`,
+        {},
+        {
+          headers: {
+            'Content-Type': 'application/json',
+            'X-SPlus-App': '1',
+            'Origin': 'https://app.saludplus.co',
+            'Referer': 'https://app.saludplus.co/',
+            'Cookie': apiCookies
+          },
+          timeout: 15000,
+          validateStatus: (s) => s < 500
+        }
+      );
+      apiToken = tokenResp.data?.result?.token || '';
+      expiresIn = tokenResp.data?.result?.expiresIn || 0;
+      console.log(`🔑 JWT obtenido (expira en ${expiresIn}s)`);
+    } catch (e: any) {
+      console.warn(`⚠️ token-traspaso falló: ${e.message}`);
+    }
+
+    // ═══ PASO 3: Login contra balance.saludplus.co ═══
+    let sessionCookie = '';
+    let pass = '';
+    let usuarioId = userData.id;
+
+    try {
+      const balanceResp = await axios.get(`${BALANCE}/users/login`, {
+        params: { usuario: username, pass: password },
         headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
+          'Accept': '*/*',
+          'X-Requested-With': 'XMLHttpRequest',
+          'Referer': `${BALANCE}/`,
+          'Origin': BALANCE
         },
         timeout: 15000
-      }
-    );
+      });
 
-    console.log(`✅ Resultados enviados para: ${payload.numero}`);
-    res.json(response.data);
-    return; // <-- AÑADIR RETURN
-    
-  } catch (error: any) {
-    console.error('❌ Error enviando resultados:', error.message);
-    
-    if (error.response) {
-      res.status(error.response.status).json({
-        success: false,
-        message: error.response.data?.message || error.response.data?.error || 'Error en el servidor',
-        details: error.response.data
-      });
-    } else if (error.request) {
-      res.status(503).json({
-        success: false,
-        message: 'El servicio no está disponible',
-        details: error.message
-      });
-    } else {
-      res.status(500).json({
-        success: false,
-        message: 'Error interno del servidor',
-        details: error.message
-      });
+      const { usuario, activo, usE, tKey } = balanceResp.data || {};
+      if (activo && usE && tKey) {
+        usuarioId = usuario;
+        const bc = (balanceResp.headers['set-cookie'] as string[]) || [];
+        sessionCookie = bc.map((c) => c.split(';')[0]).find((c) => c.startsWith('ASP.NET_SessionId=')) || '';
+        pass = `${tKey}.${usE}.${HARDCODED_C}`;
+        console.log(`✅ balance.saludplus.co: usuario=${usuario}`);
+      }
+    } catch (e: any) {
+      console.warn(`⚠️ Login balance falló: ${e.message}`);
     }
-    return; // <-- AÑADIR RETURN
+
+    // ═══ RESPUESTA AL FRONTEND ═══
+    res.json({
+      success: true,
+      usuarioId,
+      apiCookies,
+      apiToken,
+      expiresIn,
+      sessionCookie,
+      pass,
+      usuario: {
+        id: userData.id,
+        nombre: userData.nombre,
+        usuario: userData.usuario,
+        email: userData.email,
+        iniciales: userData.iniciales,
+        perfiles: userData.perfiles || []
+      }
+    });
+
+  } catch (error: any) {
+    console.error('❌ Login error:', error.message);
+    res.status(error.response?.status || 500).json({
+      error: 'Error en login',
+      details: error.response?.data || error.message
+    });
   }
 };

@@ -1,6 +1,7 @@
 // ============================================================
 //  CONTROLADOR: numeroAdmision + idProcedimientos → PRIMERA ocurrencia
 //  Solo devuelve el PRIMER resultado de cada idProcedimiento solicitado.
+//  Autenticación: JWT (apiToken) del body
 // ============================================================
 
 import { Request, Response } from 'express';
@@ -122,12 +123,10 @@ export async function obtenerIdResultadoPorNumero(
   res: Response
 ): Promise<Response> {
   try {
-    // 1. TOKEN
-    let token = req.headers.authorization?.replace('Bearer ', '');
-    if (!token) token = process.env.SALUDPLUS_TOKEN || '';
-
+    // 1. TOKEN — ⚡ ÚNICO CAMBIO: leer del body en vez del header
+    const token = req.body.apiToken;
     if (!token) {
-      return res.status(401).json({ error: 'Token de autorización requerido' });
+      return res.status(401).json({ error: 'apiToken (JWT) requerido en el body' });
     }
 
     // 2. BODY

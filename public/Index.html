@@ -188,10 +188,12 @@
 </footer>
 
 <script>
-  // ---------- CONFIGURACIÓN ----------
+  // ============================================================
+  //  CONFIGURACIÓN
+  // ============================================================
   const API_BASE = "/-RB-/automata";
   const LOGIN_URL = "/-RB-/login";
-  const REGISTRY_URL = "/-rb-/Basededato"; // ← NUEVO: consulta por numeroAdmision + idProcedimientos
+  const REGISTRY_URL = "/-rb-/Basededato";
 
   // ---------- EXAM_MAP ----------
   const EXAM_MAP = {
@@ -207,7 +209,6 @@
     "CHOL LDL DIRECT": "9094"
   };
 
-  // ---------- NORMALIZACIÓN ----------
   function normalize(s) {
     return (s == null ? "" : String(s))
       .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
@@ -217,10 +218,17 @@
   const EXAM_MAP_NORM = {};
   Object.keys(EXAM_MAP).forEach(k => { EXAM_MAP_NORM[normalize(k)] = EXAM_MAP[k]; });
   const EXAM_KEYS_SORTED = Object.keys(EXAM_MAP_NORM).sort((a, b) => b.length - a.length);
-
   const CURVA_PREFIX = /^(PRE|POST|1\/2H?|1H|2H|3H|B)$/i;
 
-  let _TOKEN = null, _USER = null, lastRows = [], globalGroups = [], _SENDING = false;
+  // ============================================================
+  //  ESTADO GLOBAL — nuevas credenciales
+  // ============================================================
+  let _SESSION_COOKIE = null;
+  let _PASS = null;
+  let _API_TOKEN = null;
+  let _API_COOKIES = null;
+  let _USER = null;
+  let lastRows = [], globalGroups = [], _SENDING = false;
 
   // ---------- UTILIDADES ----------
   function showToast(message, type = 'info') {
@@ -279,7 +287,6 @@
     return i.toFixed(2);
   }
 
-  // ---------- CÁLCULOS AUTOMÁTICOS ----------
   function addSelectedCalculations(rows, selected) {
     const newRows = [...rows];
     const findRow = (paciente, id) => newRows.find(r => r.paciente === paciente && r.id_examen === id);
@@ -613,8 +620,6 @@
 
   // ============================================================
   //  CONSULTA: ¿ya existe el resultado en SaludPlus?
-  //  Llama a POST /-rb-/Basededato con { numeroAdmision, idProcedimientos }
-  //  Devuelve un array de resultados existentes.
   // ============================================================
   async function checkExistingResults(numeroAdmision, idsProcedimientos) {
     try {
@@ -624,11 +629,12 @@
 
       const res = await fetch(REGISTRY_URL, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${_TOKEN}`
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
+          apiToken: _API_TOKEN,
+          sessionCookie: _SESSION_COOKIE,
+          pass: _PASS,
+          apiCookies: _API_COOKIES,
           numeroAdmision: String(numeroAdmision),
           idProcedimientos: ids
         })
@@ -657,14 +663,15 @@
     const authArea = document.getElementById('authArea');
     const idUsuarioInput = document.getElementById('idUsuario');
 
-    if (_TOKEN && _USER) {
+    if (_API_TOKEN && _USER) {
       authArea.innerHTML = `<span class="text-gray-600 mr-3 hidden sm:inline">👋 ${escapeHtml(_USER.nombre || _USER.usuario || '')}</span><button id="logoutBtn" class="bg-red-50 text-red-600 py-2 px-4 rounded-lg hover:bg-red-100 transition font-medium text-sm">Cerrar sesión</button>`;
       idUsuarioInput.value = _USER.id || '';
-      idUsuarioInput.disabled = false;
+      idUsuarioInput.disabled = true;
       idUsuarioInput.classList.remove('opacity-70', 'cursor-not-allowed');
 
       document.getElementById('logoutBtn')?.addEventListener('click', () => {
-        _TOKEN = null; _USER = null; renderAuth(); updateFloatingStats(0, 0, 0);
+        _SESSION_COOKIE = null; _PASS = null; _API_TOKEN = null; _API_COOKIES = null; _USER = null;
+        renderAuth(); updateFloatingStats(0, 0, 0);
         showToast('Sesión cerrada', 'info');
       });
     } else {
@@ -703,14 +710,17 @@
       if (!res.ok) { const errorText = await res.text(); throw new Error(`Error ${res.status}: ${errorText}`); }
       const data = await res.json();
 
-      if (data.isSuccessful && data.result) {
-        _TOKEN = data.result.token;
-        _USER = data.result;
+      if (data.success && data.apiToken && data.sessionCookie && data.pass) {
+        _SESSION_COOKIE = data.sessionCookie;
+        _PASS = data.pass;
+        _API_TOKEN = data.apiToken;
+        _API_COOKIES = data.apiCookies || '';
+        _USER = data.usuario || { id: data.usuarioId, usuario: user, nombre: user };
         loginModal.classList.remove('active');
         renderAuth();
-        showToast(`Bienvenido, ${_USER.usuario || user}`, 'success');
+        showToast(`Bienvenido, ${_USER.nombre || _USER.usuario || user}`, 'success');
       } else {
-        throw new Error(data.errorMessage || data.message || 'Credenciales incorrectas');
+        throw new Error(data.error || data.message || 'Credenciales incorrectas');
       }
     } catch (err) {
       loginError.textContent = err.message || 'Credenciales inválidas o error de conexión.';
@@ -729,7 +739,7 @@
   // ---------- ENVÍO A API ----------
   document.getElementById('sendApi').addEventListener('click', async () => {
     if (_SENDING) return;
-    if (!_TOKEN) return showToast('Debes iniciar sesión primero', 'error');
+    if (!_API_TOKEN) return showToast('Debes iniciar sesión primero', 'error');
 
     const idUsuario = document.getElementById('idUsuario').value;
     if (!idUsuario) return showToast('El ID de usuario es obligatorio', 'error');
@@ -790,6 +800,10 @@
 
       // ---- PASO 2: construir payload ----
       const payloadBody = {
+        apiToken: _API_TOKEN,
+        sessionCookie: _SESSION_COOKIE,
+        pass: _PASS,
+        apiCookies: _API_COOKIES,
         numero: group.paciente,
         idsProcedimientos: String(group.idProcedimientoObjetivo),
         idUsuario: parseInt(idUsuario, 10),
@@ -833,16 +847,12 @@
         }
       }
 
-      // ---- PASO 3: enviar a la API de SaludPlus ----
-      let envioExitoso = false;
+      // ---- PASO 3: enviar a la API ----
       try {
         const url = new URL(API_BASE, window.location.origin);
         const res = await fetch(url.toString(), {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${_TOKEN}`
-          },
+          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(payloadBody)
         });
         const data = await res.json().catch(() => ({}));
@@ -850,7 +860,6 @@
           throw new Error(data.message || data.mensaje || `Error HTTP ${res.status}`);
         }
 
-        envioExitoso = true;
         successCount++;
         group.rows.forEach(row => {
           row.apiMessage = '✅ Enviado';

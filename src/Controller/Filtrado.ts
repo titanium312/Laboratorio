@@ -20,9 +20,10 @@ export async function automata(req: Request, res: Response): Promise<Response> {
     const {
       numero,                // Número de admisión (obligatorio)
       idsProcedimientos,     // IDs de procedimientos (obligatorio)
-      idUsuario,            // ID del usuario (obligatorio)
-      resultados,           // Array de resultados (obligatorio)
-      resultado,            // String de resultado (alternativa)
+      idUsuario,             // ID del usuario (obligatorio)
+      resultados,            // Array de resultados (obligatorio)
+      resultado,             // String de resultado (alternativa)
+      apiToken,              // ⚡ JWT (Bearer)
     } = req.body;
 
     // ============================================================
@@ -47,11 +48,11 @@ export async function automata(req: Request, res: Response): Promise<Response> {
     }
 
     // ============================================================
-    //  3. TOKEN (desde header)
+    //  3. TOKEN (JWT desde el body)
     // ============================================================
-    let token = req.headers.authorization?.replace('Bearer ', '');
+    const token = apiToken;
     if (!token) {
-      return res.status(401).json({ error: 'Token de autorización requerido en el header' });
+      return res.status(401).json({ error: 'apiToken (JWT) requerido en el body' });
     }
 
     // ============================================================
@@ -110,7 +111,7 @@ export async function automata(req: Request, res: Response): Promise<Response> {
     for (const param of parametrizaciones) {
       try {
         const idProcedimientoNum = Number(param.idProcedimiento);
-        
+
         // Validar cantidad de resultados según el tipo de examen
         if (idProcedimientoNum === 9087 && resultadosArray.length !== 3) {
           throw new Error(`El examen 9087 requiere exactamente 3 resultados, pero se recibieron ${resultadosArray.length}`);
@@ -123,8 +124,8 @@ export async function automata(req: Request, res: Response): Promise<Response> {
         }
 
         // Para DEFAULT, si hay más de 1 resultado, solo usamos el primero
-        const resultadosParaEnviar = (idProcedimientoNum === 9087 || idProcedimientoNum === 9121 || idProcedimientoNum === 9122) 
-          ? resultadosArray 
+        const resultadosParaEnviar = (idProcedimientoNum === 9087 || idProcedimientoNum === 9121 || idProcedimientoNum === 9122)
+          ? resultadosArray
           : [resultadosArray[0]];
 
         // Guardar
