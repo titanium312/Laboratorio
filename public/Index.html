@@ -79,7 +79,7 @@
     <div class="space-y-5">
       <div><label class="block text-sm font-medium text-gray-600 mb-1">Usuario</label><input id="loginUser" type="text" value="" autocomplete="username" class="w-full p-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-salu-900 focus:border-transparent transition"></div>
       <div><label class="block text-sm font-medium text-gray-600 mb-1">Contraseña</label><input id="loginPass" type="password" value="" autocomplete="current-password" class="w-full p-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-salu-900 focus:border-transparent transition"></div>
-      <div id="loginError" class="text-red-600 text-sm hidden bg-red-50 p-3 rounded-lg">Credenciales inválidas.</div>
+      <div id="loginError" class="text-red-600 text-sm hidden bg-red-50 p-3 rounded-lg whitespace-pre-line">Credenciales inválidas.</div>
       <button id="loginBtn" class="w-full bg-salu-900 text-white py-3 px-4 rounded-xl hover:bg-salu-800 transition font-medium shadow-lg hover:shadow-glow">Ingresar</button>
       <button id="closeModalBtn" class="w-full text-gray-500 py-2 px-4 hover:text-gray-800 transition text-sm">Cancelar</button>
     </div>
@@ -189,11 +189,26 @@
 
 <script>
   // ============================================================
-  //  CONFIGURACIÓN
+  //  ✅ CONFIGURACIÓN — URLs ABSOLUTAS al backend de Vercel
   // ============================================================
-  const API_BASE = "/-RB-/automata";
-  const LOGIN_URL = "/-RB-/login";
-  const REGISTRY_URL = "/-rb-/Basededato";
+  const ORIGIN       = "https://laboratorio-nu.vercel.app";
+  const API_BASE     = ORIGIN + "/-RB-/automata";
+  const LOGIN_URL    = ORIGIN + "/-RB-/login";
+  const REGISTRY_URL = ORIGIN + "/-rb-/Basededato";
+
+  // ✅ Aviso al cargar si estamos en un origen distinto al del backend
+  (function warnIfDifferentOrigin() {
+    try {
+      const here = window.location.origin;
+      if (here && here !== ORIGIN && here !== "null") {
+        console.warn(
+          `⚠️ Estás sirviendo este HTML desde ${here}, pero el backend está en ${ORIGIN}.\n` +
+          `   Si el login falla con "Failed to fetch", es CORS o debes servir este HTML desde ${ORIGIN}.\n` +
+          `   Recomendación: sube este archivo a /public/login.html del proyecto Vercel y ábrelo allí.`
+        );
+      }
+    } catch (_) {}
+  })();
 
   // ---------- EXAM_MAP ----------
   const EXAM_MAP = {
@@ -221,7 +236,7 @@
   const CURVA_PREFIX = /^(PRE|POST|1\/2H?|1H|2H|3H|B)$/i;
 
   // ============================================================
-  //  ESTADO GLOBAL — nuevas credenciales
+  //  ESTADO GLOBAL
   // ============================================================
   let _SESSION_COOKIE = null;
   let _PASS = null;
@@ -259,6 +274,33 @@
     if (val == null || val === '') return NaN;
     const m = String(val).match(/([<>]=?)?\s*(-?\d+[\.,]?\d*)/);
     return m ? parseFloat(m[2].replace(',', '.')) : NaN;
+  }
+
+  function sanitizeToken(raw) {
+    if (raw == null) return null;
+    const t = String(raw)
+      .replace(/^Bearer\s+/i, "")
+      .replace(/^"|"$/g, "")
+      .replace(/^'|'$/g, "")
+      .trim();
+    return t || null;
+  }
+
+  function decodeJwtPayload(token) {
+    try {
+      const parts = String(token).split('.');
+      if (parts.length < 2) return null;
+      const b64 = parts[1].replace(/-/g, '+').replace(/_/g, '/');
+      const padded = b64 + '='.repeat((4 - (b64.length % 4)) % 4);
+      const json = decodeURIComponent(
+        atob(padded).split('').map(c =>
+          '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2)
+        ).join('')
+      );
+      return JSON.parse(json);
+    } catch (e) {
+      return null;
+    }
   }
 
   // ---------- FÓRMULAS ----------
@@ -693,6 +735,9 @@
     if (e.key === 'Escape' && loginModal.classList.contains('active')) loginModal.classList.remove('active');
   });
 
+  // ============================================================
+  //  doLogin() — con diagnóstico de "Failed to fetch"
+  // ============================================================
   async function doLogin() {
     loginError.classList.add('hidden');
     loginBtn.textContent = 'Verificando...';
@@ -710,22 +755,50 @@
       if (!res.ok) { const errorText = await res.text(); throw new Error(`Error ${res.status}: ${errorText}`); }
       const data = await res.json();
 
-      if (data.success && data.apiToken && data.sessionCookie && data.pass) {
-        _SESSION_COOKIE = data.sessionCookie;
-        _PASS = data.pass;
-        _API_TOKEN = data.apiToken;
-        _API_COOKIES = data.apiCookies || '';
-        _USER = data.usuario || { id: data.usuarioId, usuario: user, nombre: user };
-        loginModal.classList.remove('active');
-        renderAuth();
-        showToast(`Bienvenido, ${_USER.nombre || _USER.usuario || user}`, 'success');
-      } else {
-        throw new Error(data.error || data.message || 'Credenciales incorrectas');
+      if (!data || !data.success || !data.apiToken) {
+        throw new Error((data && (data.error || data.message)) || 'Credenciales incorrectas');
       }
+
+      const token = sanitizeToken(data.apiToken);
+      if (!token) throw new Error('El servidor respondió sin un token válido');
+
+      _API_TOKEN      = token;
+      _SESSION_COOKIE = data.sessionCookie || '';
+      _PASS           = data.pass || '';
+      _API_COOKIES    = data.apiCookies || '';
+      _USER           = data.usuario || { id: data.usuarioId, usuario: user, nombre: user };
+
+      const payload = decodeJwtPayload(_API_TOKEN);
+      console.log('🔐 Token leído:', _API_TOKEN.slice(0, 40) + '...');
+      console.log('📦 Payload JWT:', payload);
+      console.log('👤 Usuario:', _USER);
+      console.log('🔑 apiCookies:', _API_COOKIES);
+
+      loginModal.classList.remove('active');
+      renderAuth();
+      showToast(`Bienvenido, ${_USER.nombre || _USER.usuario || user}`, 'success');
     } catch (err) {
-      loginError.textContent = err.message || 'Credenciales inválidas o error de conexión.';
+      console.error('Login error:', err);
+      let msg = err.message || 'Error desconocido al iniciar sesión.';
+
+      // ✅ Diagnóstico específico para "Failed to fetch"
+      if (msg === 'Failed to fetch' || msg.includes('NetworkError') || msg.includes('Load failed')) {
+        const here = window.location.origin;
+        msg =
+          `No se pudo conectar con el servidor (${LOGIN_URL}).\n` +
+          `Origen actual: ${here || 'file:// (archivo local)'}\n\n` +
+          `Causas probables:\n` +
+          `• Estás abriendo el HTML como archivo local (file://) → los fetch fallan.\n` +
+          `• CORS bloqueado: el backend no responde al preflight OPTIONS.\n` +
+          `• Sin conexión a internet.\n\n` +
+          `Solución recomendada:\n` +
+          `Sirve este HTML desde el mismo dominio (https://laboratorio-nu.vercel.app)\n` +
+          `o usa "vercel dev" en local. Revisa F12 → Console y F12 → Network.`;
+      }
+
+      loginError.textContent = msg;
       loginError.classList.remove('hidden');
-      showToast('Error de inicio de sesión: ' + err.message, 'error');
+      showToast('Error de inicio de sesión: ' + msg.split('\n')[0], 'error');
     } finally {
       loginBtn.textContent = 'Ingresar';
       loginBtn.disabled = false;
@@ -849,8 +922,7 @@
 
       // ---- PASO 3: enviar a la API ----
       try {
-        const url = new URL(API_BASE, window.location.origin);
-        const res = await fetch(url.toString(), {
+        const res = await fetch(API_BASE, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(payloadBody)
